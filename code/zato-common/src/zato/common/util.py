@@ -305,9 +305,9 @@ def new_cid():
     for any cryptographical purposes, it's only meant to be used as a conveniently
     formatted ticket attached to each of the requests processed by Zato servers.
     Changed in 2.0: The number is now 28 characters long not 40, like in previous versions.
-    Changed in 2.1: The number is a timestamp followed by 10 bytes of random data, total length is 32 characters.
+    Changed in 2.1: The number is a timestamp followed by 10 bytes of random data, total length is 33 characters.
     """
-    return '{}{:0>10}'.format(datetime.utcnow().strftime('%y%m%d%H%M%S%f'), getrandbits(30))
+    return '{}-{:0>10}'.format(datetime.utcnow().strftime('%y%m%d%H%M%S%f'), getrandbits(30))
 
 def get_config(repo_location, config_name, bunchified=True):
     """ Returns the configuration object. Will load additional user-defined config files,
