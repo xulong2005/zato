@@ -11,11 +11,15 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 # stdlib
 import logging
 import socket
+import sys
 from cmd import Cmd
 from datetime import datetime, timedelta
 from json import dumps, loads
 from thread import start_new_thread
 from traceback import format_exc
+
+# cmd2
+from cmd2 import Cmd
 
 # gevent
 import gevent
@@ -113,12 +117,24 @@ class Client(object):
 
 # ################################################################################################################################
 
-class ConsoleClient(Client):
-    pass
+class ConsoleClient(Client, Cmd):
+
+    prompt = 'zato% '
+
+    def run_forever(self):
+        super(ConsoleClient, self).run_forever()
+        Cmd.__init__(self)
+        self.cmdloop()
+
+    def write(self, msg):
+        sys.stdout.write(msg + '\n')
+
+    def do_where(self, arg):
+        self.write('Connected to `{}`, session_id `{}`'.format(self.connection.address, self.connection.session_id))
+        self.connection.send_sync(Message())
 
 # ################################################################################################################################
 
 if __name__ == '__main__':
     c = ConsoleClient()
     c.run_forever()
-    gevent.sleep(20)
