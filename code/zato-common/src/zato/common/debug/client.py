@@ -25,7 +25,7 @@ from cmd2 import Cmd
 import gevent
 
 # Zato
-from zato.common.debug import Connection as _Connection, Message, MESSAGE_TYPE
+from zato.common.debug import Connection as _Connection, ConnectionException, Message, MESSAGE_TYPE
 from zato.common.util import new_cid
 
 logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
@@ -48,7 +48,7 @@ class Connection(_Connection):
 # ################################################################################################################################
 
     def connect(self):
-        """ Connect to the server or time out and raise an exception.
+        """ Connect to the server or time out and raise an eloggerxception.
         """
         start = now = datetime.utcnow()
         until = start + timedelta(seconds=self.connect_timeout)
@@ -83,9 +83,8 @@ class Connection(_Connection):
 
 # ################################################################################################################################
 
-    def send(self, msg):
-        self.sock_file.write(msg.to_wire())
-        self.sock_file.flush()
+    def handle_get_strack_trace_resp(self, msg):
+        print(msg.as_bunch())
 
 # ################################################################################################################################
 
@@ -129,9 +128,33 @@ class ConsoleClient(Client, Cmd):
     def write(self, msg):
         sys.stdout.write(msg + '\n')
 
-    def do_where(self, arg):
+    def do_info(self, arg):
+        """ Returns information on where this session belongs to.
+        """
         self.write('Connected to `{}`, session_id `{}`'.format(self.connection.address, self.connection.session_id))
-        self.connection.send_sync(Message())
+
+    def do_entrypoint(self, arg):
+        """ Attaches the debugger to code by its file name and line number.
+        """
+        msg = Message()
+        msg.msg_type = MESSAGE_TYPE.REQUEST.SET_ENTRY_POINT
+        msg.is_sync = False
+        msg.data = arg.strip().split(':')
+
+        self.connection.send(msg)
+
+    def do_where(self, arg):
+        """ Returns current stack trace.
+        """
+        msg = Message()
+        msg.msg_type = MESSAGE_TYPE.REQUEST.GET_STRACK_TRACE
+
+        data = self.connection.send(msg)
+
+    # Aliases
+    do_i = do_info
+    do_ep = do_entrypoint
+    do_w = do_where
 
 # ################################################################################################################################
 

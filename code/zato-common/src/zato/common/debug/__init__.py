@@ -13,6 +13,9 @@ from json import loads, dumps
 from time import sleep
 import logging
 
+# Bunch
+from bunch import bunchify
+
 # Zato
 from zato.common.util import new_cid
 
@@ -25,6 +28,13 @@ logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
 
 # ################################################################################################################################
 
+def json_dumps_default(obj):
+    if isinstance(obj, Frame):
+        return obj.to_dict()
+    return str(obj)
+
+# ################################################################################################################################
+
 class ConnectionException(Exception):
     pass
 
@@ -33,20 +43,25 @@ class ConnectionException(Exception):
 class MESSAGE_TYPE:
 
     class REQUEST:
+        GET_STRACK_TRACE = 'get_strack_trace_req'
+        SET_ENTRY_POINT = 'set_entry_point_req'
         WELCOME = 'welcome_req'
 
     class RESPONSE:
+        GET_STRACK_TRACE = 'get_strack_trace_resp'
+        SET_ENTRY_POINT = 'set_entry_point_resp'
         WELCOME = 'welcome_resp'
 
 # ################################################################################################################################
 
 class Message(object):
-    def __init__(self):
+    def __init__(self, msg_id=None):
+        self.msg_id = msg_id or new_cid()
         self.msg_type = None
-        self.msg_id = None
         self.session_id = None
         self.in_reply_to = None
         self.is_sync = True
+        self.data = None
 
     def as_dict(self):
         return {
@@ -55,10 +70,14 @@ class Message(object):
             'msg_id': self.msg_id,
             'in_reply_to': self.in_reply_to,
             'is_sync': self.is_sync,
+            'data': self.data,
         }
 
+    def as_bunch(self):
+        return bunchify(self.as_dict())
+
     def to_wire(self):
-        return dumps(self.as_dict()).encode('base64').replace('\n', NEWLINE_MARKER) + '\n'
+        return dumps(self.as_dict(), default=json_dumps_default).encode('base64').replace('\n', NEWLINE_MARKER) + '\n'
 
     @staticmethod
     def from_wire(data):
@@ -67,6 +86,27 @@ class Message(object):
         for k, v in loads(data).iteritems():
             setattr(msg, k, v)
         return msg
+
+# ################################################################################################################################
+
+class Frame(object):
+    def __init__(self):
+        self.obj_id = None
+        self.file_name = None
+        self.line = None
+        self.line_no = None
+        self.args = None
+        self.locals_ = None
+
+    def to_dict(self):
+        return {
+            'obj_id': self.obj_id,
+            'file_name': self.file_name,
+            'line': self.line,
+            'line_no': self.line_no,
+            'args': self.args,
+            'locals_': self.locals_,
+        }
 
 # ################################################################################################################################
 
@@ -112,13 +152,15 @@ class Connection(object):
             else:
                 return response
 
+# ################################################################################################################################
+
     def send_async(self, msg):
         raise NotImplementedError()
 
 # ################################################################################################################################
 
-    def send_response(self, req_msg):
-        msg = Message()
+    def send_response(self, req_msg, resp_msg=None):
+        resp_msg = resp_msg or Message()
 
         for item in dir(MESSAGE_TYPE.REQUEST):
             if getattr(MESSAGE_TYPE.REQUEST, item) == req_msg.msg_type:
@@ -127,13 +169,18 @@ class Connection(object):
                 except AttributeError:
                     raise ValueError('No response type found for request `{}`'.format(req_msg.as_dict()))
 
-        msg.msg_id = new_cid()
-        msg.msg_type = resp_msg_type
-        msg.session_id = req_msg.session_id
-        msg.in_reply_to = req_msg.msg_id
-        msg.is_sync = False
+        resp_msg.msg_type = resp_msg_type
+        resp_msg.session_id = req_msg.session_id
+        resp_msg.in_reply_to = req_msg.msg_id
+        resp_msg.is_sync = False
 
-        self.send(msg)
+        self.send(resp_msg)
+
+# ################################################################################################################################
+
+    def send(self, msg):
+        self.file_sock.write(msg.to_wire())
+        self.file_sock.flush()
 
 # ################################################################################################################################
 
