@@ -24,8 +24,6 @@ from zato.common.util import new_cid
 # is assumed to be a separate request or response.
 NEWLINE_MARKER = 'ZATOZATOZATOZATO'
 
-logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
-
 # ################################################################################################################################
 
 def json_dumps_default(obj):
@@ -95,6 +93,7 @@ class Frame(object):
         self.file_name = None
         self.line = None
         self.line_no = None
+        self.co_name = None
         self.args = None
         self.locals_ = None
 
@@ -104,6 +103,7 @@ class Frame(object):
             'file_name': self.file_name,
             'line': self.line,
             'line_no': self.line_no,
+            'co_name': self.co_name,
             'args': self.args,
             'locals_': self.locals_,
         }

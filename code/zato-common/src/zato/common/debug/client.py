@@ -15,6 +15,7 @@ import sys
 from cmd import Cmd
 from datetime import datetime, timedelta
 from json import dumps, loads
+from pprint import pprint
 from thread import start_new_thread
 from traceback import format_exc
 
@@ -28,15 +29,16 @@ import gevent
 from zato.common.debug import Connection as _Connection, ConnectionException, Message, MESSAGE_TYPE
 from zato.common.util import new_cid
 
-logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
+logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO, filename='debug-client.log')
 
 logger = logging.getLogger(__name__)
 
 # ################################################################################################################################
 
 class Connection(_Connection):
-    def __init__(self, host='localhost', port=19055, buff_size=8192, connect_timeout=4, sleep_time=0.2):
+    def __init__(self, client, host='localhost', port=19055, buff_size=8192, connect_timeout=4, sleep_time=0.2):
         super(Connection, self).__init__(socket.socket(socket.AF_INET, socket.SOCK_STREAM), (host, port))
+        self.client = client
         self.buff_size = buff_size
         self.connect_timeout = connect_timeout
         self.sleep_time = sleep_time
@@ -84,7 +86,7 @@ class Connection(_Connection):
 # ################################################################################################################################
 
     def handle_get_strack_trace_resp(self, msg):
-        print(msg.as_bunch())
+        return self.client.handle_get_strack_trace_resp(msg)
 
 # ################################################################################################################################
 
@@ -104,7 +106,7 @@ class Client(object):
     subclasses, regardless of whether they implement console or web-based access.
     """
     def __init__(self):
-        self.connection = Connection()
+        self.connection = Connection(self)
         self.session_id = None
         self.req_to_server = {}
         self.resp_from_server = {}
@@ -125,8 +127,10 @@ class ConsoleClient(Client, Cmd):
         Cmd.__init__(self)
         self.cmdloop()
 
-    def write(self, msg):
-        sys.stdout.write(msg + '\n')
+    def write(self, msg, needs_newline=True):
+        sys.stdout.write(msg)
+        if needs_newline:
+            sys.stdout.write('\n')
 
     def do_info(self, arg):
         """ Returns information on where this session belongs to.
@@ -139,22 +143,38 @@ class ConsoleClient(Client, Cmd):
         msg = Message()
         msg.msg_type = MESSAGE_TYPE.REQUEST.SET_ENTRY_POINT
         msg.is_sync = False
+        msg.session_id = self.session_id
         msg.data = arg.strip().split(':')
 
         self.connection.send(msg)
 
-    def do_where(self, arg):
-        """ Returns current stack trace.
+    def do_stacktrace(self, arg):
+        """ Returns current stack trace, either verbose or simplified.
         """
         msg = Message()
         msg.msg_type = MESSAGE_TYPE.REQUEST.GET_STRACK_TRACE
+        msg.session_id = self.session_id
+        msg.data = {'verbose':arg.startswith('v')}
 
         data = self.connection.send(msg)
+
+    def handle_get_strack_trace_resp(self, msg):
+        msg = msg.as_bunch()
+
+        if msg.data.verbose:
+            self.write(str(msg))
+
+        else:
+            lines = ['Traceback (most recent call last):']
+            for item in msg.data.stack_trace:
+                lines.append('  File "{}", line {}, in {}'.format(item.file_name, item.line_no, item.co_name))
+                lines.append('   {}'.format(item.line))
+            self.write('\n\n' + '\n'.join(lines))
 
     # Aliases
     do_i = do_info
     do_ep = do_entrypoint
-    do_w = do_where
+    do_st = do_stacktrace
 
 # ################################################################################################################################
 
