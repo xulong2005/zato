@@ -77,16 +77,18 @@ class Debugger(bdb.Bdb):
         # cache it here to ensure that modifications are not overwritten.
         self.curframe_locals = self.curframe.f_locals
 
+    def user_call(self, frame, argument_list):
+        print(frame, argument_list)
+
 # ################################################################################################################################
 
 class ClientConnection(Connection):
-    """ An individual connection from a client to the debugging server.
+    """ A connection from a client to the debugging server.
     """
     def __init__(self, *args, **kwargs):
         super(ClientConnection, self).__init__(*args, **kwargs)
         self.debugger = Debugger()
         self.debugger.reset()
-        self.debugger.setup(sys._getframe(0), None)
 
 # ################################################################################################################################
 
@@ -101,14 +103,12 @@ class ClientConnection(Connection):
 
     def run_forever(self):
 
-        #self.handle_get_strack_trace_req(None)
-
         self.logger.info('Client connected `%s`, sid:`%s`', self.address, self.session_id)
 
         # Welcome the client, tell them what their session_id is
         self.welcome()
 
-        # Blocks for as long as the client connection exhttps://github.com/zatosource/zato/commit/832b43f317130ccea0be97468f5e5aac078ce183ists
+        # Blocks for as long as the client connection exists
         self.main_loop()
 
         self.logger.info('Client disconnected `%s`, sid:`%s`', self.address, self.session_id)
@@ -134,7 +134,6 @@ class ClientConnection(Connection):
             if verbose:
 
                 locals_ = {}
-
                 for name, obj in frame.f_locals.items():
                     locals_[hex(id(obj))] = (name, obj)
     
@@ -149,6 +148,14 @@ class ClientConnection(Connection):
         msg.data = stack_data
 
         self.send_response(req_msg, msg)
+
+# ################################################################################################################################
+
+    def handle_step_req(self, req_msg):
+        self.debugger.set_step()
+
+    def handle_next_req(self, req_msg):
+        self.debugger.set_next(self.debugger.curframe)
 
 # ################################################################################################################################
 
@@ -170,27 +177,33 @@ class DebugServer(object):
         self.port = port
         self.addr = (self.host, self.port)
         self.impl = StreamServer((host, port), self.on_client_connected)
-        self.clients = []
+        self.client = None
 
 # ################################################################################################################################
 
     def on_client_connected(self, socket, address):
-        cc = ClientConnection(socket, address, new_cid())
-        self.clients.append(cc)
-        cc.run_forever()
+        self.client = ClientConnection(socket, address, new_cid())
+        sys.settrace(self.client.debugger.trace_dispatch)
+        self.client.run_forever()
 
 # ################################################################################################################################
 
     def run(self):
-        #self.on_client_connected(None, None)
-        sys.settrace(self.trace)
+        #sys.settrace(self.trace)
         self.impl.serve_forever()
 
     def on_call(self, frame, event):
-        if event == 'call':
-            for cc in self.clients:
-                if frame.f_code.co_filename == cc.debugger.entry_file and frame.f_code.co_name == cc.debugger.entry_line:
-                    cc.debugger.setup(frame, None)
+
+        # So the if below is not too long
+        client = self.client
+
+        if client:
+            if event == 'call':
+                if frame.f_code.co_filename == client.debugger.entry_file and frame.f_code.co_name == client.debugger.entry_line:
+                    client.debugger.setup(frame, None)
+                    client.debugger.set_continue()
+                    import time
+                    time.sleep(90)
 
     def trace(self, frame, event, arg):
         self.on_call(frame, event)
@@ -214,6 +227,7 @@ class App(object):
         self.foo()
 
     def on_request(self, env, start_response):
+        sys.settrace(self.debug_server.client.debugger.trace_dispatch)
         path = env['PATH_INFO']
         self.handle()
 
@@ -224,5 +238,4 @@ if __name__ == '__main__':
     app = App()
 
     spawn(app.debug_server.run)
-
     WSGIServer(('', 8088), app.on_request).serve_forever()

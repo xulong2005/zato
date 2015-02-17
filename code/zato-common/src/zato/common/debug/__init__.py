@@ -11,6 +11,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 # stdlib
 from json import loads, dumps
 from time import sleep
+from traceback import format_exc
 import logging
 
 # Bunch
@@ -23,6 +24,10 @@ from zato.common.util import new_cid
 # because messages from sockets are read line by line and each line
 # is assumed to be a separate request or response.
 NEWLINE_MARKER = 'ZATOZATOZATOZATO'
+
+logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO, filename='debug-common.log')
+
+logger = logging.getLogger(__name__)
 
 # ################################################################################################################################
 
@@ -42,12 +47,16 @@ class MESSAGE_TYPE:
 
     class REQUEST:
         GET_STRACK_TRACE = 'get_strack_trace_req'
+        NEXT = 'next_req'
         SET_ENTRY_POINT = 'set_entry_point_req'
+        STEP = 'step_req'
         WELCOME = 'welcome_req'
 
     class RESPONSE:
         GET_STRACK_TRACE = 'get_strack_trace_resp'
+        NEXT = 'next_resp'
         SET_ENTRY_POINT = 'set_entry_point_resp'
+        STEP = 'step_resp'
         WELCOME = 'welcome_resp'
 
 # ################################################################################################################################
@@ -201,9 +210,11 @@ class Connection(object):
 # ################################################################################################################################
 
     def on_message(self, data):
-        msg = Message.from_wire(data)
-        self.logger.info('Got message %r', msg.as_dict())
-
-        getattr(self, 'handle_{}'.format(msg.msg_type))(msg)
+        try:
+            msg = Message.from_wire(data)
+            self.logger.info('Got message %r', msg.as_dict())
+            getattr(self, 'handle_{}'.format(msg.msg_type))(msg)
+        except Exception, e:
+            logger.warn('Could not handle data:`%s`, e:`%s`', data, format_exc(e))
 
 # ################################################################################################################################

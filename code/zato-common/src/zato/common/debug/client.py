@@ -122,6 +122,15 @@ class ConsoleClient(Client, Cmd):
 
     prompt = 'zato% '
 
+    def send_command(self, msg_type, is_sync=True, data=None):
+        msg = Message()
+        msg.msg_type = msg_type
+        msg.session_id = self.session_id
+        msg.is_sync = is_sync
+        msg.data = data
+
+        self.connection.send(msg)
+
     def run_forever(self):
         super(ConsoleClient, self).run_forever()
         Cmd.__init__(self)
@@ -140,23 +149,12 @@ class ConsoleClient(Client, Cmd):
     def do_entrypoint(self, arg):
         """ Attaches the debugger to code by its file name and line number.
         """
-        msg = Message()
-        msg.msg_type = MESSAGE_TYPE.REQUEST.SET_ENTRY_POINT
-        msg.is_sync = False
-        msg.session_id = self.session_id
-        msg.data = arg.strip().split(':')
+        self.send_command(MESSAGE_TYPE.REQUEST.SET_ENTRY_POINT, False, arg.strip().split(':'))
 
-        self.connection.send(msg)
-
-    def do_stacktrace(self, arg):
+    def do_where(self, arg):
         """ Returns current stack trace, either verbose or simplified.
         """
-        msg = Message()
-        msg.msg_type = MESSAGE_TYPE.REQUEST.GET_STRACK_TRACE
-        msg.session_id = self.session_id
-        msg.data = {'verbose':arg.startswith('v')}
-
-        data = self.connection.send(msg)
+        self.send_command(MESSAGE_TYPE.REQUEST.GET_STRACK_TRACE, data={'verbose':arg.startswith('v')})
 
     def handle_get_strack_trace_resp(self, msg):
         msg = msg.as_bunch()
@@ -171,10 +169,16 @@ class ConsoleClient(Client, Cmd):
                 lines.append('   {}'.format(item.line))
             self.write('\n\n' + '\n'.join(lines))
 
+    def do_next(self, arg):
+        """ Steps to the next line in the stack.
+        """
+        self.send_command(MESSAGE_TYPE.REQUEST.NEXT)
+
     # Aliases
     do_i = do_info
     do_ep = do_entrypoint
-    do_st = do_stacktrace
+    do_w = do_where
+    do_n = do_next
 
 # ################################################################################################################################
 
