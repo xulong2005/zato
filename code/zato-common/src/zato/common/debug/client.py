@@ -170,15 +170,21 @@ class ConsoleClient(Client, Cmd):
             self.write('\n\n' + '\n'.join(lines))
 
     def do_next(self, arg):
-        """ Steps to the next line in the stack.
+        """ Steps to the next line in the stack without entering functions.
         """
         self.send_command(MESSAGE_TYPE.REQUEST.NEXT)
+
+    def do_step(self, arg):
+        """ Steps to the next line in the stack, entering functions if necessary.
+        """
+        self.send_command(MESSAGE_TYPE.REQUEST.STEP)
 
     # Aliases
     do_i = do_info
     do_ep = do_entrypoint
-    do_w = do_where
     do_n = do_next
+    do_s = do_step
+    do_w = do_where
 
 # ################################################################################################################################
 

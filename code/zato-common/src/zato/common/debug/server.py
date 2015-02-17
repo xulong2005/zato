@@ -24,9 +24,6 @@ import sys
 # Arrow
 from arrow import utcnow
 
-# Dill
-import dill
-
 # gevent
 from gevent import sleep, spawn
 from gevent.pywsgi import WSGIServer
@@ -57,6 +54,8 @@ class Debugger(bdb.Bdb):
         # Where we should start debugging
         self.entry_file = None 
         self.entry_line = None
+        self.quit_called = False
+        self.entry_visited = False
 
     def reset(self):
         bdb.Bdb.reset(self)
@@ -78,7 +77,15 @@ class Debugger(bdb.Bdb):
         self.curframe_locals = self.curframe.f_locals
 
     def user_call(self, frame, argument_list):
-        print(frame, argument_list)
+        if frame.f_code.co_filename == self.entry_file and frame.f_code.co_name == self.entry_line:
+            self.entry_visited = True
+            self.setup(frame, None)
+            sleep(2)
+
+    def user_line(self, frame):
+        if self.entry_visited:
+            self.setup(frame, None)
+            sleep(2)
 
 # ################################################################################################################################
 
@@ -183,31 +190,12 @@ class DebugServer(object):
 
     def on_client_connected(self, socket, address):
         self.client = ClientConnection(socket, address, new_cid())
-        sys.settrace(self.client.debugger.trace_dispatch)
         self.client.run_forever()
 
 # ################################################################################################################################
 
     def run(self):
-        #sys.settrace(self.trace)
         self.impl.serve_forever()
-
-    def on_call(self, frame, event):
-
-        # So the if below is not too long
-        client = self.client
-
-        if client:
-            if event == 'call':
-                if frame.f_code.co_filename == client.debugger.entry_file and frame.f_code.co_name == client.debugger.entry_line:
-                    client.debugger.setup(frame, None)
-                    client.debugger.set_continue()
-                    import time
-                    time.sleep(90)
-
-    def trace(self, frame, event, arg):
-        self.on_call(frame, event)
-        return self.trace
 
 # ################################################################################################################################
 
