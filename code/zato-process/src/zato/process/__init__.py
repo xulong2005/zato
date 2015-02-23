@@ -98,9 +98,9 @@ class Process(object):
 
 #proc = Process.from_workflow_spec_path('wf1.yaml')
 
-proc = Process.from_state_path('wf1-state.yaml')
+#proc = Process.from_state_path('wf1-state.yaml')
 
-print(proc.get_dump())
+#print(proc.get_dump())
 
 '''
 can_continue = True
