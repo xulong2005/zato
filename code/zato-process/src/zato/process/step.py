@@ -8,15 +8,29 @@ Licensed under LGPLv3, see LICENSE.txt for terms and conditions.
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+# Zato
+from zato.common.util import make_repr, new_cid
+
 class Node(object):
     """ A basic unit for constructing processes - parent of steps, paths and handlers.
     """
-    def __init__(self):
-        self.parent = Step()
-        self.previous = Step()
-        self.next = Step()
+    def init(self):
+        self.parent = Node()
+        self.previous = Node()
+        self.next = Node()
         self.name = ''
-        self.id = ''
+        self.id = new_cid()
+
+    def __repr__(self):
+        return make_repr(self)
+
+class Start(Node):
+    """ Node represening start of a process.
+    """
+    def __init__(self):
+        super(Start, self).__init__()
+        self.path = ''
+        self.service = ''
 
 class Step(Node):
     """ A base class for steps a process is composed of.
@@ -44,8 +58,8 @@ class Else(Step):
     def __init__(self, parent):
         self.parent = parent
 
-class Call(Step):
-    """ Calls another path or process by name.
+class Enter(Step):
+    """ Enters into another path or process by name.
     """
     def __init__(self, parent):
         self.parent = parent
