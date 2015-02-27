@@ -9,11 +9,21 @@ Licensed under LGPLv3, see LICENSE.txt for terms and conditions.
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 # stdlib
+from cStringIO import StringIO
 from string import whitespace
 import itertools
 
 # addict
 from addict import Dict
+
+# asteval
+from asteval import Interpreter
+
+# Bunch
+from bunch import bunchify
+
+# ConfigObj
+from configobj import ConfigObj
 
 # parse
 from parse import compile as parse_compile
@@ -39,6 +49,19 @@ class Config(object):
         self.service_map[data['label']] = data['service']
 
 class ConfigItem(object):
+    def __init__(self, prefix, pattern):
+        self.prefix = prefix
+        self.pattern = parse_compile(pattern)
+
+class Pipeline(object):
+    def __init__(self):
+        self.config = {}
+        self.data = {}
+
+        # Same format for all languages supported
+        self.entry_pattern = parse_compile('ZATO_DOES_NOT_EXIST')
+
+class PathItem(object):
     def __init__(self, name, pattern):
         self.name = name
         self.pattern = parse_compile(pattern)
@@ -51,19 +74,26 @@ class ProcessDefinition(object):
         self.name = ''
         self.version = 0
         self.ext_version = ''
-        self.lang = ''
+        self.lang_code = ''
+        self.lang_name = '' 
+        self.vocab_text = ''
         self.text = ''
         self.text_split = self.text.splitlines()
+        self._eval = Interpreter()
         self.config = Config()
+        self.pipeline = Pipeline()
+        self.paths = {}
 
-        # Same format for all languages supported
-        self.pipeline_entry_pattern = '{name}: {data_type}'
+        self.vocab = Dict()
+        self.vocab.top_level = []
+        self.vocab.config = {}
+        self.vocab.pipeline = {}
+        self.vocab.path = {}
+        self.vocab.handler = {}
 
-        self.en_uk_top_level = ('Config:', 'Path:', 'Handler:', 'Pipeline:')
-        self.en_uk_config = {
-            'Start:': ConfigItem('start', "Start: '{path}' from '{service}'"),
-            'Map service': ConfigItem('service_map', "Map service '{service}' to '{label}'"),
-        }
+        #    'start': ConfigItem('Start:', "Start: {path} from {service}"),
+        #    'service_map': ConfigItem('Map service', "Map service {service} to {label}"),
+        #}
 
 # ################################################################################################################################
 
@@ -74,7 +104,7 @@ class ProcessDefinition(object):
         for line in self.text_split[start_idx+1:]:
             line = line.strip()
             if line:
-                if list(itertools.ifilter(line.startswith, self.en_uk_top_level)):
+                if list(itertools.ifilter(line.startswith, self.vocab_top_level)):
                     break
                 else:
                     block.append(line)
@@ -83,102 +113,70 @@ class ProcessDefinition(object):
 
 # ################################################################################################################################
 
-    def parse_en_uk_config(self, start_idx):
-        config = Config()
-        block = self.get_block(start_idx)
-
-        for line in block:
-            for prefix, item in self.en_uk_config.iteritems():
-                if line.startswith(prefix):
+    def parse_config(self, start_idx):
+        for line in self.get_block(start_idx):
+            for name, item in self.vocab.config.iteritems():
+                if line.startswith(item.prefix):
                     result = item.pattern.parse(line)
-                    getattr(config, 'handle_{}'.format(item.name))(result.named)
-
-        print(config.service_map)
-        print(config.start)
+                    getattr(self.config, 'handle_{}'.format(name))(result.named)
 
 # ################################################################################################################################
 
-    def parse_en_uk_path(self, start_idx):
-        #print('Path', start_idx)
-        pass
+    def parse_path(self, start_idx):
+        return
+        block = self.get_block(start_idx)
+        #print(block)
 
 # ################################################################################################################################
 
-    def parse_en_uk_handler(self, start_idx):
+    def parse_handler(self, start_idx):
         #print('Handler', start_idx)
         pass
 
 # ################################################################################################################################
 
-    def parse_en_uk_pipeline(self, start_idx):
-        #print('Pipeline', start_idx)
-        pass
+    def parse_pipeline(self, start_idx):
+        for item in self.get_block(start_idx):
+            named = self.pipeline.entry_pattern.parse(item).named
+            self.pipeline.config[named['name']] = self._eval(named['data_type'])
 
 # ################################################################################################################################
 
-    def parse_en_uk(self):
+    def read_vocab(self):
+        conf = bunchify(ConfigObj(self.vocab_text.splitlines()))
+
+        self.lang_name = conf.main.name
+        self.vocab_top_level = conf.main.top_level
+        self.pipeline.entry_pattern = parse_compile(conf.pipeline.pattern)
+
+    def parse(self):
+        self.read_vocab()
         self.text_split[:] = self.text.splitlines()
+
         for idx, line in enumerate(self.text_split):
             if line.strip() and line[0] not in whitespace:
                 split = line.split()
                 block_name = split[0].replace(':', '')
-                getattr(self, 'parse_{}_{}'.format(self.lang, block_name.lower()))(idx)
+                getattr(self, 'parse_{}'.format(block_name.lower()))(idx)
 
-# ################################################################################################################################
-
-    def parse(self):
-        return getattr(self, 'parse_{}'.format(self.lang))()
-        
 # ################################################################################################################################
 
 if __name__ == '__main__':
-    text = """
-Config:
 
-  Start: 'order.management' from 'my.channel.feasibility-study'
+    proc_path = './proc.txt'
+    lang_code = 'en_uk'
 
-  Map service 'adapter.crm.delete.user' to 'delete.crm'
-  Map service 'adapter.billing.delete.user' to 'delete.billing'
-
-Pipeline:
-  user_name: str
-  user_id: int
-  user_addresses: list
-  user_social: dict
-
-Path: order.management
-
-  Require 'feasibility.study' or 'reject.order'
-  Wait for signals 'patch.complete, drop.complete'
-  Enter 'order.complete'
-
-Handler: cease
-  Ignore signals: amend, *.complete
-
-  Invoke core.order.release-resources
-  Invoke core.order.on-cease
-
-Handler: amend
-  Invoke core.order.amend
-
-Handler: patch.complete
-  Invoke core.order.patch-complete
-
-Handler: drop.complete
-  Invoke core.order.on-drop-complete
-
-Path: feasibility.study
-  Invoke 'core.order.feasibility-study'
-
-Path: order.complete
-  Invoke 'core.order.notify-complete'
-
-Path: reject.order
-  Invoke 'core.order.reject'
-  Emit 'order.rejected'
-"""
+    text = open(proc_path).read()
+    vocab_text = open('vocab-{}.ini'.format(lang_code)).read()
 
     pd = ProcessDefinition()
     pd.text = text.strip()
-    pd.lang = 'en_uk'
+    pd.lang_code = lang_code
+    pd.vocab_text = vocab_text
     pd.parse()
+
+    #print(pd.config.start)
+    #print(pd.config.service_map)
+
+    #print(pd.pipeline.config)
+    #print(pd.pipeline.data)
