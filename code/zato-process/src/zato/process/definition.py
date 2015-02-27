@@ -30,11 +30,13 @@ from parse import compile as parse_compile
 
 # Zato
 from zato.process.path import Path
-from zato.process.step import Start
+from zato.process import step
+
+_ZATO_DOES_NOT_EXIST = 'ZATO_DOES_NOT_EXIST'
 
 class Config(object):
     def __init__(self):
-        self.start = Start()
+        self.start = step.Start()
         self.start.init()
         self.start.name = 'Start'
         self.start.parent = None
@@ -48,23 +50,27 @@ class Config(object):
     def handle_service_map(self, data):
         self.service_map[data['label']] = data['service']
 
-class ConfigItem(object):
-    def __init__(self, prefix, pattern):
-        self.prefix = prefix
-        self.pattern = parse_compile(pattern)
-
 class Pipeline(object):
     def __init__(self):
         self.config = {}
         self.data = {}
 
         # Same format for all languages supported
-        self.entry_pattern = parse_compile('ZATO_DOES_NOT_EXIST')
+        self.entry_pattern = parse_compile(_ZATO_DOES_NOT_EXIST)
+
+class Path(object):
+    def __init__(self):
+        self.name = ''
+        self.nodes = []
 
 class PathItem(object):
-    def __init__(self, name, pattern):
-        self.name = name
-        self.pattern = parse_compile(pattern)
+    def __init__(self):
+        self.name = ''
+        self.data = {}
+        self.node = step.Node()
+
+    def create_node(self):
+        print(self.name, self.data)
 
 class ProcessDefinition(object):
     """ A definition of a process out of which new process instances are created.
@@ -90,10 +96,6 @@ class ProcessDefinition(object):
         self.vocab.pipeline = {}
         self.vocab.path = {}
         self.vocab.handler = {}
-
-        #    'start': ConfigItem('Start:', "Start: {path} from {service}"),
-        #    'service_map': ConfigItem('Map service', "Map service {service} to {label}"),
-        #}
 
 # ################################################################################################################################
 
@@ -123,9 +125,18 @@ class ProcessDefinition(object):
 # ################################################################################################################################
 
     def parse_path(self, start_idx):
-        return
-        block = self.get_block(start_idx)
-        #print(block)
+        path = Path()
+        path.name = self.vocab.path.name.parse(self.text_split[start_idx]).named['path']
+
+        for line in self.get_block(start_idx):
+            for k, v in self.vocab.path.items():
+                result = v.parse(line)
+                if result:
+                    path_item = PathItem()
+                    path_item.name = k
+                    path_item.data = result.named
+                    path_item.create_node()
+                    path.nodes.append(path_item)
 
 # ################################################################################################################################
 
@@ -148,6 +159,14 @@ class ProcessDefinition(object):
         self.lang_name = conf.main.name
         self.vocab_top_level = conf.main.top_level
         self.pipeline.entry_pattern = parse_compile(conf.pipeline.pattern)
+        self.vocab.path.name = parse_compile(conf.path.path)
+
+        # Keys that are not actually steps in a path
+        ignored = ['path']
+
+        for k, v in conf.path.iteritems():
+            if k not in ignored:
+                self.vocab.path[k] = parse_compile(v)
 
     def parse(self):
         self.read_vocab()

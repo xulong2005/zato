@@ -22,8 +22,7 @@ Handler: cease
   Invoke core.order.release-resources
   Invoke core.order.on-cease
 
-Handler:
-  Name: amend
+Handler: amend
   Invoke core.order.amend
 
 Handler: patch.complete
