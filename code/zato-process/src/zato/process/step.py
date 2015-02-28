@@ -8,20 +8,20 @@ Licensed under LGPLv3, see LICENSE.txt for terms and conditions.
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+# stdlib
+from inspect import isclass
+
 # Zato
 from zato.common.util import make_repr, new_cid
 
 class Node(object):
     """ A basic unit for constructing processes - parent of steps, paths and handlers.
     """
-    node_type = ''
+    name = 'node'
 
-    def init(self):
-        self.parent = Node()
-        self.previous = Node()
-        self.next = Node()
-        self.name = ''
+    def __init__(self, **data):
         self.id = new_cid()
+        self.data = data
 
     def __repr__(self):
         return make_repr(self)
@@ -29,6 +29,8 @@ class Node(object):
 class Start(Node):
     """ Node represening start of a process.
     """
+    name = 'start'
+
     def __init__(self):
         super(Start, self).__init__()
         self.path = ''
@@ -37,17 +39,17 @@ class Start(Node):
 class Step(Node):
     """ A base class for steps a process is composed of.
     """
-    node_type = 'step'
+    name = 'step'
 
 class Handler(Node):
     """ A block of steps handling one or more signals.
     """
-    node_type = 'handler'
+    name = 'handler'
 
 class Fork(Step):
     """ Forks out to two or more logical threads of execution.
     """
-    node_type = 'fork'
+    name = 'fork'
 
     def __init__(self, parent):
         self.parent = parent
@@ -55,55 +57,51 @@ class Fork(Step):
 class If(Step):
     """ The 'if' part of an 'if/else' block.
     """
-    node_type = 'if'
-
-    def __init__(self, parent):
-        self.parent = parent
+    name = 'if'
 
 class Else(Step):
     """ The 'else' part of an 'if/else' block.
     """
-    node_type = 'else'
-
-    def __init__(self, parent):
-        self.parent = parent
+    name = 'else'
 
 class Enter(Step):
     """ Enters into another path or process by name.
     """
-    node_type = 'enter'
-
-    def __init__(self, parent):
-        self.parent = parent
+    name = 'enter'
 
 class Invoke(Step):
     """ Invokes a service by its name.
     """
-    node_type = 'invoke'
-
-    def __init__(self, parent):
-        self.parent = parent
+    name = 'invoke'
 
 class Require(Step):
     """ Calls another path or process by name and ensures it completed successfully.
     """
-    node_type = 'require'
+    name = 'require'
 
-    def __init__(self, parent):
-        self.parent = parent
-
-class Wait(Step):
-    """ Waits for appearance of one or more signals.
+class RequireOr(Require):
+    """ Like Require but has an or path if the initial path didn't succeed.
     """
-    node_type = 'wait'
+    name = 'require_or'
 
-    def __init__(self, parent):
-        self.parent = parent
+class WaitSignal(Step):
+    """ Waits for appearance of a signal.
+    """
+    name = 'wait_sig'
+
+class WaitSignals(Step):
+    """ Waits for appearance of more than one signal.
+    """
+    name = 'wait_sigs'
 
 class Emit(Step):
     """ Emits an event to subscribers waiting for it, if any.
     """
-    node_type = 'emit'
+    name = 'emit'
 
-    def __init__(self, parent):
-        self.parent = parent
+# Build a mapping of node types to actual classes
+node_names = {}
+
+for name, obj in globals().items():
+    if isclass(obj) and issubclass(obj, Node):
+        node_names[obj.name] = obj

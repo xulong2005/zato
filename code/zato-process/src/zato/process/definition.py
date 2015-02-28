@@ -32,12 +32,9 @@ from parse import compile as parse_compile
 from zato.process.path import Path
 from zato.process import step
 
-_ZATO_DOES_NOT_EXIST = 'ZATO_DOES_NOT_EXIST'
-
 class Config(object):
     def __init__(self):
         self.start = step.Start()
-        self.start.init()
         self.start.name = 'Start'
         self.start.parent = None
         self.start.previous = None
@@ -56,21 +53,23 @@ class Pipeline(object):
         self.data = {}
 
         # Same format for all languages supported
-        self.entry_pattern = parse_compile(_ZATO_DOES_NOT_EXIST)
+        self.entry_pattern = None
 
 class Path(object):
     def __init__(self):
         self.name = ''
         self.nodes = []
 
-class PathItem(object):
+Handler = Path
+
+class NodeItem(object):
     def __init__(self):
-        self.name = ''
+        self.node_name = ''
         self.data = {}
-        self.node = step.Node()
+        self.node = None
 
     def create_node(self):
-        print(self.name, self.data)
+        self.node = step.node_names[self.node_name](**self.data)
 
 class ProcessDefinition(object):
     """ A definition of a process out of which new process instances are created.
@@ -84,11 +83,12 @@ class ProcessDefinition(object):
         self.lang_name = '' 
         self.vocab_text = ''
         self.text = ''
-        self.text_split = self.text.splitlines()
+        self.text_split = []
         self._eval = Interpreter()
         self.config = Config()
         self.pipeline = Pipeline()
         self.paths = {}
+        self.handlers = {}
 
         self.vocab = Dict()
         self.vocab.top_level = []
@@ -113,6 +113,13 @@ class ProcessDefinition(object):
 
         return block
 
+    def yield_node_info(self, start_idx, vocab_item):
+        for line in self.get_block(start_idx):
+            for node_name, v in self.vocab[vocab_item].items():
+                result = v.parse(line)
+                if result:
+                    yield node_name, result.named
+
 # ################################################################################################################################
 
     def parse_config(self, start_idx):
@@ -124,25 +131,24 @@ class ProcessDefinition(object):
 
 # ################################################################################################################################
 
+    def parse_path_handler(self, start_idx, class_, node_name, self_elems):
+        elem = class_()
+        elem.name = self.vocab[node_name].name.parse(self.text_split[start_idx]).named[node_name]
+
+        for name, data in self.yield_node_info(start_idx, node_name):
+            path_item = NodeItem()
+            path_item.node_name = name
+            path_item.data = data
+            path_item.create_node()
+            elem.nodes.append(path_item)
+
+        self_elems[elem.name] = elem
+
     def parse_path(self, start_idx):
-        path = Path()
-        path.name = self.vocab.path.name.parse(self.text_split[start_idx]).named['path']
-
-        for line in self.get_block(start_idx):
-            for k, v in self.vocab.path.items():
-                result = v.parse(line)
-                if result:
-                    path_item = PathItem()
-                    path_item.name = k
-                    path_item.data = result.named
-                    path_item.create_node()
-                    path.nodes.append(path_item)
-
-# ################################################################################################################################
+        self.parse_path_handler(start_idx, Path, 'path', self.paths)
 
     def parse_handler(self, start_idx):
-        #print('Handler', start_idx)
-        pass
+        self.parse_path_handler(start_idx, Handler, 'handler', self.handlers)
 
 # ################################################################################################################################
 
@@ -160,13 +166,12 @@ class ProcessDefinition(object):
         self.vocab_top_level = conf.main.top_level
         self.pipeline.entry_pattern = parse_compile(conf.pipeline.pattern)
         self.vocab.path.name = parse_compile(conf.path.path)
+        self.vocab.handler.name = parse_compile(conf.handler.handler)
 
-        # Keys that are not actually steps in a path
-        ignored = ['path']
-
-        for k, v in conf.path.iteritems():
-            if k not in ignored:
-                self.vocab.path[k] = parse_compile(v)
+        for name in ['path', 'handler']:
+            for k, v in conf[name].iteritems():
+                if k != name:
+                    self.vocab[name][k] = parse_compile(v)
 
     def parse(self):
         self.read_vocab()
