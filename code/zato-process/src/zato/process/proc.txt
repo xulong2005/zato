@@ -12,7 +12,7 @@ Pipeline:
   user_social: dict
 
 Path: order.management
-  Require feasibility.study or reject.order
+  Require feasibility.study else reject.order
   Wait for signals patch.complete, drop.complete
   Enter order.complete
 

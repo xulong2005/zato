@@ -9,7 +9,6 @@ Licensed under LGPLv3, see LICENSE.txt for terms and conditions.
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 # stdlib
-from collections import OrderedDict
 from cStringIO import StringIO
 from pprint import pprint
 from string import whitespace
@@ -38,7 +37,7 @@ import yaml
 
 # Zato
 from zato.process.path import Path
-from zato.process import step
+from zato.process import step, OrderedDict
 
 def tuple_representer(dumper, data):
     return dumper.represent_list(data)
@@ -141,10 +140,11 @@ class ProcessDefinition(object):
 
     def yield_node_info(self, start_idx, vocab_item):
         for line in self.get_block(start_idx):
-            for node_name, v in self.vocab[vocab_item].items():
+            for node_name, v in sorted(self.vocab[vocab_item].items()):
                 result = v.parse(line)
                 if result:
                     yield node_name, result.named
+                    break
 
 # ################################################################################################################################
 
@@ -154,7 +154,7 @@ class ProcessDefinition(object):
 
 # ################################################################################################################################
 
-    def parse_path_handler(self, start_idx, class_, node_name, self_elems):
+    def parse_path_handler(self, start_idx, class_, node_name, target):
         elem = class_()
         elem.name = self.vocab[node_name].name.parse(self.text_split[start_idx]).named[node_name]
 
@@ -165,7 +165,7 @@ class ProcessDefinition(object):
             path_item.create_node()
             elem.nodes.append(path_item)
 
-        self_elems[elem.name] = elem
+        target[elem.name] = elem
 
     def parse_path(self, start_idx):
         self.parse_path_handler(start_idx, Path, 'path', self.paths)
@@ -188,6 +188,7 @@ class ProcessDefinition(object):
         self.lang_name = conf.main.name
         self.vocab_top_level = conf.main.top_level
         self.pipeline.entry_pattern = parse_compile(conf.pipeline.pattern)
+
         self.vocab.path.name = parse_compile(conf.path.path)
         self.vocab.handler.name = parse_compile(conf.handler.handler)
 
@@ -208,6 +209,13 @@ class ProcessDefinition(object):
 
 # ################################################################################################################################
 
+    def add_path_handler_to_canonical(self, out, name, source):
+        for elem_name, data in source.items():
+            elem = []
+            for node in data.nodes:
+                elem.append({'node_name':node.node_name, 'data':node.data})
+            out[name][elem_name] = elem
+
     def to_canonical(self):
         """ Returns a canonical form of the process, i.e. a sorted dictionary
         of lists and dictionaries that can be serialized to formats such as YAML.
@@ -215,14 +223,17 @@ class ProcessDefinition(object):
         out = OrderedDict()
         out['config'] = OrderedDict()
         out['pipeline'] = SortedDict()
-        out['path'] = OrderedDict()
+        out['path'] = SortedDict()
         out['handler'] = OrderedDict()
         out['_meta'] = OrderedDict()
 
         out['config']['start'] = self.config.start.to_canonical()
         out['config']['service_map'] = SortedDict(self.config.service_map.iteritems())
 
-        out[b'pipeline'].update((key, value().__class__.__name__) for key, value in self.pipeline.config.items())
+        out['pipeline'].update((key, value().__class__.__name__) for key, value in self.pipeline.config.items())
+
+        self.add_path_handler_to_canonical(out, 'path', self.paths)
+        self.add_path_handler_to_canonical(out, 'handler', self.handlers)
 
         out['_meta']['lang_code'] = self.lang_code
         out['_meta']['lang_name'] = self.lang_name

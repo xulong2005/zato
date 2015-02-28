@@ -14,6 +14,7 @@ from inspect import isclass
 
 # Zato
 from zato.common.util import make_repr, new_cid
+from zato.process import OrderedDict
 
 class Node(object):
     """ A basic unit for constructing processes - parent of steps, paths and handlers.
@@ -39,8 +40,8 @@ class Start(Node):
 
     def to_canonical(self):
         out = OrderedDict()
-        out[b'path'] = self.path
-        out[b'service'] = self.service
+        out['path'] = self.path
+        out['service'] = self.service
 
         return out
 
@@ -85,12 +86,12 @@ class Invoke(Step):
 class Require(Step):
     """ Calls another path or process by name and ensures it completed successfully.
     """
-    name = 'require'
+    name = 'require2'
 
-class RequireOr(Require):
-    """ Like Require but has an or path if the initial path didn't succeed.
+class RequireElse(Require):
+    """ Like Require but has an else path if the initial path didn't succeed.
     """
-    name = 'require_or'
+    name = 'require1_else'
 
 class WaitSignal(Step):
     """ Waits for appearance of a signal.
@@ -100,7 +101,7 @@ class WaitSignal(Step):
 class WaitSignals(Step):
     """ Waits for appearance of more than one signal.
     """
-    name = 'wait_sigs'
+    name = 'wait_sigs3'
 
 class Emit(Step):
     """ Emits an event to subscribers waiting for it, if any.
