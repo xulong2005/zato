@@ -9,6 +9,7 @@ Licensed under LGPLv3, see LICENSE.txt for terms and conditions.
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 # stdlib
+from collections import OrderedDict
 from inspect import isclass
 
 # Zato
@@ -35,6 +36,13 @@ class Start(Node):
         super(Start, self).__init__()
         self.path = ''
         self.service = ''
+
+    def to_canonical(self):
+        out = OrderedDict()
+        out[b'path'] = self.path
+        out[b'service'] = self.service
+
+        return out
 
 class Step(Node):
     """ A base class for steps a process is composed of.

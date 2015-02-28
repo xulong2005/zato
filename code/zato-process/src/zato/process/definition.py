@@ -9,7 +9,9 @@ Licensed under LGPLv3, see LICENSE.txt for terms and conditions.
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 # stdlib
+from collections import OrderedDict
 from cStringIO import StringIO
+from pprint import pprint
 from string import whitespace
 import itertools
 
@@ -28,16 +30,21 @@ from configobj import ConfigObj
 # parse
 from parse import compile as parse_compile
 
+# sortedcontainers
+from sortedcontainers import SortedDict
+
+# YAML
+from yaml import dump
+
 # Zato
 from zato.process.path import Path
 from zato.process import step
 
+# ################################################################################################################################
+
 class Config(object):
     def __init__(self):
         self.start = step.Start()
-        self.start.name = 'Start'
-        self.start.parent = None
-        self.start.previous = None
         self.service_map = {}
 
     def handle_start(self, data):
@@ -70,6 +77,8 @@ class NodeItem(object):
 
     def create_node(self):
         self.node = step.node_names[self.node_name](**self.data)
+
+# ################################################################################################################################
 
 class ProcessDefinition(object):
     """ A definition of a process out of which new process instances are created.
@@ -123,11 +132,8 @@ class ProcessDefinition(object):
 # ################################################################################################################################
 
     def parse_config(self, start_idx):
-        for line in self.get_block(start_idx):
-            for name, item in self.vocab.config.iteritems():
-                if line.startswith(item.prefix):
-                    result = item.pattern.parse(line)
-                    getattr(self.config, 'handle_{}'.format(name))(result.named)
+        for name, data in self.yield_node_info(start_idx, 'config'):
+            getattr(self.config, 'handle_{}'.format(name))(data)
 
 # ################################################################################################################################
 
@@ -168,7 +174,7 @@ class ProcessDefinition(object):
         self.vocab.path.name = parse_compile(conf.path.path)
         self.vocab.handler.name = parse_compile(conf.handler.handler)
 
-        for name in ['path', 'handler']:
+        for name in ['config', 'path', 'handler']:
             for k, v in conf[name].iteritems():
                 if k != name:
                     self.vocab[name][k] = parse_compile(v)
@@ -185,6 +191,28 @@ class ProcessDefinition(object):
 
 # ################################################################################################################################
 
+    def to_canonical(self):
+        """ Returns a canonical form of the process, i.e. a sorted dictionary
+        of lists and dictionaries that can be serialized to formats such as YAML.
+        """
+        out = OrderedDict()
+        out[b'config'] = OrderedDict()
+        out[b'pipeline'] = OrderedDict()
+        out[b'path'] = OrderedDict()
+        out[b'handler'] = OrderedDict()
+
+        out[b'config'][b'start'] = self.config.start.to_canonical()
+        out[b'config'][b'service_map'] = SortedDict(self.config.service_map.iteritems())
+
+        return out
+
+    def to_yaml(self):
+        """ Serializes the canonical form of the definition to YAML.
+        """
+        return dump(self.to_canonical())
+
+# ################################################################################################################################
+
 if __name__ == '__main__':
 
     proc_path = './proc.txt'
@@ -198,6 +226,9 @@ if __name__ == '__main__':
     pd.lang_code = lang_code
     pd.vocab_text = vocab_text
     pd.parse()
+
+    y = pd.to_yaml()
+    print(y)
 
     #print(pd.config.start)
     #print(pd.config.service_map)
