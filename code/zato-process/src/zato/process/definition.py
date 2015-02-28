@@ -34,11 +34,28 @@ from parse import compile as parse_compile
 from sortedcontainers import SortedDict
 
 # YAML
-from yaml import dump
+import yaml
 
 # Zato
 from zato.process.path import Path
 from zato.process import step
+
+def tuple_representer(dumper, data):
+    return dumper.represent_list(data)
+
+def ordered_dict_representer(dumper, data):
+    return dumper.represent_dict(data)
+
+def sorted_dict_representer(dumper, data):
+    return dumper.represent_dict(data)
+
+def unicode_representer(dumper, data):
+    return dumper.represent_str(data.encode('utf-8'))
+
+yaml.add_representer(tuple, tuple_representer)
+yaml.add_representer(OrderedDict, ordered_dict_representer)
+yaml.add_representer(SortedDict, sorted_dict_representer)
+yaml.add_representer(unicode, unicode_representer)
 
 # ################################################################################################################################
 
@@ -196,20 +213,27 @@ class ProcessDefinition(object):
         of lists and dictionaries that can be serialized to formats such as YAML.
         """
         out = OrderedDict()
-        out[b'config'] = OrderedDict()
-        out[b'pipeline'] = OrderedDict()
-        out[b'path'] = OrderedDict()
-        out[b'handler'] = OrderedDict()
+        out['config'] = OrderedDict()
+        out['pipeline'] = SortedDict()
+        out['path'] = OrderedDict()
+        out['handler'] = OrderedDict()
+        out['_meta'] = OrderedDict()
 
-        out[b'config'][b'start'] = self.config.start.to_canonical()
-        out[b'config'][b'service_map'] = SortedDict(self.config.service_map.iteritems())
+        out['config']['start'] = self.config.start.to_canonical()
+        out['config']['service_map'] = SortedDict(self.config.service_map.iteritems())
+
+        out[b'pipeline'].update((key, value().__class__.__name__) for key, value in self.pipeline.config.items())
+
+        out['_meta']['lang_code'] = self.lang_code
+        out['_meta']['lang_name'] = self.lang_name
+        out['_meta']['text'] = self.text
 
         return out
 
     def to_yaml(self):
         """ Serializes the canonical form of the definition to YAML.
         """
-        return dump(self.to_canonical())
+        return yaml.dump(self.to_canonical(), width=60)
 
 # ################################################################################################################################
 
