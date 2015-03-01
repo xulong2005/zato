@@ -239,10 +239,14 @@ class ProcessDefinition(object):
 
         return out
 
-    def to_yaml(self):
+    def to_yaml(self, width=60):
         """ Serializes the canonical form of the definition to YAML.
         """
-        return yaml.dump(self.to_canonical(), width=60)
+        return yaml.dump(self.to_canonical(), width=width)
+
+    @staticmethod
+    def from_yaml(y):
+        pass
 
 # ################################################################################################################################
 
@@ -252,11 +256,12 @@ if __name__ == '__main__':
 
     text = open('./proc.txt').read()
 
-    pd = ProcessDefinition()
-    pd.text = text.strip()
-    pd.lang_code = 'en_uk'
-    pd.vocab_text = en_uk
-    pd.parse()
+    pd1 = ProcessDefinition()
+    pd1.text = text.strip()
+    pd1.lang_code = 'en_uk'
+    pd1.vocab_text = en_uk
+    pd1.parse()
 
-    y = pd.to_yaml()
-    print(y)
+    y = pd1.to_yaml()
+
+    pd2 = ProcessDefinition.from_yaml(y)
