@@ -9,7 +9,6 @@ Licensed under LGPLv3, see LICENSE.txt for terms and conditions.
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 # stdlib
-from collections import OrderedDict
 from inspect import isclass
 
 # Zato
@@ -86,12 +85,12 @@ class Invoke(Step):
 class Require(Step):
     """ Calls another path or process by name and ensures it completed successfully.
     """
-    name = 'require2'
+    name = 'require'
 
 class RequireElse(Require):
     """ Like Require but has an else path if the initial path didn't succeed.
     """
-    name = 'require1_else'
+    name = 'require_else'
 
 class WaitSignal(Step):
     """ Waits for appearance of a signal.
@@ -101,7 +100,7 @@ class WaitSignal(Step):
 class WaitSignals(Step):
     """ Waits for appearance of more than one signal.
     """
-    name = 'wait_sigs3'
+    name = 'wait_sigs'
 
 class Emit(Step):
     """ Emits an event to subscribers waiting for it, if any.

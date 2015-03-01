@@ -9,19 +9,14 @@ Licensed under LGPLv3, see LICENSE.txt for terms and conditions.
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 # stdlib
-from cStringIO import StringIO
-from pprint import pprint
 from string import whitespace
 import itertools
-
-# addict
-from addict import Dict
 
 # asteval
 from asteval import Interpreter
 
 # Bunch
-from bunch import bunchify
+from bunch import Bunch, bunchify
 
 # ConfigObj
 from configobj import ConfigObj
@@ -36,7 +31,6 @@ from sortedcontainers import SortedDict
 import yaml
 
 # Zato
-from zato.process.path import Path
 from zato.process import step, OrderedDict
 
 def tuple_representer(dumper, data):
@@ -91,6 +85,9 @@ class NodeItem(object):
         self.data = {}
         self.node = None
 
+    def __cmp__(self, other):
+        return self.node_name == other.node_name and sorted(self.data) == sorted(other.data)
+
     def create_node(self):
         self.node = step.node_names[self.node_name](**self.data)
 
@@ -115,18 +112,17 @@ class ProcessDefinition(object):
         self.paths = {}
         self.handlers = {}
 
-        self.vocab = Dict()
+        self.vocab = Bunch()
         self.vocab.top_level = []
         self.vocab.config = {}
         self.vocab.pipeline = {}
-        self.vocab.path = {}
-        self.vocab.handler = {}
+        self.vocab.path = OrderedDict()
+        self.vocab.handler = OrderedDict()
 
 # ################################################################################################################################
 
     def get_block(self, start_idx):
         block = []
-        keep_running = True
 
         for line in self.text_split[start_idx+1:]:
             line = line.strip()
@@ -140,11 +136,10 @@ class ProcessDefinition(object):
 
     def yield_node_info(self, start_idx, vocab_item):
         for line in self.get_block(start_idx):
-            for node_name, v in sorted(self.vocab[vocab_item].items()):
+            for node_name, v in self.vocab[vocab_item].items():
                 result = v.parse(line)
                 if result:
                     yield node_name, result.named
-                    break
 
 # ################################################################################################################################
 
@@ -156,7 +151,7 @@ class ProcessDefinition(object):
 
     def parse_path_handler(self, start_idx, class_, node_name, target):
         elem = class_()
-        elem.name = self.vocab[node_name].name.parse(self.text_split[start_idx]).named[node_name]
+        elem.name = self.vocab[node_name]['name'].parse(self.text_split[start_idx]).named[node_name]
 
         for name, data in self.yield_node_info(start_idx, node_name):
             path_item = NodeItem()
@@ -183,14 +178,17 @@ class ProcessDefinition(object):
 # ################################################################################################################################
 
     def read_vocab(self):
-        conf = bunchify(ConfigObj(self.vocab_text.splitlines()))
+        conf = ConfigObj(self.vocab_text.splitlines())
+        conf_bunch = bunchify(conf)
 
-        self.lang_name = conf.main.name
-        self.vocab_top_level = conf.main.top_level
-        self.pipeline.entry_pattern = parse_compile(conf.pipeline.pattern)
+        self.lang_name = conf_bunch.main.name
+        self.vocab_top_level = conf_bunch.main.top_level
+        self.pipeline.entry_pattern = parse_compile(conf_bunch.pipeline.pattern)
 
-        self.vocab.path.name = parse_compile(conf.path.path)
-        self.vocab.handler.name = parse_compile(conf.handler.handler)
+        self.vocab['path'] = OrderedDict()
+
+        self.vocab.path['name'] = parse_compile(conf_bunch.path.path)
+        self.vocab.handler['name'] = parse_compile(conf_bunch.handler.handler)
 
         for name in ['config', 'path', 'handler']:
             for k, v in conf[name].iteritems():
