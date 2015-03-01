@@ -27,6 +27,10 @@ class Node(object):
     def __repr__(self):
         return make_repr(self)
 
+    def update(self, **kwargs):
+        for k, v in kwargs.iteritems():
+            setattr(self, k, v)
+
 class Start(Node):
     """ Node represening start of a process.
     """

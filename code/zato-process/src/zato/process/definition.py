@@ -106,7 +106,7 @@ class ProcessDefinition(object):
         self.vocab_text = ''
         self.text = ''
         self.text_split = []
-        self._eval = Interpreter()
+        self.eval_ = Interpreter()
         self.config = Config()
         self.pipeline = Pipeline()
         self.paths = {}
@@ -140,6 +140,7 @@ class ProcessDefinition(object):
                 result = v.parse(line)
                 if result:
                     yield node_name, result.named
+                    break
 
 # ################################################################################################################################
 
@@ -173,7 +174,7 @@ class ProcessDefinition(object):
     def parse_pipeline(self, start_idx):
         for item in self.get_block(start_idx):
             named = self.pipeline.entry_pattern.parse(item).named
-            self.pipeline.config[named['name']] = self._eval(named['data_type'])
+            self.pipeline.config[named['name']] = self.eval_(named['data_type'])
 
 # ################################################################################################################################
 
@@ -244,9 +245,45 @@ class ProcessDefinition(object):
         """
         return yaml.dump(self.to_canonical(), width=width)
 
+    def extract_path_handler(self, name, source, target, class_):
+
+        for item_name, item_data in source[name].items():
+
+            path = target.setdefault(item_name, class_())
+            path.name = item_name
+
+            for step_data in item_data:
+                path_item = NodeItem()
+                path_item.node_name = step_data.node_name
+                path_item.data = step_data.data.toDict()
+                path_item.create_node()
+                path.nodes.append(path_item)
+
     @staticmethod
     def from_yaml(y):
-        pass
+        data = bunchify(yaml.load(y))
+
+        pd = ProcessDefinition()
+
+        # Meta stuff
+        pd.lang_code = data._meta.lang_code
+        pd.lang_name = data._meta.lang_name
+        pd.text = data._meta.text
+
+        # Config
+        pd.config.start.path = data.config.start.path
+        pd.config.start.service = data.config.start.service
+        pd.config.service_map.update(data.config.service_map.items())
+
+        # Pipeline
+        for k, v in data.pipeline.items():
+            pd.pipeline.config[k] = pd.eval_(v)
+
+        # Path and Handler
+        pd.extract_path_handler('path', data, pd.paths, Path)
+        pd.extract_path_handler('handler', data, pd.handlers, Handler)
+
+        return pd
 
 # ################################################################################################################################
 
@@ -265,3 +302,4 @@ if __name__ == '__main__':
     y = pd1.to_yaml()
 
     pd2 = ProcessDefinition.from_yaml(y)
+    print(pd2.to_yaml())

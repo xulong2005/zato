@@ -64,15 +64,16 @@ Path: reject.order
 """
 
 class DefinitionTestCase(TestCase):
+
+    def assert_definitions_equal(self, pd1, pd2):
+        eq_(pd1.to_yaml(), pd2.to_yaml())
+
     def test_yaml_roundtrip(self):
 
-        pd1 = ProcessDefinition()
-        pd1.text = process1.strip()
-        pd1.lang_code = 'en_uk'
-        pd1.vocab_text = en_uk
-        pd1.parse()
+        pd = ProcessDefinition()
+        pd.text = process1.strip()
+        pd.lang_code = 'en_uk'
+        pd.vocab_text = en_uk
+        pd.parse()
 
-        y = pd1.to_yaml()
-
-        pd2 = ProcessDefinition.from_yaml(y)
-        raise NotImplementedError()
+        self.assert_definitions_equal(pd, ProcessDefinition.from_yaml(pd.to_yaml()))
