@@ -31,7 +31,11 @@ from sortedcontainers import SortedDict
 import yaml
 
 # Zato
+from zato.common.odb.model import ProcDef, ProcDefPath, ProcDefPathNode, ProcDefHandler, ProcDefPipeline, ProcDefConfigStart, \
+     ProcDefConfigServiceMap
 from zato.process import step, OrderedDict
+
+# ################################################################################################################################
 
 def tuple_representer(dumper, data):
     return dumper.represent_list(data)
@@ -240,10 +244,7 @@ class ProcessDefinition(object):
 
         return out
 
-    def to_yaml(self, width=60):
-        """ Serializes the canonical form of the definition to YAML.
-        """
-        return yaml.dump(self.to_canonical(), width=width)
+# ################################################################################################################################
 
     def extract_path_handler(self, name, source, target, class_):
 
@@ -258,6 +259,15 @@ class ProcessDefinition(object):
                 path_item.data = step_data.data.toDict()
                 path_item.create_node()
                 path.nodes.append(path_item)
+
+# ################################################################################################################################
+
+    def to_yaml(self, width=60):
+        """ Serializes the canonical form of the definition to YAML.
+        """
+        return yaml.dump(self.to_canonical(), width=width)
+
+# ################################################################################################################################
 
     @staticmethod
     def from_yaml(y):

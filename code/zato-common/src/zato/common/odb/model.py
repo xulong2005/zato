@@ -1828,3 +1828,144 @@ class RBACRolePermission(Base):
         return '{}/{}/{}/{}'.format(self.id, self.role_id, self.perm_id, self.service_id)
 
 # ################################################################################################################################
+
+class ProcDef(Base):
+    """ Parent table to keep track of definitions of processes.
+    """
+    __tablename__ = 'proc_def'
+    __table_args__ = (UniqueConstraint('name', 'cluster_id'), {})
+
+    id = Column(Integer, Sequence('proc_def_seq'), primary_key=True)
+    name = Column(String(400), nullable=False)
+
+    version = Column(String(400), nullable=False)
+    ext_version = Column(String(400), nullable=True)
+
+    created_at = Column(DateTime(), nullable=False)
+    last_updated_by = Column(String(400), nullable=False)
+
+    last_updated = Column(DateTime(), nullable=True)
+    last_updated_by = Column(String(400), nullable=True)
+
+    lang_code = Column(String(20), nullable=False)
+    lang_name = Column(String(60), nullable=False)
+
+    vocab_text = Column(Text(), nullable=False)
+    text = Column(Text(), nullable=False)
+
+    cluster_id = Column(Integer, ForeignKey('cluster.id', ondelete='CASCADE'), nullable=False)
+    cluster = relationship(Cluster, backref=backref('proc_defs', order_by=id, cascade='all, delete, delete-orphan'))
+
+# ################################################################################################################################
+
+class ProcDefPath(Base):
+    """ All root nodes of paths in a given process.
+    """
+    __tablename__ = 'proc_def_path'
+    __table_args__ = (UniqueConstraint('name', 'proc_def_id'), {})
+
+    id = Column(Integer, Sequence('proc_def_path_seq'), primary_key=True)
+    name = Column(String(400), nullable=False)
+
+    proc_def_id = Column(Integer, ForeignKey('proc_def.id', ondelete='CASCADE'), nullable=False)
+    proc_def = relationship(ProcDef, backref=backref('def_paths', order_by=id, cascade='all, delete, delete-orphan'))
+
+# ################################################################################################################################
+
+class ProcDefPathNode(Base):
+    """ All nodes within a given path in a process.
+    """
+    __tablename__ = 'proc_def_path_node'
+
+    id = Column(Integer, Sequence('proc_def_path_node_seq'), primary_key=True)
+    node_name = Column(String(40), nullable=False)
+    data = Column(Text(), nullable=True)
+
+    proc_def_path_id = Column(Integer, ForeignKey('proc_def_path.id', ondelete='CASCADE'), nullable=False)
+    proc_def_path = relationship(ProcDefPath, backref=backref('nodes', order_by=id, cascade='all, delete, delete-orphan'))
+
+# ################################################################################################################################
+
+class ProcDefHandler(Base):
+    """ All root nodes of handlers in a given process.
+    """
+    __tablename__ = 'proc_def_handler'
+    __table_args__ = (UniqueConstraint('name', 'proc_def_id'), {})
+
+    id = Column(Integer, Sequence('proc_def_path_seq'), primary_key=True)
+    name = Column(String(400), nullable=False)
+
+    proc_def_id = Column(Integer, ForeignKey('proc_def.id', ondelete='CASCADE'), nullable=False)
+    proc_def = relationship(ProcDef, backref=backref('def_handlers', order_by=id, cascade='all, delete, delete-orphan'))
+
+# ################################################################################################################################
+
+class ProcDefHandlerNode(Base):
+    """ All nodes within a given path in a process.
+    """
+    __tablename__ = 'proc_def_handl_node'
+
+    id = Column(Integer, Sequence('proc_def_handl_node_seq'), primary_key=True)
+    node_name = Column(String(40), nullable=False)
+    data = Column(Text(), nullable=True)
+
+    proc_def_handl_id = Column(Integer, ForeignKey('proc_def_handler.id', ondelete='CASCADE'), nullable=False)
+    proc_def_handler = relationship(ProcDefHandler, backref=backref('nodes', order_by=id, cascade='all, delete, delete-orphan'))
+
+# ################################################################################################################################
+
+class ProcDefPipeline(Base):
+    """ Definitions of objects a pipeline in a given process can contain.
+    """
+    __tablename__ = 'proc_def_pipeline'
+    __table_args__ = (UniqueConstraint('key', 'proc_def_id'), {})
+
+    id = Column(Integer, Sequence('proc_def_path_seq'), primary_key=True)
+
+    key = Column(String(200), nullable=False)
+    data_type = Column(String(200), nullable=False)
+
+    proc_def_id = Column(Integer, ForeignKey('proc_def.id', ondelete='CASCADE'), nullable=False)
+    proc_def = relationship(ProcDef, backref=backref('def_pipeline', order_by=id, cascade='all, delete, delete-orphan'))
+
+# ################################################################################################################################
+
+class ProcDefConfigStart(Base):
+    """ Start paths and services for a given process. On the level of SQL nothing
+    prevents a process from having more than one start point albeit higher level
+    layers can decide otherwise.
+    """
+    __tablename__ = 'proc_def_cnf_start'
+    __table_args__ = (UniqueConstraint('proc_def_path_id', 'proc_def_id'), {})
+
+    id = Column(Integer, Sequence('proc_def_cnf_start_seq'), primary_key=True)
+
+    proc_def_path_id = Column(Integer, ForeignKey('proc_def_path.id', ondelete='CASCADE'), nullable=False)
+    proc_def_path = relationship(ProcDefPath, backref=backref('def_start_paths', order_by=id, cascade='all, delete, delete-orphan'))
+
+    # Note that it's a name instead of ID so that process definitions
+    # can be created even if a given service is not deployed yet.
+    service_name = Column(String(300), nullable=False)
+
+    proc_def_id = Column(Integer, ForeignKey('proc_def.id', ondelete='CASCADE'), nullable=False)
+    proc_def = relationship(ProcDef, backref=backref('def_start_paths', order_by=id, cascade='all, delete, delete-orphan'))
+
+# ################################################################################################################################
+
+class ProcDefConfigServiceMap(Base):
+    """ Maps names of services to their labels within a process.
+    """
+    __tablename__ = 'proc_def_cnf_srv_m'
+    __table_args__ = (UniqueConstraint('service_name', 'proc_def_id'), {})
+
+    id = Column(Integer, Sequence('proc_def_cnf_srv_m_seq'), primary_key=True)
+
+    # Note that it's a name instead of ID so that process definitions
+    # can be created even if a given service is not deployed yet.
+    service_name = Column(String(300), nullable=False)
+    label = Column(String(300), nullable=False)
+
+    proc_def_id = Column(Integer, ForeignKey('proc_def.id', ondelete='CASCADE'), nullable=False)
+    proc_def = relationship(ProcDef, backref=backref('config_map', order_by=id, cascade='all, delete, delete-orphan'))
+
+# ################################################################################################################################
