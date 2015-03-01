@@ -248,23 +248,15 @@ class ProcessDefinition(object):
 
 if __name__ == '__main__':
 
-    proc_path = './proc.txt'
-    lang_code = 'en_uk'
+    from zato.process.vocab import en_uk
 
-    text = open(proc_path).read()
-    vocab_text = open('vocab-{}.ini'.format(lang_code)).read()
+    text = open('./proc.txt').read()
 
     pd = ProcessDefinition()
     pd.text = text.strip()
-    pd.lang_code = lang_code
-    pd.vocab_text = vocab_text
+    pd.lang_code = 'en_uk'
+    pd.vocab_text = en_uk
     pd.parse()
 
     y = pd.to_yaml()
     print(y)
-
-    #print(pd.config.start)
-    #print(pd.config.service_map)
-
-    #print(pd.pipeline.config)
-    #print(pd.pipeline.data)

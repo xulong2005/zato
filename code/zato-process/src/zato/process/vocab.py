@@ -1,3 +1,14 @@
+# -*- coding: utf-8 -*-
+
+"""
+Copyright (C) 2015 Dariusz Suchojad <dsuch at zato.io>
+
+Licensed under LGPLv3, see LICENSE.txt for terms and conditions.
+"""
+
+from __future__ import absolute_import, division, print_function, unicode_literals
+
+en_uk = """
 [main]
 name              = English
 top_level         = Config, Path, Handler, Pipeline
@@ -45,3 +56,4 @@ enter             = Enter {service}
 ignore_signal     = Ignore signal {signal}
 ignore_signals    = Ignore signals {signals}
 set               = Set {key} = {value}
+""".strip()
