@@ -1833,16 +1833,16 @@ class ProcDef(Base):
     """ Parent table to keep track of definitions of processes.
     """
     __tablename__ = 'proc_def'
-    __table_args__ = (UniqueConstraint('name', 'cluster_id'), {})
+    __table_args__ = (UniqueConstraint('name', 'version', 'cluster_id'), {})
 
     id = Column(Integer, Sequence('proc_def_seq'), primary_key=True)
     name = Column(String(400), nullable=False)
 
-    version = Column(String(400), nullable=False)
+    version = Column(Integer(), nullable=False)
     ext_version = Column(String(400), nullable=True)
 
-    created_at = Column(DateTime(), nullable=False)
-    last_updated_by = Column(String(400), nullable=False)
+    created = Column(DateTime(), nullable=False)
+    created_by = Column(String(400), nullable=False)
 
     last_updated = Column(DateTime(), nullable=True)
     last_updated_by = Column(String(400), nullable=True)

@@ -1,5 +1,5 @@
 Config:
-
+  Name: Order Management
   Start: order.management from my.channel.feasibility-study
 
   Map service adapter.crm.delete.user to delete.crm

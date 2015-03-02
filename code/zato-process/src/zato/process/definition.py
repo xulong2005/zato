@@ -9,8 +9,10 @@ Licensed under LGPLv3, see LICENSE.txt for terms and conditions.
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 # stdlib
+from datetime import datetime
 from string import whitespace
 import itertools
+import json
 
 # asteval
 from asteval import Interpreter
@@ -27,12 +29,16 @@ from parse import compile as parse_compile
 # sortedcontainers
 from sortedcontainers import SortedDict
 
+# SQLAlchemy
+from sqlalchemy.orm.exc import NoResultFound
+
 # YAML
 import yaml
 
 # Zato
-from zato.common.odb.model import ProcDef, ProcDefPath, ProcDefPathNode, ProcDefHandler, ProcDefPipeline, ProcDefConfigStart, \
-     ProcDefConfigServiceMap
+from zato.common.odb.model import ProcDef, ProcDefPath, ProcDefPathNode, ProcDefHandler, ProcDefHandlerNode, ProcDefPipeline, \
+     ProcDefConfigStart, ProcDefConfigServiceMap
+from zato.common.util import current_host, get_current_user
 from zato.process import step, OrderedDict
 
 # ################################################################################################################################
@@ -58,6 +64,7 @@ yaml.add_representer(unicode, unicode_representer)
 
 class Config(object):
     def __init__(self):
+        self.name = ''
         self.start = step.Start()
         self.service_map = {}
 
@@ -68,6 +75,9 @@ class Config(object):
     def handle_service_map(self, data):
         self.service_map[data['label']] = data['service']
 
+    def handle_name(self, data):
+        self.name = data['name']
+
 class Pipeline(object):
     def __init__(self):
         self.config = {}
@@ -77,11 +87,27 @@ class Pipeline(object):
         self.entry_pattern = None
 
 class Path(object):
+    model_class = ProcDefPath
+
     def __init__(self):
         self.name = ''
         self.nodes = []
 
-Handler = Path
+    def to_sql(self, session, proc_def_id):
+
+        p = self.model_class()
+        p.name = self.name
+        p.proc_def_id = proc_def_id
+
+        session.add(p)
+        session.flush()
+
+        [node_item.to_sql(session, self.model_class, p.id) for node_item in self.nodes]
+
+        session.flush()
+
+class Handler(Path):
+    model_class = ProcDefHandler
 
 class NodeItem(object):
     def __init__(self):
@@ -95,6 +121,19 @@ class NodeItem(object):
     def create_node(self):
         self.node = step.node_names[self.node_name](**self.data)
 
+    def to_sql(self, session, parent_class, parent_id):
+        if parent_class is ProcDefPath:
+            n = ProcDefPathNode()
+            n.proc_def_path_id = parent_id
+        else:
+            n = ProcDefHandlerNode()
+            n.proc_def_handl_id = parent_id
+
+        n.node_name = self.node_name
+        n.data = json.dumps(self.data)
+
+        session.add(n)
+
 # ################################################################################################################################
 
 class ProcessDefinition(object):
@@ -102,7 +141,6 @@ class ProcessDefinition(object):
     """
     def __init__(self):
         self.id = ''
-        self.name = ''
         self.version = 0
         self.ext_version = ''
         self.lang_code = ''
@@ -230,6 +268,7 @@ class ProcessDefinition(object):
         out['handler'] = OrderedDict()
         out['_meta'] = OrderedDict()
 
+        out['config']['name'] = self.config.name
         out['config']['start'] = self.config.start.to_canonical()
         out['config']['service_map'] = SortedDict(self.config.service_map.iteritems())
 
@@ -281,6 +320,7 @@ class ProcessDefinition(object):
         pd.text = data._meta.text
 
         # Config
+        pd.config.name = data.config.name
         pd.config.start.path = data.config.start.path
         pd.config.start.service = data.config.start.service
         pd.config.service_map.update(data.config.service_map.items())
@@ -294,6 +334,53 @@ class ProcessDefinition(object):
         pd.extract_path_handler('handler', data, pd.handlers, Handler)
 
         return pd
+
+# ################################################################################################################################
+
+    def _get_proc_def_model(self, session, cluster_id):
+        """ Any update to a definition of a process constitutes its new revision.
+        Hence if we find a definition by self.config.name we create a new ProcDef
+        with an incremented version. If there is none found, we treat it as revision 1.
+        """
+        existing = session.query(ProcDef.version).\
+            filter(ProcDef.name==self.config.name).\
+            filter(ProcDef.cluster_id==cluster_id).\
+            order_by(ProcDef.version.desc()).\
+            first()
+
+        pd = ProcDef()
+        pd.version = existing[0] + 1 if existing else 1
+
+        return pd
+
+    def to_sql(self, session, cluster_id):
+
+        utc_now = datetime.utcnow()
+        user_host = '{}@{}'.format(get_current_user(), current_host())
+
+        pd = self._get_proc_def_model(session, cluster_id)
+        pd.cluster_id = cluster_id
+        pd.name = self.config.name
+        pd.ext_version = self.ext_version
+
+        pd.created = utc_now
+        pd.last_updated = utc_now
+
+        pd.created_by = user_host
+        pd.last_updated_by = user_host
+
+        pd.lang_code = self.lang_code
+        pd.lang_name = self.lang_name
+
+        pd.text = self.text
+        pd.vocab_text = self.vocab_text
+
+        session.add(pd)
+        session.flush()
+
+        [item.to_sql(session, pd.id) for item in itertools.chain(self.paths.values(), self.handlers.values())]
+
+        session.commit()
 
 # ################################################################################################################################
 

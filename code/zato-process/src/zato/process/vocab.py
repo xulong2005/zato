@@ -14,6 +14,7 @@ name              = English
 top_level         = Config, Path, Handler, Pipeline
 
 [config]
+name              = Name: {name}
 start             = Start: {path} from {service}
 service_map       = Map service {service} to {label}
 

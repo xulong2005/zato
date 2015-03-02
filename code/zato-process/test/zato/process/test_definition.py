@@ -26,6 +26,7 @@ from zato.process.vocab import en_uk
 process1 = """
 Config:
 
+  Name: My process
   Start: order.management from my.channel.feasibility-study
 
   Map service adapter.crm.delete.user to delete.crm
@@ -71,10 +72,11 @@ Path: reject.order
 class DefinitionTestCase(TestCase):
 
     def setUp(self):
-        engine = sqlalchemy.create_engine('sqlite://') # I.e. :memory: in SQLite speak
+        engine = sqlalchemy.create_engine('sqlite:////tmp/zato.db') # I.e. :memory: in SQLite speak
         Base.metadata.create_all(engine)
-        self.session = orm.sessionmaker()
-        self.session.configure(bind=engine)
+        session_maker = orm.sessionmaker()
+        session_maker.configure(bind=engine)
+        self.session = session_maker()
 
     def assert_definitions_equal(self, pd1, pd2):
         eq_(pd1.to_yaml(), pd2.to_yaml())
@@ -88,9 +90,10 @@ class DefinitionTestCase(TestCase):
 
         return pd
 
-    def xtest_yaml_roundtrip(self):
+    def test_yaml_roundtrip(self):
         pd = self.get_process1()
         self.assert_definitions_equal(pd, ProcessDefinition.from_yaml(pd.to_yaml()))
 
     def test_sql_rountrip(self):
-        print(self.session)
+        pd = self.get_process1()
+        pd.to_sql(self.session, cluster_id=1)
