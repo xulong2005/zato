@@ -12,7 +12,6 @@ en_uk = """
 [main]
 name              = English
 top_level         = Config, Path, Handler, Pipeline
-
 [config]
 name              = Name: {name}
 start             = Start: {path} from {service}

@@ -9,6 +9,7 @@ Licensed under LGPLv3, see LICENSE.txt for terms and conditions.
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 # stdlib
+import sys
 from unittest import TestCase
 
 # nose
@@ -72,6 +73,7 @@ Path: reject.order
 class DefinitionTestCase(TestCase):
 
     def setUp(self):
+        self.maxDiff = sys.maxint
         engine = sqlalchemy.create_engine('sqlite:////tmp/zato.db') # I.e. :memory: in SQLite speak
         Base.metadata.create_all(engine)
         session_maker = orm.sessionmaker()
@@ -79,7 +81,7 @@ class DefinitionTestCase(TestCase):
         self.session = session_maker()
 
     def assert_definitions_equal(self, pd1, pd2):
-        eq_(pd1.to_yaml(), pd2.to_yaml())
+        self.assertDictEqual(pd1.to_canonical(), pd2.to_canonical())
 
     def get_process1(self):
         pd = ProcessDefinition()
@@ -96,4 +98,6 @@ class DefinitionTestCase(TestCase):
 
     def test_sql_rountrip(self):
         pd = self.get_process1()
-        pd.to_sql(self.session, cluster_id=1)
+        pd_id = pd.to_sql(self.session, cluster_id=1).id
+
+        pd2 = ProcessDefinition.from_sql(self.session, pd_id)

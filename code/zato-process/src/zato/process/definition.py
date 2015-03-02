@@ -9,6 +9,7 @@ Licensed under LGPLv3, see LICENSE.txt for terms and conditions.
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 # stdlib
+from base64 import b64encode
 from datetime import datetime
 from string import whitespace
 import itertools
@@ -154,6 +155,12 @@ class ProcessDefinition(object):
         self.paths = {}
         self.handlers = {}
 
+        self.created = ''
+        self.created_by = ''
+
+        self.last_updated = ''
+        self.last_updated_by = ''
+
         self.vocab = Bunch()
         self.vocab.top_level = []
         self.vocab.config = {}
@@ -277,9 +284,16 @@ class ProcessDefinition(object):
         self.add_path_handler_to_canonical(out, 'path', self.paths)
         self.add_path_handler_to_canonical(out, 'handler', self.handlers)
 
+        out['_meta']['version'] = self.version
+        out['_meta']['ext_version'] = self.ext_version
+        out['_meta']['created'] = self.created
+        out['_meta']['created_by'] = self.created_by
+        out['_meta']['last_updated'] = self.last_updated
+        out['_meta']['last_updated_by'] = self.last_updated_by
         out['_meta']['lang_code'] = self.lang_code
         out['_meta']['lang_name'] = self.lang_name
         out['_meta']['text'] = self.text
+        out['_meta']['vocab_text'] = self.vocab_text
 
         return out
 
@@ -318,6 +332,13 @@ class ProcessDefinition(object):
         pd.lang_code = data._meta.lang_code
         pd.lang_name = data._meta.lang_name
         pd.text = data._meta.text
+        pd.vocab_text = data._meta.vocab_text
+        pd.version = data._meta.version
+        pd.ext_version = data._meta.ext_version
+        pd.created = data._meta.created
+        pd.created_by = data._meta.created_by
+        pd.last_updated = data._meta.last_updated
+        pd.last_updated_by = data._meta.last_updated_by
 
         # Config
         pd.config.name = data.config.name
@@ -353,6 +374,8 @@ class ProcessDefinition(object):
 
         return pd
 
+# ################################################################################################################################
+
     def to_sql(self, session, cluster_id):
 
         utc_now = datetime.utcnow()
@@ -382,13 +405,38 @@ class ProcessDefinition(object):
 
         session.commit()
 
+        return pd
+
+# ################################################################################################################################
+
+    @staticmethod
+    def from_sql(session, proc_def_id):
+        pd_model = session.query(ProcDef).\
+            filter(ProcDef.id==proc_def_id).\
+            one()
+
+        pd = ProcessDefinition()
+        pd.version = pd_model.version
+        pd.ext_version = pd_model.ext_version
+        pd.created = pd_model.created.isoformat()
+        pd.created_by = pd_model.created_by
+        pd.last_updated = pd_model.last_updated.isoformat()
+        pd.last_updated_by = pd_model.last_updated_by
+        pd.text = pd_model.text
+        pd.vocab_text = pd_model.vocab_text
+
+        for def_path in pd_model.def_paths:
+            print(333, def_path.name)
+            for node in def_path.nodes:
+                print(444, ' ', node.node_name)
+
 # ################################################################################################################################
 
 if __name__ == '__main__':
 
     from zato.process.vocab import en_uk
 
-    text = open('./proc.txt').read()
+    text = open('./proc.txt', 'r').read()
 
     pd1 = ProcessDefinition()
     pd1.text = text.strip()
@@ -396,7 +444,11 @@ if __name__ == '__main__':
     pd1.vocab_text = en_uk
     pd1.parse()
 
-    y = pd1.to_yaml()
+    #print(pd1.text)
+    #print(pd1.vocab_text)
 
-    pd2 = ProcessDefinition.from_yaml(y)
-    print(pd2.to_yaml())
+    y = pd1.to_yaml()
+    #print(pd1.to_yaml())
+
+    #pd2 = ProcessDefinition.from_yaml(y)
+    #print(pd2.to_yaml())
