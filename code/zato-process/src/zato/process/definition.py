@@ -312,15 +312,15 @@ class ProcessDefinition(object):
 
         for item_name, item_data in source[name].items():
 
-            path = target.setdefault(item_name, class_())
-            path.name = item_name
+            elem = target.setdefault(item_name, class_())
+            elem.name = item_name
 
             for step_data in item_data:
-                path_item = NodeItem()
-                path_item.node_name = step_data.node_name
-                path_item.data = step_data.data.toDict()
-                path_item.create_node()
-                path.nodes.append(path_item)
+                node_item = NodeItem()
+                node_item.node_name = step_data.node_name
+                node_item.data = step_data.data.toDict() if isinstance(step_data.data, Bunch) else step_data.data
+                node_item.create_node()
+                elem.nodes.append(node_item)
 
     def extract_meta(self, meta):
         self.lang_code = meta.lang_code
@@ -446,6 +446,13 @@ class ProcessDefinition(object):
 
 # ################################################################################################################################
 
+    def _get_paths_handlers_from_sql(self, items, model, attr_name, model_attr_name):
+
+        for item in getattr(model, model_attr_name):
+            step_data = items[attr_name].setdefault(item.name, [])
+            for node in item.nodes:
+                step_data.append({'node_name':node.node_name, 'data':json.loads(node.data)})
+
     @staticmethod
     def from_sql(session, proc_def_id):
         pd_model = session.query(ProcDef).\
@@ -457,13 +464,13 @@ class ProcessDefinition(object):
         # Meta stuff
         pd.extract_meta(pd_model)
 
-        import pprint
-
         # Config
         pd.config.name = pd_model.name
 
         # Note that currently only one service can start a process
-        start_info = pd_model.def_start_paths
+        start_info = pd_model.def_start_paths[0]
+        pd.config.start.path = start_info.proc_def_path.name
+        pd.config.start.service = start_info.service_name
 
         # Pipeline
         pipeline = {}
@@ -473,23 +480,20 @@ class ProcessDefinition(object):
 
         pd.extract_pipeline(pipeline)
 
-        #print(pd.to_yaml())
+        for item in pd_model.config_service_map:
+            pd.config.service_map[item.label] = item.service_name
 
-        '''
-        # Config
-        pd.extract_config(data.config)
+        items = {'path': {}, 'handler': {}}
 
-        # Path and Handler
-        pd.extract_path_handler('path', data, pd.paths, Path)
-        pd.extract_path_handler('handler', data, pd.handlers, Handler)
-        '''
+        pd._get_paths_handlers_from_sql(items, pd_model, 'path', 'def_paths')
+        pd._get_paths_handlers_from_sql(items, pd_model, 'handler', 'def_handlers')
 
-        '''
-        for def_path in pd_model.def_paths:
-            print(333, def_path.name)
-            for node in def_path.nodes:
-                print(444, ' ', node.node_name)
-                '''
+        items = bunchify(items)
+
+        pd.extract_path_handler('path', items, pd.paths, Path)
+        pd.extract_path_handler('handler', items, pd.handlers, Handler)
+
+        return pd
 
 # ################################################################################################################################
 

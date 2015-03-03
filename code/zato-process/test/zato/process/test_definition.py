@@ -10,7 +10,11 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 # stdlib
 import sys
+from datetime import datetime
 from unittest import TestCase
+
+# arrow
+from dateutil.parser import parse as dt_parse
 
 # nose
 from nose.tools import eq_
@@ -74,7 +78,7 @@ class DefinitionTestCase(TestCase):
 
     def setUp(self):
         self.maxDiff = sys.maxint
-        engine = sqlalchemy.create_engine('sqlite:////tmp/zato.db') # I.e. :memory: in SQLite speak
+        engine = sqlalchemy.create_engine('sqlite://') # I.e. :memory: in SQLite speak
         Base.metadata.create_all(engine)
         session_maker = orm.sessionmaker()
         session_maker.configure(bind=engine)
@@ -97,7 +101,29 @@ class DefinitionTestCase(TestCase):
         self.assert_definitions_equal(pd, ProcessDefinition.from_yaml(pd.to_yaml()))
 
     def test_sql_rountrip(self):
-        pd = self.get_process1()
-        pd_id = pd.to_sql(self.session, cluster_id=1).id
+        pd1 = self.get_process1()
+        pd_id = pd1.to_sql(self.session, cluster_id=1).id
 
         pd2 = ProcessDefinition.from_sql(self.session, pd_id)
+
+        # Having been just created, pd1 has no author nor time-related
+        # information, hence we copy it over from pd2.
+        # However, we first check that in pd2 they were indeed provided.
+
+        self.assertIsInstance(pd2.version, int)
+        self.assertGreater(pd2.version, 0)
+        self.assertTrue(len(pd2.created_by) > 0)
+        self.assertTrue(len(pd2.last_updated_by) > 0)
+
+        # Makes sure it can be parsed as timestamp
+        self.assertTrue(datetime.utcnow() > dt_parse(pd2.created))
+        self.assertTrue(datetime.utcnow() > dt_parse(pd2.last_updated))
+
+        pd1.id = pd2.id
+        pd1.version = pd2.version
+        pd1.created = pd2.created
+        pd1.created_by = pd2.created_by
+        pd1.last_updated = pd2.last_updated
+        pd1.last_updated_by = pd2.last_updated_by
+
+        self.assert_definitions_equal(pd1, pd2)
