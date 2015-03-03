@@ -1966,6 +1966,6 @@ class ProcDefConfigServiceMap(Base):
     label = Column(String(300), nullable=False)
 
     proc_def_id = Column(Integer, ForeignKey('proc_def.id', ondelete='CASCADE'), nullable=False)
-    proc_def = relationship(ProcDef, backref=backref('config_map', order_by=id, cascade='all, delete, delete-orphan'))
+    proc_def = relationship(ProcDef, backref=backref('config_service_map', order_by=id, cascade='all, delete, delete-orphan'))
 
 # ################################################################################################################################

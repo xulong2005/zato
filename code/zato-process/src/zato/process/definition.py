@@ -38,7 +38,7 @@ import yaml
 
 # Zato
 from zato.common.odb.model import ProcDef, ProcDefPath, ProcDefPathNode, ProcDefHandler, ProcDefHandlerNode, ProcDefPipeline, \
-     ProcDefConfigStart, ProcDefConfigServiceMap
+     ProcDefConfigStart, ProcDefConfigServiceMap, to_json
 from zato.common.util import current_host, get_current_user
 from zato.process import step, OrderedDict
 
@@ -86,6 +86,15 @@ class Pipeline(object):
 
         # Same format for all languages supported
         self.entry_pattern = None
+
+    def to_sql(self, session, proc_def_id):
+        for key, data_type in self.config.iteritems():
+            p = ProcDefPipeline()
+            p.proc_def_id = proc_def_id
+            p.key = key
+            p.data_type = data_type().__class__.__name__
+            session.add(p)
+        session.flush()
 
 class Path(object):
     model_class = ProcDefPath
@@ -313,6 +322,28 @@ class ProcessDefinition(object):
                 path_item.create_node()
                 path.nodes.append(path_item)
 
+    def extract_meta(self, meta):
+        self.lang_code = meta.lang_code
+        self.lang_name = meta.lang_name
+        self.text = meta.text
+        self.vocab_text = meta.vocab_text
+        self.version = meta.version
+        self.ext_version = meta.ext_version
+        self.created = meta.created if isinstance(meta.created, basestring) else meta.created.isoformat()
+        self.created_by = meta.created_by
+        self.last_updated = meta.created if isinstance(meta.last_updated, basestring) else meta.last_updated.isoformat()
+        self.last_updated_by = meta.last_updated_by
+
+    def extract_config(self, config):
+        self.config.name = config.name
+        self.config.start.path = config.start.path
+        self.config.start.service = config.start.service
+        self.config.service_map.update(config.service_map.items())
+
+    def extract_pipeline(self, pipeline):
+        for k, v in pipeline.items():
+            self.pipeline.config[k] = self.eval_(v)
+
 # ################################################################################################################################
 
     def to_yaml(self, width=60):
@@ -329,26 +360,13 @@ class ProcessDefinition(object):
         pd = ProcessDefinition()
 
         # Meta stuff
-        pd.lang_code = data._meta.lang_code
-        pd.lang_name = data._meta.lang_name
-        pd.text = data._meta.text
-        pd.vocab_text = data._meta.vocab_text
-        pd.version = data._meta.version
-        pd.ext_version = data._meta.ext_version
-        pd.created = data._meta.created
-        pd.created_by = data._meta.created_by
-        pd.last_updated = data._meta.last_updated
-        pd.last_updated_by = data._meta.last_updated_by
+        pd.extract_meta(data._meta)
 
         # Config
-        pd.config.name = data.config.name
-        pd.config.start.path = data.config.start.path
-        pd.config.start.service = data.config.start.service
-        pd.config.service_map.update(data.config.service_map.items())
+        pd.extract_config(data.config)
 
         # Pipeline
-        for k, v in data.pipeline.items():
-            pd.pipeline.config[k] = pd.eval_(v)
+        pd.extract_pipeline(data.pipeline)
 
         # Path and Handler
         pd.extract_path_handler('path', data, pd.paths, Path)
@@ -401,7 +419,26 @@ class ProcessDefinition(object):
         session.add(pd)
         session.flush()
 
+        self.pipeline.to_sql(session, pd.id)
         [item.to_sql(session, pd.id) for item in itertools.chain(self.paths.values(), self.handlers.values())]
+
+        session.flush()
+
+        start = ProcDefConfigStart()
+        start.proc_def_path_id = session.query(ProcDefPath.id).\
+            filter(ProcDefPath.name==self.config.start.path).\
+            filter(ProcDefPath.proc_def_id==pd.id).\
+            one()[0]
+        start.service_name = self.config.start.service
+        start.proc_def_id = pd.id
+        session.add(start)
+
+        for label, service_name in self.config.service_map.iteritems():
+            p = ProcDefConfigServiceMap()
+            p.service_name = service_name
+            p.label = label
+            p.proc_def_id = pd.id
+            session.add(p)
 
         session.commit()
 
@@ -416,19 +453,43 @@ class ProcessDefinition(object):
             one()
 
         pd = ProcessDefinition()
-        pd.version = pd_model.version
-        pd.ext_version = pd_model.ext_version
-        pd.created = pd_model.created.isoformat()
-        pd.created_by = pd_model.created_by
-        pd.last_updated = pd_model.last_updated.isoformat()
-        pd.last_updated_by = pd_model.last_updated_by
-        pd.text = pd_model.text
-        pd.vocab_text = pd_model.vocab_text
 
+        # Meta stuff
+        pd.extract_meta(pd_model)
+
+        import pprint
+
+        # Config
+        pd.config.name = pd_model.name
+
+        # Note that currently only one service can start a process
+        start_info = pd_model.def_start_paths
+
+        # Pipeline
+        pipeline = {}
+        for item in pd_model.def_pipeline:
+            item = to_json(item, True)['fields']
+            pipeline[item['key']] = item['data_type']
+
+        pd.extract_pipeline(pipeline)
+
+        #print(pd.to_yaml())
+
+        '''
+        # Config
+        pd.extract_config(data.config)
+
+        # Path and Handler
+        pd.extract_path_handler('path', data, pd.paths, Path)
+        pd.extract_path_handler('handler', data, pd.handlers, Handler)
+        '''
+
+        '''
         for def_path in pd_model.def_paths:
             print(333, def_path.name)
             for node in def_path.nodes:
                 print(444, ' ', node.node_name)
+                '''
 
 # ################################################################################################################################
 
