@@ -9,7 +9,6 @@ Licensed under LGPLv3, see LICENSE.txt for terms and conditions.
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 # stdlib
-from base64 import b64encode
 from datetime import datetime
 from string import whitespace
 import itertools
@@ -29,9 +28,6 @@ from parse import compile as parse_compile
 
 # sortedcontainers
 from sortedcontainers import SortedDict
-
-# SQLAlchemy
-from sqlalchemy.orm.exc import NoResultFound
 
 # YAML
 import yaml
@@ -497,23 +493,37 @@ class ProcessDefinition(object):
 
 # ################################################################################################################################
 
-if __name__ == '__main__':
+    def validate(self):
+        """ Validates the definition of a process. The very fact that we can be called means the definition could be parsed
+        however it still may contain logical issues preventing the process from starting or completing.
 
-    from zato.process.vocab import en_uk
+        Conditions checked (E=error, W=warning).
 
-    text = open('./proc.txt', 'r').read()
+        - E: Processes must be named
+        - E: Start path must be defined
+        - E: At least one path must be defined
+        - E: All require/enter/fork-related nodes use paths that actually exist
+        - E: Time units must be valid
+        - E: All comma-separated items should be valid
+        - W: No unused paths
+        """
+        result = Bunch(is_valid=False, errors=[], warnings=[])
 
-    pd1 = ProcessDefinition()
-    pd1.text = text.strip()
-    pd1.lang_code = 'en_uk'
-    pd1.vocab_text = en_uk
-    pd1.parse()
+        # Processes should be named
 
-    #print(pd1.text)
-    #print(pd1.vocab_text)
+        # Start path should be defined
 
-    y = pd1.to_yaml()
-    #print(pd1.to_yaml())
+        # Require/enter/fork-related nodes use paths that actually exist
 
-    #pd2 = ProcessDefinition.from_yaml(y)
-    #print(pd2.to_yaml())
+        # All require/enter/fork-related nodes use paths that actually exist
+
+        # Time units should be valid
+
+        # All comma-separated items should be valid
+
+        # No unused paths
+
+        # Sum it up
+        result.is_valid = not (result.errors or result.warnings)
+
+        return result

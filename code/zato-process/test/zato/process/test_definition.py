@@ -16,9 +16,6 @@ from unittest import TestCase
 # arrow
 from dateutil.parser import parse as dt_parse
 
-# nose
-from nose.tools import eq_
-
 # SQLAlchemy
 import sqlalchemy
 from sqlalchemy import orm
@@ -75,7 +72,6 @@ Path: order.management
   Set my.key = my.value
 
 Handler: cease
-  Ignore signals amend, *.complete
 
   Require feasibility.study else reject.order
   Enter order.complete
@@ -123,6 +119,8 @@ Path: reject.order
   Emit order.rejected
 """
 
+invalid_no_name
+
 class DefinitionTestCase(TestCase):
 
     def setUp(self):
@@ -136,9 +134,9 @@ class DefinitionTestCase(TestCase):
     def assert_definitions_equal(self, pd1, pd2):
         self.assertDictEqual(pd1.to_canonical(), pd2.to_canonical())
 
-    def get_process1(self):
+    def get_process(self, process):
         pd = ProcessDefinition()
-        pd.text = process1.strip()
+        pd.text = process.strip()
         pd.lang_code = 'en_uk'
         pd.vocab_text = en_uk
         pd.parse()
@@ -146,11 +144,11 @@ class DefinitionTestCase(TestCase):
         return pd
 
     def test_yaml_roundtrip(self):
-        pd = self.get_process1()
+        pd = self.get_process(process1)
         self.assert_definitions_equal(pd, ProcessDefinition.from_yaml(pd.to_yaml()))
 
     def test_sql_rountrip(self):
-        pd1 = self.get_process1()
+        pd1 = self.get_process(process1)
         pd_id = pd1.to_sql(self.session, cluster_id=1).id
 
         pd2 = ProcessDefinition.from_sql(self.session, pd_id)
@@ -176,3 +174,6 @@ class DefinitionTestCase(TestCase):
         pd1.last_updated_by = pd2.last_updated_by
 
         self.assert_definitions_equal(pd1, pd2)
+
+    def test_validate(self):
+        pd = self.get_process(process1)

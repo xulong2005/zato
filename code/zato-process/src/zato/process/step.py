@@ -148,18 +148,6 @@ class Set(Step):
     """
     name = 'set'
 
-class IgnoreSingal(Step):
-    """ Signifies that a given signal will be ignored in a path
-    even if its parent(s) would like to handle it.
-    """
-    name = 'ignore_signal'
-
-class IgnoreSingals(Step):
-    """ Signifies that a set of signals will be ignored in a path
-    even if its parent(s) would like to handle them.
-    """
-    name = 'ignore_signals'
-
 # Build a mapping of node types to actual classes
 node_names = {}
 

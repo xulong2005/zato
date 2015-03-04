@@ -53,7 +53,5 @@ set               = Set {key} = {value}
 handler           = Handler: {handler}
 invoke            = Invoke {service}
 enter             = Enter {service}
-ignore_signal     = Ignore signal {signal}
-ignore_signals    = Ignore signals {signals}
 set               = Set {key} = {value}
 """.strip()
