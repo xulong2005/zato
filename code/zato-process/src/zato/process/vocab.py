@@ -37,8 +37,8 @@ wait_sigs         = Wait for signals {signals}
 enter             = Enter {path}
 invoke            = Invoke {service}
 
-fork_to1_and_wait = Fork to {fork_to} under {fork_name} and wait
-fork_to2          = Fork to {fork_to} under {fork_name}
+fork_to_and_wait  = Fork to {fork_to} under {fork_name} and wait
+fork_to           = Fork to {fork_to} under {fork_name}
 
 if_invoke         = If {condition} invoke {service}
 if_enter          = If {condition} enter {path}

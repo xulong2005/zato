@@ -28,6 +28,9 @@ from zato.common.odb.model import Base
 from zato.process.definition import ProcessDefinition
 from zato.process.vocab import en_uk
 
+# This process doesn't make much business sense but it's
+# used only to check all the paths and nodes a process can go through
+# so that it makes use of the whole of the vocabulary.
 process1 = """
 Config:
 
@@ -44,15 +47,61 @@ Pipeline:
   user_social: dict
 
 Path: order.management
+
   Require feasibility.study else reject.order
-  Wait for signals patch.complete, drop.complete
   Enter order.complete
+  Require abc.def
+
+  Wait for signal patch.complete
+  Wait for signal signal.name on timeout 30s enter path.name
+  Wait for signal signal.name on timeout 60m invoke service.name
+
+  Wait for signals patch.complete, patch.drop
+  Wait for signals signal.name on timeout 30s enter path.name
+  Wait for signals signal.name on timeout 60m invoke service.name
+
+  Invoke service.name
+
+  Fork to path1, path2 under my.fork and wait
+  Fork to path1, path2
+
+  If my.condition invoke my.service
+  Else invoke my.service2
+
+  If my.condition enter my.path
+  Else invoke my.path2
+
+  Emit my.event
+  Set my.key = my.value
 
 Handler: cease
-  Ignore signals: amend, *.complete
+  Ignore signals amend, *.complete
 
-  Invoke core.order.release-resources
-  Invoke core.order.on-cease
+  Require feasibility.study else reject.order
+  Enter order.complete
+  Require abc.def
+
+  Wait for signal patch.complete
+  Wait for signal signal.name on timeout 30s enter path.name
+  Wait for signal signal.name on timeout 60m invoke service.name
+
+  Wait for signals patch.complete, patch.drop
+  Wait for signals signal.name on timeout 30s enter path.name
+  Wait for signals signal.name on timeout 60m invoke service.name
+
+  Invoke service.name
+
+  Fork to path1, path2 under my.fork and wait
+  Fork to path1, path2
+
+  If my.condition invoke my.service
+  Else invoke my.service2
+
+  If my.condition enter my.path
+  Else invoke my.path2
+
+  Emit my.event
+  Set my.key = my.value
 
 Handler: amend
   Invoke core.order.amend
