@@ -10,6 +10,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 # stdlib
 from datetime import datetime
+from operator import attrgetter
 from string import whitespace
 import itertools
 import json
@@ -56,6 +57,37 @@ yaml.add_representer(tuple, tuple_representer)
 yaml.add_representer(OrderedDict, ordered_dict_representer)
 yaml.add_representer(SortedDict, sorted_dict_representer)
 yaml.add_representer(unicode, unicode_representer)
+
+# ################################################################################################################################
+
+class ValidationResult(object):
+    def __init__(self):
+        self.is_valid = False
+        self.errors = []
+        self.warnings = []
+
+    def __nonzero__(self):
+        return not (self.errors or self.warnings)
+
+    def __contains__(self, item):
+        container = self.errors if isinstance(item, Error) else self.warnings
+        return any(elem.code == item.code for elem in container)
+
+    def sort(self):
+        # Sorts errors and warnings by their codes so it easier
+        # to test them.
+        self.errors.sort(key=attrgetter('code'))
+        self.warnings.sort(key=attrgetter('code'))
+
+        return self
+
+class Warning(object):
+    def __init__(self, code=None, message=None):
+        self.code = code
+        self.message = message
+
+class Error(Warning):
+    pass
 
 # ################################################################################################################################
 
@@ -120,6 +152,7 @@ class NodeItem(object):
         self.node_name = ''
         self.data = {}
         self.node = None
+        self.line = ''
 
     def __cmp__(self, other):
         return self.node_name == other.node_name and sorted(self.data) == sorted(other.data)
@@ -193,13 +226,13 @@ class ProcessDefinition(object):
             for node_name, v in self.vocab[vocab_item].items():
                 result = v.parse(line)
                 if result:
-                    yield node_name, result.named
+                    yield node_name, result.named, line
                     break
 
 # ################################################################################################################################
 
     def parse_config(self, start_idx):
-        for name, data in self.yield_node_info(start_idx, 'config'):
+        for name, data, line in self.yield_node_info(start_idx, 'config'):
             getattr(self.config, 'handle_{}'.format(name))(data)
 
 # ################################################################################################################################
@@ -208,10 +241,11 @@ class ProcessDefinition(object):
         elem = class_()
         elem.name = self.vocab[node_name]['name'].parse(self.text_split[start_idx]).named[node_name]
 
-        for name, data in self.yield_node_info(start_idx, node_name):
+        for name, data, line in self.yield_node_info(start_idx, node_name):
             path_item = NodeItem()
             path_item.node_name = name
             path_item.data = data
+            path_item.line = line
             path_item.create_node()
             elem.nodes.append(path_item)
 
@@ -493,6 +527,15 @@ class ProcessDefinition(object):
 
 # ################################################################################################################################
 
+    def _validate_path_exist(self, node_item):
+        missing = []
+        for attr in sorted(attr for attr in node_item.data if attr.startswith('path')):
+            if node_item.node.data[attr] not in self.paths:
+                missing.append(
+                    Error('EPROC-0005', 'Path does not exist `{}` ({})'.format(node_item.node.data[attr], node_item.line)))
+
+        return missing
+
     def validate(self):
         """ Validates the definition of a process. The very fact that we can be called means the definition could be parsed
         however it still may contain logical issues preventing the process from starting or completing.
@@ -502,28 +545,61 @@ class ProcessDefinition(object):
         - E: Processes must be named
         - E: Start path must be defined
         - E: At least one path must be defined
-        - E: All require/enter/fork-related nodes use paths that actually exist
+        - E: Paths must not be empty
+        - E: All require/enter/fork-related/if/else nodes use paths that actually exist
         - E: Time units must be valid
         - E: All comma-separated items should be valid
         - W: No unused paths
         """
-        result = Bunch(is_valid=False, errors=[], warnings=[])
+        result = ValidationResult()
 
-        # Processes should be named
+        # EPROC-0001
+        # Processes must be named
+        if not self.config.name:
+            result.errors.append(Error('EPROC-0001', 'Processes must be named'))
 
-        # Start path should be defined
+        # EPROC-0002
+        # Start node must contain both path and service
+        if not (self.config.start.path and self.config.start.service):
+            result.errors.append(Error('EPROC-0002', 'Start node must contain both path and service'))
 
-        # Require/enter/fork-related nodes use paths that actually exist
+        # EPROC-0003
+        # At least one path must be defined
+        if not self.paths:
+            result.errors.append(Error('EPROC-0003', 'At least one path must be defined'))
 
-        # All require/enter/fork-related nodes use paths that actually exist
+        # EPROC-0004
+        # Paths must not be empty
+        empty = []
+        for name, path in self.paths.iteritems():
+            if not path.nodes:
+                empty.append(name)
 
-        # Time units should be valid
+        if empty:
+            result.errors.append(Error('EPROC-0004', 'Paths must not be empty {}'.format(
+                sorted(elem.encode('utf-8') for elem in empty))))
 
-        # All comma-separated items should be valid
+        # EPROC-0005
+        # Start/require/enter/fork/if/else-related nodes use paths that actually exist
 
+        # Start
+        if self.config.start.path not in self.paths:
+            result.errors.append(Error('EPROC-0005', 'Start path does not exist ({})'.format(self.config.start.path)))
+
+        # Require/Enter/Fork/If/Else
+        for name, path in self.paths.iteritems():
+            for node_item in path.nodes:
+                if isinstance(node_item.node, (
+                    step.Require, step.RequireElse, step.Enter, step.Fork, step.IfEnter, step.ElseEnter)):
+                    result.errors.extend(self._validate_path_exist(node_item))
+
+        # EPROC-0006
+        # Time units must be valid
+
+        # EPROC-0007
+        # All comma-separated items must be valid
+
+        # WPROC-0008
         # No unused paths
 
-        # Sum it up
-        result.is_valid = not (result.errors or result.warnings)
-
-        return result
+        return result.sort()

@@ -9,9 +9,11 @@ Licensed under LGPLv3, see LICENSE.txt for terms and conditions.
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 en_uk = """
+
 [main]
 name              = English
 top_level         = Config, Path, Handler, Pipeline
+
 [config]
 name              = Name: {name}
 start             = Start: {path} from {service}
