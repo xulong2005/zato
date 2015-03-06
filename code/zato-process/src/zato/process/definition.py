@@ -561,6 +561,10 @@ class ProcessDefinition(object):
                     errors.append(
                         Error('EPROC-0007', 'Invalid data `{}` ({})'.format(value, node_item.line)))
 
+    def _add_paths_user(self, node_item, paths_used):
+        for attr in self._get_node_attrs(node_item, 'path'):
+            paths_used.add(node_item.node.data[attr])
+
     def validate(self):
         """ Validates the definition of a process. The very fact that we can be called means the definition could be parsed
         however it still may contain logical issues preventing the process from starting or completing.
@@ -576,6 +580,10 @@ class ProcessDefinition(object):
         - E: All comma-separated items should be valid
         - W: No unused paths
         """
+        # All paths used for various nodes
+        paths_used = set()
+
+        # Results of our work
         result = ValidationResult()
 
         # EPROC-0001
@@ -613,6 +621,8 @@ class ProcessDefinition(object):
         for name, path in self.paths.iteritems():
             for node_item in path.nodes:
 
+                self._add_paths_user(node_item, paths_used)
+
                 # EPROC-0005
                 if isinstance(node_item.node, (step.Require, step.RequireElse, step.Enter, step.Fork,
                         step.IfEnter, step.ElseEnter, step.WaitSignalsOnTimeoutEnter, step.WaitSignalsOnTimeoutInvoke)):
@@ -631,7 +641,11 @@ class ProcessDefinition(object):
                         step.WaitSignalsOnTimeoutEnter, step.WaitSignalsOnTimeoutInvoke)):
                     self._validate_commas(node_item, result.errors)
 
-        # WPROC-0008
+        # WPROC-0001
         # No unused paths
+        unused = set(self.paths) - paths_used
+        if unused:
+            result.warnings.append(Warning('WPROC-0001', 'Unused paths found `{}`'.format(
+                ', '.join(elem.encode('utf-8') for elem in unused))))
 
         return result.sort()

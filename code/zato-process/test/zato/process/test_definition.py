@@ -268,6 +268,30 @@ Path: path2
   Invoke my.service
 """
 
+invalid_unused_paths = """
+Config:
+
+  Name: MyProcess
+  Start: start.path from my.service
+
+Path: start.path
+  Invoke my.service
+  Wait for signals abc,def on timeout 10s enter path2
+  Wait for signals 123,456 on timeout 10s enter path4
+
+Path: path2
+  Invoke my.service
+
+Path: path3
+  Invoke my.service
+
+Path: path4
+  Invoke my.service
+
+Path: path5
+  Invoke my.service
+"""
+
 class DefinitionTestCase(TestCase):
 
     def setUp(self):
@@ -370,42 +394,42 @@ class DefinitionTestCase(TestCase):
 
         result = self.get_process(invalid_paths_empty).validate()
         self.assertFalse(result)
-        self.assertEquals(len(result.warnings), 0)
+        self.assertEquals(len(result.warnings), 1) # WPROC-0001
         self.assertEquals(len(result.errors), 1)
         self.assertEquals(result.errors[0].code, 'EPROC-0004')
         self.assertEquals(result.errors[0].message, "Paths must not be empty ['my.path1', 'my.path3']")
 
         result = self.get_process(invalid_start_path_does_not_exist).validate()
         self.assertFalse(result)
-        self.assertEquals(len(result.warnings), 0)
+        self.assertEquals(len(result.warnings), 1) # WPROC-0001
         self.assertEquals(len(result.errors), 1)
         self.assertEquals(result.errors[0].code, 'EPROC-0005')
         self.assertEquals(result.errors[0].message, 'Start path does not exist (my.path3)')
 
         result = self.get_process(invalid_require_path_does_not_exist).validate()
         self.assertFalse(result)
-        self.assertEquals(len(result.warnings), 0)
+        self.assertEquals(len(result.warnings), 1) # WPROC-0001
         self.assertEquals(len(result.errors), 1)
         self.assertEquals(result.errors[0].code, 'EPROC-0005')
         self.assertEquals(result.errors[0].message, 'Path does not exist `my.path2` (Require my.path2)')
 
         result = self.get_process(invalid_require_else_path1_does_not_exist).validate()
         self.assertFalse(result)
-        self.assertEquals(len(result.warnings), 0)
+        self.assertEquals(len(result.warnings), 1) # WPROC-0001
         self.assertEquals(len(result.errors), 1)
         self.assertEquals(result.errors[0].code, 'EPROC-0005')
         self.assertEquals(result.errors[0].message, 'Path does not exist `my.path.foo` (Require my.path.foo else my.path2)')
 
         result = self.get_process(invalid_require_else_path2_does_not_exist).validate()
         self.assertFalse(result)
-        self.assertEquals(len(result.warnings), 0)
+        self.assertEquals(len(result.warnings), 1) # WPROC-0001
         self.assertEquals(len(result.errors), 1)
         self.assertEquals(result.errors[0].code, 'EPROC-0005')
         self.assertEquals(result.errors[0].message, 'Path does not exist `my.path.foo` (Require my.path else my.path.foo)')
 
         result = self.get_process(invalid_require_else_paths_do_not_exist).validate()
         self.assertFalse(result)
-        self.assertEquals(len(result.warnings), 0)
+        self.assertEquals(len(result.warnings), 1) # WPROC-0001
         self.assertEquals(len(result.errors), 2)
         self.assertEquals(result.errors[0].code, 'EPROC-0005')
         self.assertEquals(result.errors[0].message, 'Path does not exist `my.path1` (Require my.path1 else my.path2)')
@@ -415,7 +439,7 @@ class DefinitionTestCase(TestCase):
     def test_validate_time_units(self):
         result = self.get_process(invalid_time_unit1).validate()
         self.assertFalse(result)
-        self.assertEquals(len(result.warnings), 0)
+        self.assertEquals(len(result.warnings), 1) # WPROC-0001
         self.assertEquals(len(result.errors), 2)
         self.assertEquals(result.errors[0].code, 'EPROC-0006')
         self.assertEquals(
@@ -427,7 +451,7 @@ class DefinitionTestCase(TestCase):
     def test_validate_commas(self):
         result = self.get_process(invalid_commas).validate()
         self.assertFalse(result)
-        self.assertEquals(len(result.warnings), 0)
+        self.assertEquals(len(result.warnings), 1) # WPROC-0001
         self.assertEquals(len(result.errors), 6)
         self.assertEquals(result.errors[0].code, 'EPROC-0007')
         self.assertEquals(result.errors[1].code, 'EPROC-0007')
@@ -441,3 +465,11 @@ class DefinitionTestCase(TestCase):
         self.assertEquals(result.errors[3].message, 'Invalid data `,,789,,` (Wait for signals ,,789,, on timeout 10s enter path2)')
         self.assertEquals(result.errors[4].message, 'Invalid data `,,` (Wait for signals ,, on timeout 10s enter path2)')
         self.assertEquals(result.errors[5].message, 'Invalid data `,` (Wait for signals , on timeout 10s enter path2)')
+
+    def test_unused_paths(self):
+        result = self.get_process(invalid_unused_paths).validate()
+        self.assertFalse(result)
+        self.assertEquals(len(result.warnings), 1)
+        self.assertEquals(len(result.errors), 0)
+        self.assertEquals(result.warnings[0].code, 'WPROC-0001')
+        self.assertEquals(result.warnings[0].message, 'Unused paths found `path3, start.path, path5`')
