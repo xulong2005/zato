@@ -228,6 +228,46 @@ Path: my.path
   Invoke foo
 """
 
+invalid_time_unit1 = """
+Config:
+
+  Name: MyProcess
+  Start: start.path from my.service
+
+Path: start.path
+  Invoke my.service
+  Wait for signal my.signal on timeout 15a enter path2
+  Wait for signal my.signal on timeout 20s enter path2
+  Wait for signal my.signal on timeout 30m enter path2
+  Wait for signal my.signal on timeout 40h enter path2
+  Wait for signal my.signal on timeout 50d enter path2
+  Wait for signal my.signal on timeout 60z enter path2
+
+Path: path2
+  Invoke my.service
+"""
+
+invalid_commas = """
+Config:
+
+  Name: MyProcess
+  Start: start.path from my.service
+
+Path: start.path
+  Invoke my.service
+  Wait for signals abc on timeout 10s enter {service}
+  Wait for signals abc,def on timeout 10s enter {service}
+  Wait for signals 123,456, on timeout 10s enter {service}
+  Wait for signals ,789,000, on timeout 10s enter {service}
+  Wait for signals ,789,, on timeout 10s enter {service}
+  Wait for signals ,,789,, on timeout 10s enter {service}
+  Wait for signals ,, on timeout 10s enter {service}
+  Wait for signals , on timeout 10s enter {service}
+
+Path: path2
+  Invoke my.service
+"""
+
 class DefinitionTestCase(TestCase):
 
     def setUp(self):
@@ -250,11 +290,11 @@ class DefinitionTestCase(TestCase):
 
         return pd
 
-    def xtest_yaml_roundtrip(self):
+    def test_yaml_roundtrip(self):
         pd = self.get_process(process1)
         self.assert_definitions_equal(pd, ProcessDefinition.from_yaml(pd.to_yaml()))
 
-    def xtest_sql_rountrip(self):
+    def test_sql_rountrip(self):
         pd1 = self.get_process(process1)
         pd_id = pd1.to_sql(self.session, cluster_id=1).id
 
@@ -282,39 +322,37 @@ class DefinitionTestCase(TestCase):
 
         self.assert_definitions_equal(pd1, pd2)
 
-    def xtest_validate_no_name(self):
-
-        # Note that we will have 2 errors because no paths are defined
+    def test_validate_no_name(self):
 
         result = self.get_process(invalid_no_name).validate()
         self.assertFalse(result)
         self.assertEquals(len(result.warnings), 0)
-        self.assertEquals(len(result.errors), 2)
+        self.assertEquals(len(result.errors), 3)
         self.assertEquals(result.errors[0].code, 'EPROC-0001')
         self.assertEquals(result.errors[0].message, 'Processes must be named')
 
-    def xtest_validate_invalid_start(self):
+    def test_validate_invalid_start(self):
 
         # Note that we will have 2 errors because no paths are defined
 
         result = self.get_process(invalid_no_start).validate()
         self.assertFalse(result)
         self.assertEquals(len(result.warnings), 0)
-        self.assertEquals(len(result.errors), 2)
+        self.assertEquals(len(result.errors), 3)
         self.assertEquals(result.errors[0].code, 'EPROC-0002')
         self.assertEquals(result.errors[0].message, 'Start node must contain both path and service')
 
         result = self.get_process(invalid_no_start_service1).validate()
         self.assertFalse(result)
         self.assertEquals(len(result.warnings), 0)
-        self.assertEquals(len(result.errors), 2)
+        self.assertEquals(len(result.errors), 3)
         self.assertEquals(result.errors[0].code, 'EPROC-0002')
         self.assertEquals(result.errors[0].message, 'Start node must contain both path and service')
 
         result = self.get_process(invalid_no_start_service2).validate()
         self.assertFalse(result)
         self.assertEquals(len(result.warnings), 0)
-        self.assertEquals(len(result.errors), 2)
+        self.assertEquals(len(result.errors), 3)
         self.assertEquals(result.errors[0].code, 'EPROC-0002')
         self.assertEquals(result.errors[0].message, 'Start node must contain both path and service')
 
@@ -373,3 +411,18 @@ class DefinitionTestCase(TestCase):
         self.assertEquals(result.errors[0].message, 'Path does not exist `my.path1` (Require my.path1 else my.path2)')
         self.assertEquals(result.errors[1].code, 'EPROC-0005')
         self.assertEquals(result.errors[1].message, 'Path does not exist `my.path2` (Require my.path1 else my.path2)')
+
+    def test_validate_time_units(self):
+        result = self.get_process(invalid_time_unit1).validate()
+        self.assertFalse(result)
+        self.assertEquals(len(result.warnings), 0)
+        self.assertEquals(len(result.errors), 2)
+        self.assertEquals(result.errors[0].code, 'EPROC-0006')
+        self.assertEquals(
+            result.errors[0].message, 'Invalid time expression `15a` (Wait for signal my.signal on timeout 15a enter path2)')
+        self.assertEquals(result.errors[1].code, 'EPROC-0006')
+        self.assertEquals(
+            result.errors[1].message, 'Invalid time expression `60z` (Wait for signal my.signal on timeout 60z enter path2)')
+
+    def test_validate_commas(self):
+        pass

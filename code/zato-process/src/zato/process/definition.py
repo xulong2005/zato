@@ -41,6 +41,11 @@ from zato.process import step, OrderedDict
 
 # ################################################################################################################################
 
+# Seconds, minutes, hours, days
+TIME_UNITS = ('s', 'm', 'h', 'd')
+
+# ################################################################################################################################
+
 def tuple_representer(dumper, data):
     return dumper.represent_list(data)
 
@@ -527,14 +532,28 @@ class ProcessDefinition(object):
 
 # ################################################################################################################################
 
-    def _validate_path_exist(self, node_item):
-        missing = []
-        for attr in sorted(attr for attr in node_item.data if attr.startswith('path')):
-            if node_item.node.data[attr] not in self.paths:
-                missing.append(
-                    Error('EPROC-0005', 'Path does not exist `{}` ({})'.format(node_item.node.data[attr], node_item.line)))
+    def _get_node_attrs(self, node_item, prefix):
+        for attr in sorted(attr for attr in node_item.data if attr.startswith(prefix)):
+            yield attr
 
-        return missing
+    def _validate_path_exist(self, node_item, errors):
+        for attr in self._get_node_attrs(node_item, 'path'):
+            value = node_item.node.data[attr]
+            if node_item.node.data[attr] not in self.paths:
+                errors.append(
+                    Error('EPROC-0005', 'Path does not exist `{}` ({})'.format(value, node_item.line)))
+
+    def _validate_time_units(self, node_item, errors):
+        for attr in self._get_node_attrs(node_item, 'timeout'):
+            value = node_item.node.data[attr]
+            if value[-1] not in TIME_UNITS:
+                errors.append(
+                    Error('EPROC-0006', 'Invalid time expression `{}` ({})'.format(value, node_item.line)))
+
+    def _validate_commas(self, node_item, errors):
+        for attr in self._get_node_attrs(node_item, 'signal'):
+            value = node_item.node.data[attr]
+            print(value)
 
     def validate(self):
         """ Validates the definition of a process. The very fact that we can be called means the definition could be parsed
@@ -582,22 +601,29 @@ class ProcessDefinition(object):
         # EPROC-0005
         # Start/require/enter/fork/if/else-related nodes use paths that actually exist
 
-        # Start
         if self.config.start.path not in self.paths:
             result.errors.append(Error('EPROC-0005', 'Start path does not exist ({})'.format(self.config.start.path)))
 
-        # Require/Enter/Fork/If/Else
         for name, path in self.paths.iteritems():
             for node_item in path.nodes:
-                if isinstance(node_item.node, (
-                    step.Require, step.RequireElse, step.Enter, step.Fork, step.IfEnter, step.ElseEnter)):
-                    result.errors.extend(self._validate_path_exist(node_item))
 
-        # EPROC-0006
-        # Time units must be valid
+                # EPROC-0005
+                if isinstance(node_item.node, (step.Require, step.RequireElse, step.Enter, step.Fork,
+                        step.IfEnter, step.ElseEnter, step.WaitSignalsOnTimeoutEnter, step.WaitSignalsOnTimeoutInvoke)):
+                    self._validate_path_exist(node_item, result.errors)
 
-        # EPROC-0007
-        # All comma-separated items must be valid
+                # EPROC-0006
+                # Time units must be valid
+
+                if isinstance(node_item.node, (step.WaitSignalOnTimeoutEnter,
+                        step.WaitSignalOnTimeoutInvoke, step.WaitSignalsOnTimeoutEnter, step.WaitSignalsOnTimeoutInvoke)):
+                    self._validate_time_units(node_item, result.errors)
+
+                # EPROC-0007
+                # All comma-separated items must be valid
+                if isinstance(node_item.node, (step.WaitSignals,
+                        step.WaitSignalsOnTimeoutEnter, step.WaitSignalsOnTimeoutInvoke)):
+                    self._validate_commas(node_item, result.errors)
 
         # WPROC-0008
         # No unused paths

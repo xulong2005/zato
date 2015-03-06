@@ -32,7 +32,7 @@ wait_sig_enter    = Wait for signal {signal} on timeout {timeout} enter {path}
 wait_sig_invoke   = Wait for signal {signal} on timeout {timeout} invoke {service}
 wait_sig          = Wait for signal {signal}
 
-wait_sigs_enter   = Wait for signals {signals} on timeout {timeout} enter {service}
+wait_sigs_enter   = Wait for signals {signals} on timeout {timeout} enter {path}
 wait_sigs_invoke  = Wait for signals {signals} on timeout {timeout} invoke {service}
 wait_sigs         = Wait for signals {signals}
 
