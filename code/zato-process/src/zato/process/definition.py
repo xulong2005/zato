@@ -649,3 +649,8 @@ class ProcessDefinition(object):
                 ', '.join(elem.encode('utf-8') for elem in unused))))
 
         return result.sort()
+
+# ################################################################################################################################
+
+    def highlight(self):
+        pass

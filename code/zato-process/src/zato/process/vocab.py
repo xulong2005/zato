@@ -56,4 +56,9 @@ handler           = Handler: {handler}
 invoke            = Invoke {service}
 enter             = Enter {service}
 set               = Set {key} = {value}
+
+[highlight]
+keywords1=Config:, Path:, Handler:, Pipeline:, Name:, Start:, from, Map service, to, str, int, list, dict
+keywords2=Require, else, Wait for signal, Wait for signals, on timeout, If, Else, Set, Emit
+keywords3=enter, invoke, Enter, Invoke, Fork to, under, and wait, =
 """.strip()
