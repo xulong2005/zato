@@ -551,9 +551,15 @@ class ProcessDefinition(object):
                     Error('EPROC-0006', 'Invalid time expression `{}` ({})'.format(value, node_item.line)))
 
     def _validate_commas(self, node_item, errors):
+        # If there is any comma, the number of elements must be commas_count + 1
         for attr in self._get_node_attrs(node_item, 'signal'):
             value = node_item.node.data[attr]
-            print(value)
+            commas_count = value.count(',')
+            elems = [elem for elem in value.split(',') if elem.strip()]
+            if commas_count:
+                if len(elems) != commas_count+1:
+                    errors.append(
+                        Error('EPROC-0007', 'Invalid data `{}` ({})'.format(value, node_item.line)))
 
     def validate(self):
         """ Validates the definition of a process. The very fact that we can be called means the definition could be parsed

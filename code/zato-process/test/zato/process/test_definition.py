@@ -255,14 +255,14 @@ Config:
 
 Path: start.path
   Invoke my.service
-  Wait for signals abc on timeout 10s enter {service}
-  Wait for signals abc,def on timeout 10s enter {service}
-  Wait for signals 123,456, on timeout 10s enter {service}
-  Wait for signals ,789,000, on timeout 10s enter {service}
-  Wait for signals ,789,, on timeout 10s enter {service}
-  Wait for signals ,,789,, on timeout 10s enter {service}
-  Wait for signals ,, on timeout 10s enter {service}
-  Wait for signals , on timeout 10s enter {service}
+  Wait for signals abc on timeout 10s enter path2
+  Wait for signals abc,def on timeout 10s enter path2
+  Wait for signals 123,456, on timeout 10s enter path2
+  Wait for signals ,789,000, on timeout 10s enter path2
+  Wait for signals ,789,, on timeout 10s enter path2
+  Wait for signals ,,789,, on timeout 10s enter path2
+  Wait for signals ,, on timeout 10s enter path2
+  Wait for signals , on timeout 10s enter path2
 
 Path: path2
   Invoke my.service
@@ -425,4 +425,19 @@ class DefinitionTestCase(TestCase):
             result.errors[1].message, 'Invalid time expression `60z` (Wait for signal my.signal on timeout 60z enter path2)')
 
     def test_validate_commas(self):
-        pass
+        result = self.get_process(invalid_commas).validate()
+        self.assertFalse(result)
+        self.assertEquals(len(result.warnings), 0)
+        self.assertEquals(len(result.errors), 6)
+        self.assertEquals(result.errors[0].code, 'EPROC-0007')
+        self.assertEquals(result.errors[1].code, 'EPROC-0007')
+        self.assertEquals(result.errors[2].code, 'EPROC-0007')
+        self.assertEquals(result.errors[3].code, 'EPROC-0007')
+        self.assertEquals(result.errors[4].code, 'EPROC-0007')
+        self.assertEquals(result.errors[5].code, 'EPROC-0007')
+        self.assertEquals(result.errors[0].message, 'Invalid data `123,456,` (Wait for signals 123,456, on timeout 10s enter path2)')
+        self.assertEquals(result.errors[1].message, 'Invalid data `,789,000,` (Wait for signals ,789,000, on timeout 10s enter path2)')
+        self.assertEquals(result.errors[2].message, 'Invalid data `,789,,` (Wait for signals ,789,, on timeout 10s enter path2)')
+        self.assertEquals(result.errors[3].message, 'Invalid data `,,789,,` (Wait for signals ,,789,, on timeout 10s enter path2)')
+        self.assertEquals(result.errors[4].message, 'Invalid data `,,` (Wait for signals ,, on timeout 10s enter path2)')
+        self.assertEquals(result.errors[5].message, 'Invalid data `,` (Wait for signals , on timeout 10s enter path2)')

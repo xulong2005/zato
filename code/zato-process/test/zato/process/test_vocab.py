@@ -23,6 +23,7 @@ class VocabularyTestCase(TestCase):
 [main]
 name              = English
 top_level         = Config, Path, Handler, Pipeline
+
 [config]
 name              = Name: {name}
 start             = Start: {path} from {service}
@@ -41,15 +42,15 @@ wait_sig_enter    = Wait for signal {signal} on timeout {timeout} enter {path}
 wait_sig_invoke   = Wait for signal {signal} on timeout {timeout} invoke {service}
 wait_sig          = Wait for signal {signal}
 
-wait_sigs_enter   = Wait for signals {signals} on timeout {timeout} enter {service}
+wait_sigs_enter   = Wait for signals {signals} on timeout {timeout} enter {path}
 wait_sigs_invoke  = Wait for signals {signals} on timeout {timeout} invoke {service}
 wait_sigs         = Wait for signals {signals}
 
 enter             = Enter {path}
 invoke            = Invoke {service}
 
-fork_to1_and_wait = Fork to {fork_to} under {fork_name} and wait
-fork_to2          = Fork to {fork_to} under {fork_name}
+fork_to_and_wait  = Fork to {fork_to} under {fork_name} and wait
+fork_to           = Fork to {fork_to} under {fork_name}
 
 if_invoke         = If {condition} invoke {service}
 if_enter          = If {condition} enter {path}
@@ -64,8 +65,6 @@ set               = Set {key} = {value}
 handler           = Handler: {handler}
 invoke            = Invoke {service}
 enter             = Enter {service}
-ignore_signal     = Ignore signal {signal}
-ignore_signals    = Ignore signals {signals}
 set               = Set {key} = {value}
 """.strip()
         eq_(en_uk, expected)
