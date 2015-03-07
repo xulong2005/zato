@@ -1,0 +1,72 @@
+{% extends "zato/index.html" %}
+
+{% block html_title %}Processes - Create a new definition{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" type="text/css" href="/static/css/jquery.alerts.css">
+{% endblock %}
+
+{% block extra_js %}
+
+    <script type="text/javascript" src="/static/jquery/jquery.tablesorter.min.js"></script>
+    <script type="text/javascript" src="/static/jquery/jquery.alerts.min.js"></script>
+
+    <script type="text/javascript" src="/static/js/common.js"></script>
+    <script type="text/javascript" src="/static/js/process/definition/index.js"></script>
+
+    <script>
+    $.fn.zato.data_table.get_columns = function() {
+        return [
+            '_numbering',
+            '_selection',
+            'name',
+            '_is_active','cluster_id':cluster_id,
+            'version',
+            'ext_version',
+            'instances',
+            '_delete',
+            'id',
+            'is_active'
+        ]
+    }
+    </script>
+
+{% endblock %}
+
+{% block content %}
+<h2 class="zato">Processes - Create a new definition</h2>
+
+<div id="user-message-div" style='display:none'><pre id="user-message" class="user-message"></pre></div>
+
+<div id="markup">
+    <form action="{% url process-definition-validate-save cluster_id %}" method="post" id="process-definition-validate-save">
+        <table id="data-table">
+            <tr>
+
+                <td class="inline_header" style="width:5%">Language</td>
+                <td style="width:10%">{{ create_form.lang_code }}</td>
+
+                <td class="inline_header" style="width:10%">Ext. version</td>
+                <td style="width:10%">{{ create_form.name }}</td>
+
+                <td class="inline_header" style="width:5%">Name</td>
+                <td>{{ create_form.name }}</td>
+
+            </tr>
+            <tr>
+                <td colspan="6">
+                    {{ create_form.text }}
+                </td>
+            </tr>
+            <tr>
+                <td colspan="6" style="text-align:right">
+                    <button id="validate" name="validate" type="submit">Toggle edit/view</button>
+                    <button id="validate" name="validate" type="submit">Validate</button>
+                    <button id="validate_save" name="validate_save" type="submit">Validate and save</button>
+                </td>
+            </tr>
+        </table>
+    </form>
+</div>
+
+{% endblock %}

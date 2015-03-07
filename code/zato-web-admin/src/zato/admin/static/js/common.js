@@ -96,6 +96,8 @@ $.namespace('zato.outgoing.sql');
 $.namespace('zato.outgoing.zmq');
 $.namespace('zato.pattern.delivery');
 $.namespace('zato.pattern.delivery.in_doubt');
+$.namespace('zato.process.definition');
+$.namespace('zato.process.instance');
 $.namespace('zato.pubsub.consumers');
 $.namespace('zato.pubsub.message');
 $.namespace('zato.pubsub.producers');

@@ -36,6 +36,7 @@ from zato.admin.web.views.outgoing import jms_wmq as out_jms_wmq
 from zato.admin.web.views.outgoing import odoo as out_odoo
 from zato.admin.web.views.outgoing import sql as out_sql
 from zato.admin.web.views.outgoing import zmq as out_zmq
+from zato.admin.web.views.process import definition as proc_def
 from zato.admin.web.views.pubsub import topics as pubsub_topics
 from zato.admin.web.views.pubsub import consumers as pubsub_consumers
 from zato.admin.web.views.pubsub import message as pubsub_message
@@ -679,6 +680,23 @@ urlpatterns += patterns('',
 
 # ################################################################################################################################
 
+urlpatterns += patterns('',
+
+    # Processes - definitions
+    url(r'^zato/process/definition/$',
+        login_required(proc_def.Index()), name=proc_def.Index.url_name),
+    url(r'^zato/process/definition/create/(?P<cluster_id>.*)/$',
+        login_required(proc_def.create), name='process-definition-create'),
+    url(r'^zato/process/definition/edit$/(?P<cluster_id>.*)/$',
+        login_required(proc_def.edit), name='process-definition-edit'),
+    url(r'^zato/process/definition/delete/(?P<id>.*)/cluster/(?P<cluster_id>.*)/$',
+        login_required(proc_def.Delete()), name=proc_def.Delete.url_name),
+    url(r'^zato/process/definition/validate-save/(?P<cluster_id>.*)/$',
+        login_required(proc_def.validate_save), name='process-definition-validate-save'),
+    )
+
+# ################################################################################################################################
+
     # Channels
 
 # ################################################################################################################################
@@ -755,7 +773,8 @@ urlpatterns += patterns('',
     url(r'^zato/http-soap/edit/$',
         login_required(http_soap.edit), name='http-soap-edit'),
     url(r'^zato/http-soap/delete/(?P<id>.*)/cluster/(?P<cluster_id>.*)/$',
-        login_required(http_soap.delete), name='http-soap-delete'),
+        login_required(http_soap.delete), name='http-soap-delete'),    url(r'^zato/channel/zmq/delete/(?P<id>.*)/cluster/(?P<cluster_id>.*)/$',
+        login_required(channel_zmq.Delete()), name=channel_zmq.Delete.url_name),
     url(r'^zato/http-soap/ping/(?P<id>.*)/cluster/(?P<cluster_id>.*)/$',
         login_required(http_soap.ping), name='http-soap-ping'),
     url(r'^zato/http-soap/reload-wsdl/(?P<id>.*)/cluster/(?P<cluster_id>.*)/$',

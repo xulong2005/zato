@@ -63,7 +63,7 @@
 
                 <li><span class="like-a">Processes &darr;</span>
                     <ul>
-                        <li><a href="/invalid/?cluster={{ cluster_id|default:'' }}">Definitions</a></li>
+                        <li><a href="{% url process-definition %}?cluster={{ cluster_id|default:'' }}">Definitions</a></li>
                         <li><a href="/invalid/?cluster={{ cluster_id|default:'' }}">Instances</a></li>
                     </ul>
                 </li>
