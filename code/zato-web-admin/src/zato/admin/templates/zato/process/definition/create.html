@@ -8,11 +8,8 @@
 
 {% block extra_js %}
 
-    <script type="text/javascript" src="/static/jquery/jquery.tablesorter.min.js"></script>
-    <script type="text/javascript" src="/static/jquery/jquery.alerts.min.js"></script>
-
     <script type="text/javascript" src="/static/js/common.js"></script>
-    <script type="text/javascript" src="/static/js/process/definition/index.js"></script>
+    <script type="text/javascript" src="/static/js/process/definition/create.js"></script>
 
     <script>
     $.fn.zato.data_table.get_columns = function() {
@@ -20,7 +17,7 @@
             '_numbering',
             '_selection',
             'name',
-            '_is_active','cluster_id':cluster_id,
+            '_is_active',
             'version',
             'ext_version',
             'instances',

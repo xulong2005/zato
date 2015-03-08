@@ -12,6 +12,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import logging
 
 # Django
+from django.http import HttpResponse, HttpResponseBadRequest
 from django.template.response import TemplateResponse
 
 # Zato
@@ -58,7 +59,7 @@ def edit(req, cluster_id):
     return ''
 
 def validate_save(req, cluster_id):
-    return ''
+    return HttpResponse('ZZZ')
 
 class Delete(_Delete):
     url_name = 'process-definition-delete'
