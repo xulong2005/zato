@@ -696,6 +696,20 @@ class PROCESS:
     class LANGUAGE(Constants):
         English = ValueConstant('en_uk')
 
+    class DEFAULT:
+        en_uk = """
+Config:
+
+  Name: My process
+  Start: my.path from my.service
+
+Pipeline:
+  my.variable: str
+
+Path: my.path
+  Invoke service.name
+        """.strip()
+
 # Need to use such a constant because we can sometimes be interested in setting
 # default values which evaluate to boolean False.
 NO_DEFAULT_VALUE = 'NO_DEFAULT_VALUE'

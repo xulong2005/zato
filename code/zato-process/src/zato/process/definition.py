@@ -38,6 +38,7 @@ from zato.common.odb.model import ProcDef, ProcDefPath, ProcDefPathNode, ProcDef
      ProcDefConfigStart, ProcDefConfigServiceMap, to_json
 from zato.common.util import current_host, get_current_user
 from zato.process import step, OrderedDict
+from zato.process.vocab import vocab_codes
 
 # ################################################################################################################################
 
@@ -90,6 +91,9 @@ class Warning(object):
     def __init__(self, code=None, message=None):
         self.code = code
         self.message = message
+
+    def __str__(self):
+        return '{}: {}'.format(self.code, self.message)
 
 class Error(Warning):
     pass
@@ -183,13 +187,13 @@ class NodeItem(object):
 class ProcessDefinition(object):
     """ A definition of a process out of which new process instances are created.
     """
-    def __init__(self):
+    def __init__(self, lang_code=''):
         self.id = ''
         self.version = 0
         self.ext_version = ''
-        self.lang_code = ''
+        self.lang_code = lang_code
         self.lang_name = '' 
-        self.vocab_text = ''
+        self.vocab_text = vocab_codes[lang_code] if lang_code else ''
         self.text = ''
         self.text_split = []
         self.eval_ = Interpreter()
@@ -210,6 +214,9 @@ class ProcessDefinition(object):
         self.vocab.pipeline = {}
         self.vocab.path = OrderedDict()
         self.vocab.handler = OrderedDict()
+
+        self._initial_errros = []
+        self._initial_warnings = []
 
 # ################################################################################################################################
 
@@ -291,13 +298,17 @@ class ProcessDefinition(object):
 
     def parse(self):
         self.read_vocab()
+        self.text = self.text.strip()
         self.text_split[:] = self.text.splitlines()
 
         for idx, line in enumerate(self.text_split):
             if line.strip() and line[0] not in whitespace:
                 split = line.split()
                 block_name = split[0].replace(':', '')
-                getattr(self, 'parse_{}'.format(block_name.lower()))(idx)
+                try:
+                    getattr(self, 'parse_{}'.format(block_name.lower()))(idx)
+                except AttributeError:
+                    self._initial_errros.append(Error('EPROCDEF-0009', 'Could not parse line `{}`'.format(repr(line))))
 
 # ################################################################################################################################
 
@@ -541,14 +552,14 @@ class ProcessDefinition(object):
             value = node_item.node.data[attr]
             if node_item.node.data[attr] not in self.paths:
                 errors.append(
-                    Error('EPROC-0005', 'Path does not exist `{}` ({})'.format(value, node_item.line)))
+                    Error('EPROCDEF-0005', 'Path does not exist `{}` ({})'.format(value, node_item.line)))
 
     def _validate_time_units(self, node_item, errors):
         for attr in self._get_node_attrs(node_item, 'timeout'):
             value = node_item.node.data[attr]
             if value[-1] not in TIME_UNITS:
                 errors.append(
-                    Error('EPROC-0006', 'Invalid time expression `{}` ({})'.format(value, node_item.line)))
+                    Error('EPROCDEF-0006', 'Invalid time expression `{}` ({})'.format(value, node_item.line)))
 
     def _validate_commas(self, node_item, errors):
         # If there is any comma, the number of elements must be commas_count + 1
@@ -559,26 +570,15 @@ class ProcessDefinition(object):
             if commas_count:
                 if len(elems) != commas_count+1:
                     errors.append(
-                        Error('EPROC-0007', 'Invalid data `{}` ({})'.format(value, node_item.line)))
+                        Error('EPROCDEF-0007', 'Invalid data `{}` ({})'.format(value, node_item.line)))
 
-    def _add_paths_user(self, node_item, paths_used):
+    def _add_paths_used(self, node_item, paths_used):
         for attr in self._get_node_attrs(node_item, 'path'):
             paths_used.add(node_item.node.data[attr])
 
     def validate(self):
         """ Validates the definition of a process. The very fact that we can be called means the definition could be parsed
         however it still may contain logical issues preventing the process from starting or completing.
-
-        Conditions checked (E=error, W=warning).
-
-        - E: Processes must be named
-        - E: Start path must be defined
-        - E: At least one path must be defined
-        - E: Paths must not be empty
-        - E: All require/enter/fork-related/if/else nodes use paths that actually exist
-        - E: Time units must be valid
-        - E: All comma-separated items should be valid
-        - W: No unused paths
         """
         # All paths used for various nodes
         paths_used = set()
@@ -586,22 +586,34 @@ class ProcessDefinition(object):
         # Results of our work
         result = ValidationResult()
 
-        # EPROC-0001
+        # EPROCDEF-0008
+        # Definition must not be empty in the first place
+        if not self.text:
+            result.errors.append(Error('EPROCDEF-0008', 'Definition must not be empty'))
+
+            # If a definition is empty, there's not much point in validating it any further
+            return result
+
+        # Errors and warnings accumulated before the method was called
+        result.errors.extend(self._initial_errros)
+        result.warnings.extend(self._initial_warnings)
+
+        # EPROCDEF-0001
         # Processes must be named
         if not self.config.name:
-            result.errors.append(Error('EPROC-0001', 'Processes must be named'))
+            result.errors.append(Error('EPROCDEF-0001', 'Processes must be named'))
 
-        # EPROC-0002
+        # EPROCDEF-0002
         # Start node must contain both path and service
         if not (self.config.start.path and self.config.start.service):
-            result.errors.append(Error('EPROC-0002', 'Start node must contain both path and service'))
+            result.errors.append(Error('EPROCDEF-0002', 'Start node must contain both path and service'))
 
-        # EPROC-0003
+        # EPROCDEF-0003
         # At least one path must be defined
         if not self.paths:
-            result.errors.append(Error('EPROC-0003', 'At least one path must be defined'))
+            result.errors.append(Error('EPROCDEF-0003', 'At least one path must be defined'))
 
-        # EPROC-0004
+        # EPROCDEF-0004
         # Paths must not be empty
         empty = []
         for name, path in self.paths.iteritems():
@@ -609,44 +621,48 @@ class ProcessDefinition(object):
                 empty.append(name)
 
         if empty:
-            result.errors.append(Error('EPROC-0004', 'Paths must not be empty {}'.format(
+            result.errors.append(Error('EPROCDEF-0004', 'Paths must not be empty {}'.format(
                 sorted(elem.encode('utf-8') for elem in empty))))
 
-        # EPROC-0005
+        # EPROCDEF-0005
         # Start/require/enter/fork/if/else-related nodes use paths that actually exist
 
         if self.config.start.path not in self.paths:
-            result.errors.append(Error('EPROC-0005', 'Start path does not exist ({})'.format(self.config.start.path)))
+            result.errors.append(Error('EPROCDEF-0005', 'Start path does not exist ({})'.format(self.config.start.path)))
 
         for name, path in self.paths.iteritems():
             for node_item in path.nodes:
 
-                self._add_paths_user(node_item, paths_used)
+                self._add_paths_used(node_item, paths_used)
 
-                # EPROC-0005
+                # EPROCDEF-0005
                 if isinstance(node_item.node, (step.Require, step.RequireElse, step.Enter, step.Fork,
                         step.IfEnter, step.ElseEnter, step.WaitSignalsOnTimeoutEnter, step.WaitSignalsOnTimeoutInvoke)):
                     self._validate_path_exist(node_item, result.errors)
 
-                # EPROC-0006
+                # EPROCDEF-0006
                 # Time units must be valid
 
                 if isinstance(node_item.node, (step.WaitSignalOnTimeoutEnter,
                         step.WaitSignalOnTimeoutInvoke, step.WaitSignalsOnTimeoutEnter, step.WaitSignalsOnTimeoutInvoke)):
                     self._validate_time_units(node_item, result.errors)
 
-                # EPROC-0007
+                # EPROCDEF-0007
                 # All comma-separated items must be valid
                 if isinstance(node_item.node, (step.WaitSignals,
                         step.WaitSignalsOnTimeoutEnter, step.WaitSignalsOnTimeoutInvoke)):
                     self._validate_commas(node_item, result.errors)
 
-        # WPROC-0001
+        # WPROCDEF-0001
         # No unused paths
         unused = set(self.paths) - paths_used
         if unused:
-            result.warnings.append(Warning('WPROC-0001', 'Unused paths found `{}`'.format(
-                ', '.join(elem.encode('utf-8') for elem in unused))))
+
+            # It's possible that the only unsued path is actually the start one.
+            # If that is the case, it wasn't caught above and we need to special-case it here.
+            if not(len(unused) == 1 and list(unused)[0] == self.config.start.path):
+                result.warnings.append(Warning('WPROCDEF-0001', 'Unused paths found `{}`'.format(
+                    ', '.join(elem.encode('utf-8') for elem in unused))))
 
         return result.sort()
 

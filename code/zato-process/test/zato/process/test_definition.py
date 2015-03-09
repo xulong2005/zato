@@ -23,7 +23,7 @@ from sqlalchemy import orm
 # Zato
 from zato.common.odb.model import Base
 from zato.process.definition import Error, ProcessDefinition, Warning
-from zato.process.vocab import en_uk
+from zato.process.vocab import vocab_codes
 
 # This process doesn't make much business sense but it's
 # used only to check all the paths and nodes a process can go through
@@ -292,6 +292,19 @@ Path: path5
   Invoke my.service
 """
 
+valid_one_path_only = """
+Config:
+
+  Name: My process
+  Start: my.path from my.service
+
+Pipeline:
+  my.variable: str
+
+Path: my.path
+  Invoke service.name
+"""
+
 class DefinitionTestCase(TestCase):
 
     def setUp(self):
@@ -306,10 +319,8 @@ class DefinitionTestCase(TestCase):
         self.assertDictEqual(pd1.to_canonical(), pd2.to_canonical())
 
     def get_process(self, process):
-        pd = ProcessDefinition()
+        pd = ProcessDefinition('en_uk')
         pd.text = process.strip()
-        pd.lang_code = 'en_uk'
-        pd.vocab_text = en_uk
         pd.parse()
 
         return pd
@@ -352,7 +363,7 @@ class DefinitionTestCase(TestCase):
         self.assertFalse(result)
         self.assertEquals(len(result.warnings), 0)
         self.assertEquals(len(result.errors), 3)
-        self.assertEquals(result.errors[0].code, 'EPROC-0001')
+        self.assertEquals(result.errors[0].code, 'EPROCDEF-0001')
         self.assertEquals(result.errors[0].message, 'Processes must be named')
 
     def test_validate_invalid_start(self):
@@ -363,21 +374,21 @@ class DefinitionTestCase(TestCase):
         self.assertFalse(result)
         self.assertEquals(len(result.warnings), 0)
         self.assertEquals(len(result.errors), 3)
-        self.assertEquals(result.errors[0].code, 'EPROC-0002')
+        self.assertEquals(result.errors[0].code, 'EPROCDEF-0002')
         self.assertEquals(result.errors[0].message, 'Start node must contain both path and service')
 
         result = self.get_process(invalid_no_start_service1).validate()
         self.assertFalse(result)
         self.assertEquals(len(result.warnings), 0)
         self.assertEquals(len(result.errors), 3)
-        self.assertEquals(result.errors[0].code, 'EPROC-0002')
+        self.assertEquals(result.errors[0].code, 'EPROCDEF-0002')
         self.assertEquals(result.errors[0].message, 'Start node must contain both path and service')
 
         result = self.get_process(invalid_no_start_service2).validate()
         self.assertFalse(result)
         self.assertEquals(len(result.warnings), 0)
         self.assertEquals(len(result.errors), 3)
-        self.assertEquals(result.errors[0].code, 'EPROC-0002')
+        self.assertEquals(result.errors[0].code, 'EPROCDEF-0002')
         self.assertEquals(result.errors[0].message, 'Start node must contain both path and service')
 
     def test_validate_paths(self):
@@ -389,76 +400,76 @@ class DefinitionTestCase(TestCase):
         self.assertFalse(result)
         self.assertEquals(len(result.warnings), 0)
         self.assertEquals(len(result.errors), 2)
-        self.assertEquals(result.errors[0].code, 'EPROC-0003')
+        self.assertEquals(result.errors[0].code, 'EPROCDEF-0003')
         self.assertEquals(result.errors[0].message, 'At least one path must be defined')
 
         result = self.get_process(invalid_paths_empty).validate()
         self.assertFalse(result)
-        self.assertEquals(len(result.warnings), 1) # WPROC-0001
+        self.assertEquals(len(result.warnings), 1)
         self.assertEquals(len(result.errors), 1)
-        self.assertEquals(result.errors[0].code, 'EPROC-0004')
+        self.assertEquals(result.errors[0].code, 'EPROCDEF-0004')
         self.assertEquals(result.errors[0].message, "Paths must not be empty ['my.path1', 'my.path3']")
 
         result = self.get_process(invalid_start_path_does_not_exist).validate()
         self.assertFalse(result)
-        self.assertEquals(len(result.warnings), 1) # WPROC-0001
+        self.assertEquals(len(result.warnings), 1)
         self.assertEquals(len(result.errors), 1)
-        self.assertEquals(result.errors[0].code, 'EPROC-0005')
+        self.assertEquals(result.errors[0].code, 'EPROCDEF-0005')
         self.assertEquals(result.errors[0].message, 'Start path does not exist (my.path3)')
 
         result = self.get_process(invalid_require_path_does_not_exist).validate()
         self.assertFalse(result)
-        self.assertEquals(len(result.warnings), 1) # WPROC-0001
+        self.assertEquals(len(result.warnings), 0)
         self.assertEquals(len(result.errors), 1)
-        self.assertEquals(result.errors[0].code, 'EPROC-0005')
+        self.assertEquals(result.errors[0].code, 'EPROCDEF-0005')
         self.assertEquals(result.errors[0].message, 'Path does not exist `my.path2` (Require my.path2)')
 
         result = self.get_process(invalid_require_else_path1_does_not_exist).validate()
         self.assertFalse(result)
-        self.assertEquals(len(result.warnings), 1) # WPROC-0001
+        self.assertEquals(len(result.warnings), 0)
         self.assertEquals(len(result.errors), 1)
-        self.assertEquals(result.errors[0].code, 'EPROC-0005')
+        self.assertEquals(result.errors[0].code, 'EPROCDEF-0005')
         self.assertEquals(result.errors[0].message, 'Path does not exist `my.path.foo` (Require my.path.foo else my.path2)')
 
         result = self.get_process(invalid_require_else_path2_does_not_exist).validate()
         self.assertFalse(result)
-        self.assertEquals(len(result.warnings), 1) # WPROC-0001
+        self.assertEquals(len(result.warnings), 0)
         self.assertEquals(len(result.errors), 1)
-        self.assertEquals(result.errors[0].code, 'EPROC-0005')
+        self.assertEquals(result.errors[0].code, 'EPROCDEF-0005')
         self.assertEquals(result.errors[0].message, 'Path does not exist `my.path.foo` (Require my.path else my.path.foo)')
 
         result = self.get_process(invalid_require_else_paths_do_not_exist).validate()
         self.assertFalse(result)
-        self.assertEquals(len(result.warnings), 1) # WPROC-0001
+        self.assertEquals(len(result.warnings), 1)
         self.assertEquals(len(result.errors), 2)
-        self.assertEquals(result.errors[0].code, 'EPROC-0005')
+        self.assertEquals(result.errors[0].code, 'EPROCDEF-0005')
         self.assertEquals(result.errors[0].message, 'Path does not exist `my.path1` (Require my.path1 else my.path2)')
-        self.assertEquals(result.errors[1].code, 'EPROC-0005')
+        self.assertEquals(result.errors[1].code, 'EPROCDEF-0005')
         self.assertEquals(result.errors[1].message, 'Path does not exist `my.path2` (Require my.path1 else my.path2)')
 
     def test_validate_time_units(self):
         result = self.get_process(invalid_time_unit1).validate()
         self.assertFalse(result)
-        self.assertEquals(len(result.warnings), 1) # WPROC-0001
+        self.assertEquals(len(result.warnings), 0)
         self.assertEquals(len(result.errors), 2)
-        self.assertEquals(result.errors[0].code, 'EPROC-0006')
+        self.assertEquals(result.errors[0].code, 'EPROCDEF-0006')
         self.assertEquals(
             result.errors[0].message, 'Invalid time expression `15a` (Wait for signal my.signal on timeout 15a enter path2)')
-        self.assertEquals(result.errors[1].code, 'EPROC-0006')
+        self.assertEquals(result.errors[1].code, 'EPROCDEF-0006')
         self.assertEquals(
             result.errors[1].message, 'Invalid time expression `60z` (Wait for signal my.signal on timeout 60z enter path2)')
 
     def test_validate_commas(self):
         result = self.get_process(invalid_commas).validate()
         self.assertFalse(result)
-        self.assertEquals(len(result.warnings), 1) # WPROC-0001
+        self.assertEquals(len(result.warnings), 0)
         self.assertEquals(len(result.errors), 6)
-        self.assertEquals(result.errors[0].code, 'EPROC-0007')
-        self.assertEquals(result.errors[1].code, 'EPROC-0007')
-        self.assertEquals(result.errors[2].code, 'EPROC-0007')
-        self.assertEquals(result.errors[3].code, 'EPROC-0007')
-        self.assertEquals(result.errors[4].code, 'EPROC-0007')
-        self.assertEquals(result.errors[5].code, 'EPROC-0007')
+        self.assertEquals(result.errors[0].code, 'EPROCDEF-0007')
+        self.assertEquals(result.errors[1].code, 'EPROCDEF-0007')
+        self.assertEquals(result.errors[2].code, 'EPROCDEF-0007')
+        self.assertEquals(result.errors[3].code, 'EPROCDEF-0007')
+        self.assertEquals(result.errors[4].code, 'EPROCDEF-0007')
+        self.assertEquals(result.errors[5].code, 'EPROCDEF-0007')
         self.assertEquals(result.errors[0].message, 'Invalid data `123,456,` (Wait for signals 123,456, on timeout 10s enter path2)')
         self.assertEquals(result.errors[1].message, 'Invalid data `,789,000,` (Wait for signals ,789,000, on timeout 10s enter path2)')
         self.assertEquals(result.errors[2].message, 'Invalid data `,789,,` (Wait for signals ,789,, on timeout 10s enter path2)')
@@ -466,10 +477,42 @@ class DefinitionTestCase(TestCase):
         self.assertEquals(result.errors[4].message, 'Invalid data `,,` (Wait for signals ,, on timeout 10s enter path2)')
         self.assertEquals(result.errors[5].message, 'Invalid data `,` (Wait for signals , on timeout 10s enter path2)')
 
-    def test_unused_paths(self):
+    def test_validate_unused_paths(self):
         result = self.get_process(invalid_unused_paths).validate()
         self.assertFalse(result)
         self.assertEquals(len(result.warnings), 1)
         self.assertEquals(len(result.errors), 0)
-        self.assertEquals(result.warnings[0].code, 'WPROC-0001')
+        self.assertEquals(result.warnings[0].code, 'WPROCDEF-0001')
         self.assertEquals(result.warnings[0].message, 'Unused paths found `path3, start.path, path5`')
+
+    def test_parse_empty(self):
+        result = self.get_process('').validate()
+        self.assertFalse(result)
+        self.assertEquals(len(result.warnings), 0)
+        self.assertEquals(len(result.errors), 1)
+        self.assertEquals(result.errors[0].code, 'EPROCDEF-0008')
+        self.assertEquals(result.errors[0].message, 'Definition must not be empty')
+
+    def test_unparseable_definition(self):
+        result = self.get_process('ZZZ\nAAA').validate()
+        self.assertFalse(result)
+        self.assertEquals(len(result.warnings), 0)
+        self.assertEquals(len(result.errors), 6)
+        self.assertEquals(result.errors[0].code, 'EPROCDEF-0001')
+        self.assertEquals(result.errors[1].code, 'EPROCDEF-0002')
+        self.assertEquals(result.errors[2].code, 'EPROCDEF-0003')
+        self.assertEquals(result.errors[3].code, 'EPROCDEF-0005')
+        self.assertEquals(result.errors[4].code, 'EPROCDEF-0009')
+        self.assertEquals(result.errors[5].code, 'EPROCDEF-0009')
+        self.assertEquals(result.errors[0].message, 'Processes must be named')
+        self.assertEquals(result.errors[1].message, 'Start node must contain both path and service')
+        self.assertEquals(result.errors[2].message, 'At least one path must be defined')
+        self.assertEquals(result.errors[3].message, 'Start path does not exist ()')
+        self.assertEquals(result.errors[4].message, "Could not parse line `u'ZZZ'`")
+        self.assertEquals(result.errors[5].message, "Could not parse line `u'AAA'`")
+
+    def test_dont_warn_if_one_path_only(self):
+        result = self.get_process(valid_one_path_only).validate()
+        self.assertTrue(result)
+        self.assertEquals(len(result.warnings), 0)
+        self.assertEquals(len(result.errors), 0)

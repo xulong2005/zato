@@ -410,6 +410,8 @@ class Service(object):
                 exc_formatted = format_exc(e)
                 logger.warn(exc_formatted)
 
+                raise e
+
             finally:
                 response = set_response_func(service, data_format=data_format, transport=transport, **kwargs)
 
@@ -418,9 +420,6 @@ class Service(object):
                     func = self.patterns.fanout.on_call_finished if channel == CHANNEL.FANOUT_CALL else \
                         self.patterns.parallel.on_call_finished
                     spawn(func, self, service.response.payload, exc_formatted)
-
-                if e:
-                    raise e
 
                 return response
 

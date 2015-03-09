@@ -8,6 +8,9 @@ Licensed under LGPLv3, see LICENSE.txt for terms and conditions.
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+# Zato
+from zato.common import PROCESS
+
 en_uk = """
 
 [main]
@@ -62,3 +65,7 @@ keywords1=Config:, Path:, Handler:, Pipeline:, Name:, Start:, from, Map service,
 keywords2=Require, else, Wait for signal, Wait for signals, on timeout, If, Else, Set, Emit
 keywords3=enter, invoke, Enter, Invoke, Fork to, under, and wait, =
 """.strip()
+
+vocab_codes = {
+    PROCESS.LANGUAGE.English.value: en_uk
+}

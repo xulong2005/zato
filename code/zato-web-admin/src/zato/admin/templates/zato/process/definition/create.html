@@ -8,6 +8,7 @@
 
 {% block extra_js %}
 
+    <script type="text/javascript" src="/static/jquery/jquery.cookie.js"></script>
     <script type="text/javascript" src="/static/js/common.js"></script>
     <script type="text/javascript" src="/static/js/process/definition/create.js"></script>
 
@@ -57,7 +58,7 @@
             </tr>
             <tr>
                 <td colspan="6" style="text-align:right">
-                    <button id="validate" name="validate" type="submit">Toggle edit/view</button>
+                    <button id="toggle" name="validate" type="submit">Toggle edit/view</button>
                     <button id="validate" name="validate" type="submit">Validate</button>
                     <button id="validate_save" name="validate_save" type="submit">Validate and save</button>
                 </td>

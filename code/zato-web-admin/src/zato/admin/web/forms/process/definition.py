@@ -19,7 +19,8 @@ class CreateForm(forms.Form):
     name = forms.CharField(widget=forms.TextInput(attrs={'style':'width:100%'}))
     is_active = forms.BooleanField(required=False, widget=forms.CheckboxInput(attrs={'checked':'checked'}))
     lang_code = forms.ChoiceField(widget=forms.Select())
-    text = forms.CharField(widget=forms.Textarea(attrs={'style':'width:100%; height:400px', 'class':'required'}))
+    text = forms.CharField(initial=PROCESS.DEFAULT.en_uk, widget=forms.Textarea(
+        attrs={'style':'width:100%; height:400px', 'class':'required'}))
 
     def __init__(self, prefix=None, post_data=None):
         super(CreateForm, self).__init__(post_data, prefix=prefix)

@@ -10,14 +10,16 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 # stdlib
 import logging
+from json import dumps, loads
+from traceback import format_exc
 
 # Django
-from django.http import HttpResponse, HttpResponseBadRequest
+from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseServerError
 from django.template.response import TemplateResponse
 
 # Zato
 from zato.admin.web.forms.process.definition import CreateForm, EditForm
-from zato.admin.web.views import CreateEdit, Delete as _Delete, Index as _Index
+from zato.admin.web.views import CreateEdit, Delete as _Delete, error_from_zato_env, Index as _Index
 from zato.common.odb.model import ProcDef
 
 logger = logging.getLogger(__name__)
@@ -59,7 +61,16 @@ def edit(req, cluster_id):
     return ''
 
 def validate_save(req, cluster_id):
-    return HttpResponse('ZZZ')
+    try:
+        response = req.zato.client.invoke('zato.process.definition.validate', {
+            'lang_code': req.POST['lang_code'],
+            'text': req.POST['text'],
+        })
+    except Exception, e:
+        return error_from_zato_env(e, 'Could not validate the definition')
+    else:
+        return HttpResponse('OK') if response.data.is_valid else HttpResponseBadRequest(
+            ('\n'.join(response.data.errors) + '\n' + '\n'.join(response.data.warnings)).strip())
 
 class Delete(_Delete):
     url_name = 'process-definition-delete'

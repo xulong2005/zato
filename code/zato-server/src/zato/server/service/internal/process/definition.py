@@ -12,7 +12,9 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from zato.common.broker_message import PROCESS
 from zato.common.odb.model import ProcDef
 from zato.common.odb.query import process_definition_list
-from zato.server.service.internal import AdminService
+from zato.process.definition import ProcessDefinition
+from zato.server.service import List
+from zato.server.service.internal import AdminService, AdminSIO
 from zato.server.service.meta import CreateEditMeta, DeleteMeta, GetListMeta
 
 elem = 'process_definition'
@@ -33,3 +35,24 @@ class Edit(AdminService):
 
 class Delete(AdminService):
     __metaclass__ = DeleteMeta
+
+class Validate(AdminService):
+    """ Confirms whether the definition of a process is valid or not.
+    """
+    class SimpleIO(AdminSIO):
+        request_elem = 'zato_process_definition_validate_request'
+        response_elem = 'zato_process_definition_validate_response'
+        input_required = ('text', 'lang_code')
+        output_required = ('is_valid',)
+        output_optional = (List('errors'), List('warnings'))
+
+    def handle(self):
+        pd = ProcessDefinition(self.request.input.lang_code)
+        pd.text = self.request.input.text
+        pd.parse()
+
+        result = pd.validate()
+
+        self.response.payload.is_valid = bool(result)
+        self.response.payload.errors = [str(item) for item in result.errors]
+        self.response.payload.warnings = [str(item) for item in result.warnings]

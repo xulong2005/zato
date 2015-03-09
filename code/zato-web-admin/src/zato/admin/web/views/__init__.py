@@ -15,7 +15,7 @@ from itertools import chain
 from traceback import format_exc
 
 # anyjson
-from json import dumps
+from json import dumps, loads
 
 # bunch
 from bunch import Bunch
@@ -487,3 +487,10 @@ def upload_to_server(req, cluster_id, service, error_msg_template):
         msg = error_msg_template.format(format_exc(e))
         logger.error(msg)
         return HttpResponseServerError(msg)
+
+# ################################################################################################################################
+
+def error_from_zato_env(e, log_msg):
+    msg = '`{}`, e:`{}`'.format(log_msg, format_exc(e))
+    logger.error(msg)
+    return HttpResponseServerError(loads(e.message)['zato_env']['details'])
