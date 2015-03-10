@@ -62,7 +62,7 @@ from zato.common.odb.model import Cluster
 class Client(AnyServiceInvoker):
     def __init__(self, req, *args, **kwargs):
         self.django_req = req
-        self.forwarder_for = self.django_req.META.get('HTTP_X_FORWARDED_FOR') or self.django_req.META.get('REMOTE_ADDR')
+        self.forwarded_for = self.django_req.META.get('HTTP_X_FORWARDED_FOR') or self.django_req.META.get('REMOTE_ADDR')
         super(Client, self).__init__(*args, **kwargs)
 
     def invoke_from_post(self, service, *keys):
@@ -70,13 +70,13 @@ class Client(AnyServiceInvoker):
         return self.invoke(service, input_dict)
 
     def invoke(self, *args, **kwargs):
-        response = super(Client, self).invoke(*args, headers={'X-Zato-Forwarded-For': self.forwarder_for}, **kwargs)
+        response = super(Client, self).invoke(*args, headers={'X-Zato-Forwarded-For': self.forwarded_for}, **kwargs)
         if response.inner.status_code != OK:
             raise Exception(response.inner.text)
         return response
 
     def invoke_async(self, *args, **kwargs):
-        response = super(Client, self).invoke_async(*args, headers={'X-Zato-Forwarded-For': self.forwarder_for}, **kwargs)
+        response = super(Client, self).invoke_async(*args, headers={'X-Zato-Forwarded-For': self.forwarded_for}, **kwargs)
         return response
 
 class ZatoMiddleware(object):

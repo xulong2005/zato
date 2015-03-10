@@ -8,11 +8,16 @@ Licensed under LGPLv3, see LICENSE.txt for terms and conditions.
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+# stdlib
+from contextlib import closing
+from datetime import datetime
+
 # Zato
 from zato.common.broker_message import PROCESS
 from zato.common.odb.model import ProcDef
 from zato.common.odb.query import process_definition_list
 from zato.process.definition import ProcessDefinition
+from zato.process.vocab import vocab_dict
 from zato.server.service import List
 from zato.server.service.internal import AdminService, AdminSIO
 from zato.server.service.meta import CreateEditMeta, DeleteMeta, GetListMeta
@@ -23,12 +28,36 @@ label = 'a process definition'
 broker_message = PROCESS
 broker_message_prefix = 'DEFINITION_'
 list_func = process_definition_list
+skip_input_params = ['created']
+
+def response_hook(self, input, instance, attrs, action):
+    if action == 'get_list':
+        for item in self.response.payload:
+            item.created = item.created.isoformat()
+            item.last_updated = item.last_updated.isoformat()
 
 class GetList(AdminService):
     __metaclass__ = GetListMeta
 
 class Create(AdminService):
-    __metaclass__ = CreateEditMeta
+    class SimpleIO(AdminSIO):
+        request_elem = 'zato_process_definition_create_request'
+        response_elem = 'zato_process_definition_create_response'
+        input_required = ('name', 'created_by', 'lang_code', 'text', 'cluster_id')
+        input_optional = ('ext_version',)
+
+    def handle(self):
+        pd = ProcessDefinition(self.request.input.lang_code)
+        pd.last_updated_by = self.request.input.created_by
+        pd.is_active = True
+
+        for name in self.SimpleIO.input_required:
+            setattr(pd, name, self.request.input[name])
+
+        pd.parse()
+
+        with closing(self.odb.session()) as session:
+            pd.to_sql(session, self.request.input.cluster_id)
 
 class Edit(AdminService):
     __metaclass__ = CreateEditMeta
@@ -60,8 +89,8 @@ class Highlight(AdminService):
     """ Turns a copy of definition into one with syntax highlighting.
     """
     class SimpleIO(AdminSIO):
-        request_elem = 'zato_process_definition_validate_request'
-        response_elem = 'zato_process_definition_validate_response'
+        request_elem = 'zato_process_definition_highlight_request'
+        response_elem = 'zato_process_definition_highlight_response'
         input_required = ('text', 'lang_code')
         output_optional = ('highlight',)
 

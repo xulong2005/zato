@@ -1837,6 +1837,7 @@ class ProcDef(Base):
 
     id = Column(Integer, Sequence('proc_def_seq'), primary_key=True)
     name = Column(String(400), nullable=False)
+    is_active = Column(Boolean(), nullable=False)
 
     version = Column(Integer(), nullable=False)
     ext_version = Column(String(400), nullable=True)
@@ -1848,8 +1849,6 @@ class ProcDef(Base):
     last_updated_by = Column(String(400), nullable=True)
 
     lang_code = Column(String(20), nullable=False)
-    lang_name = Column(String(60), nullable=False)
-
     vocab_text = Column(Text(), nullable=False)
     text = Column(Text(), nullable=False)
 

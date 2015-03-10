@@ -38,11 +38,15 @@ $.fn.zato.process.definition.toggle_highlight = function(e) {
 }
 
 $.fn.zato.process.definition.validate = function(e) {
-    $.fn.zato.process.definition._on_click(e, 'validate', $.fn.zato.process.definition.on_validate_save, false);
+    if($('#process-definition').data('bValidator').validate()) {
+        $.fn.zato.process.definition._on_click(e, 'validate', $.fn.zato.process.definition.on_validate_save, false);
+    }
 }
 
 $.fn.zato.process.definition.validate_save = function(e) {
-    $.fn.zato.process.definition._on_click(e, 'validate_save', $.fn.zato.process.definition.on_validate_save, false);
+    if($('#process-definition').data('bValidator').validate()) {
+        $.fn.zato.process.definition._on_click(e, 'validate_save', $.fn.zato.process.definition.on_validate_save, false);
+    }
 }
 
 $(document).ready(function() { 
@@ -52,4 +56,10 @@ $(document).ready(function() {
     $("#toggle_highlight").click($.fn.zato.process.definition.toggle_highlight);
     $("#validate").click($.fn.zato.process.definition.validate);
     $("#validate_save").click($.fn.zato.process.definition.validate_save);
+
+    $.each(['name', 'text'], function(ignored, name) {
+        $.fn.zato.data_table.set_field_required('#id_' + name);
+    })
+    $('#process-definition').bValidator();
+
 })

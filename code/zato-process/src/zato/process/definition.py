@@ -40,7 +40,6 @@ import yaml
 # Zato
 from zato.common.odb.model import ProcDef, ProcDefPath, ProcDefPathNode, ProcDefHandler, ProcDefHandlerNode, ProcDefPipeline, \
      ProcDefConfigStart, ProcDefConfigServiceMap, to_json
-from zato.common.util import current_host, get_current_user
 from zato.process import step, OrderedDict
 from zato.process.lexer import lexer_dict
 from zato.process.vocab import vocab_dict
@@ -201,6 +200,7 @@ class ProcessDefinition(object):
     """
     def __init__(self, lang_code=''):
         self.id = ''
+        self.is_active = True
         self.version = 0
         self.ext_version = ''
         self.lang_code = lang_code
@@ -351,6 +351,7 @@ class ProcessDefinition(object):
         self.add_path_handler_to_canonical(out, 'path', self.paths)
         self.add_path_handler_to_canonical(out, 'handler', self.handlers)
 
+        out['_meta']['is_actice'] = self.is_active
         out['_meta']['version'] = self.version
         out['_meta']['ext_version'] = self.ext_version
         out['_meta']['created'] = self.created
@@ -455,21 +456,20 @@ class ProcessDefinition(object):
     def to_sql(self, session, cluster_id):
 
         utc_now = datetime.utcnow()
-        user_host = '{}@{}'.format(get_current_user(), current_host())
 
         pd = self._get_proc_def_model(session, cluster_id)
         pd.cluster_id = cluster_id
         pd.name = self.config.name
         pd.ext_version = self.ext_version
+        pd.is_active = self.is_active
 
         pd.created = utc_now
         pd.last_updated = utc_now
 
-        pd.created_by = user_host
-        pd.last_updated_by = user_host
+        pd.created_by = self.created_by
+        pd.last_updated_by = self.last_updated_by
 
         pd.lang_code = self.lang_code
-        pd.lang_name = self.lang_name
 
         pd.text = self.text
         pd.vocab_text = self.vocab_text

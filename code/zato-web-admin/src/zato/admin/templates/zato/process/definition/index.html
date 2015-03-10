@@ -24,9 +24,9 @@
             'version',
             'ext_version',
             'instances',
+            '_edit',
             '_delete',
-            'id',
-            'is_active'
+            'id'
         ]
     }
     </script>
@@ -62,7 +62,7 @@
                         <th><a href="#">Ext. version</a></th>
                         <th><a href="#">Instances</a></th>
                         <th>&nbsp;</th>
-                        <th class='ignore'>&nbsp;</th>
+                        <th>&nbsp;</th>
                         <th class='ignore'>&nbsp;</th>
                 </thead>
 
@@ -75,16 +75,16 @@
                         <td>{{ item.name }}</td>
                         <td>{{ item.is_active|yesno:'Yes,No' }}</td>
                         <td>{{ item.version }}</td>
-                        <td>{{ item.ext_version }}</td>
-                        <td>{{ item.instances }}</td>
+                        <td>{{ item.ext_version|default:"<span class='form_hint'>(None)</span>" }}</td>
+                        <td>{{ item.instances|default:"<span class='form_hint'>(None)</span>" }}</td>
+                        <td><a href="javascript:$.fn.zato.process.definition.edit('{{ item.id }}')">Edit</a></td>
                         <td><a href="javascript:$.fn.zato.process.definition.delete_('{{ item.id }}')">Delete</a></td>
                         <td class='ignore item_id_{{ item.id }}'>{{ item.id }}</td>
-                        <td class='ignore'>{{ item.is_active }}</td>
                     </tr>
                 {% endfor %}
                 {% else %}
                     <tr class='ignore'>
-                        <td colspan='10'>No results</td>
+                        <td colspan='11'>No results</td>
                     </tr>
                 {% endif %}
 
