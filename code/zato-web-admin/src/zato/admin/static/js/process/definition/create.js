@@ -12,7 +12,7 @@ $.fn.zato.process.definition.on_highlight = function(e) {
     var ta = $('#id_text');
 
     if($.fn.zato.process.definition.current_state == 'textarea') {
-        ta.fadeOut(100, function() {
+        ta.fadeOut(70, function() {
             $('#text_cell').append(highlight);
             $.fn.zato.process.definition.current_state = 'highlight';
         });
@@ -20,7 +20,7 @@ $.fn.zato.process.definition.on_highlight = function(e) {
     else {
         $.fn.zato.process.definition.current_state = 'textarea';
         $('.highlighttable').remove();
-        ta.fadeIn(100);
+        ta.fadeIn(70);
     }
 }
 

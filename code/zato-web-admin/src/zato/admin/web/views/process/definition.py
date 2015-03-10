@@ -15,7 +15,9 @@ from json import dumps, loads
 from traceback import format_exc
 
 # Django
+from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseServerError
+from django.shortcuts import redirect
 from django.template.response import TemplateResponse
 
 # Zato
@@ -62,8 +64,8 @@ def create(req, cluster_id):
     }
     return TemplateResponse(req, 'zato/process/definition/create.html', return_data)
 
-def edit(req, cluster_id):
-    return ''
+def edit(req, cluster_id, process_id):
+    return HttpResponse('TODO Edit')
 
 def _validate_save(req, cluster_id, service_suffix, error_msg, success_msg, *args):
 
@@ -95,7 +97,8 @@ def validate_save(req, cluster_id):
     except Exception, e:
         return error_from_zato_env(e, error_msg)
     else:
-        return HttpResponse('OK, validated and saved')
+        return redirect(reverse('account-settings-basic'))
+        #return HttpResponse('OK, validated and saved')
 
 def highlight(req, cluster_id):
 

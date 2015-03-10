@@ -687,8 +687,10 @@ urlpatterns += patterns('',
         login_required(proc_def.Index()), name=proc_def.Index.url_name),
     url(r'^zato/process/definition/create/(?P<cluster_id>.*)/$',
         login_required(proc_def.create), name='process-definition-create'),
-    url(r'^zato/process/definition/edit$/(?P<cluster_id>.*)/$',
+
+    url(r'^zato/process/definition/edit/cluster_id/(?P<cluster_id>.*)/process_id/(?P<process_id>.*)/$',
         login_required(proc_def.edit), name='process-definition-edit'),
+
     url(r'^zato/process/definition/delete/(?P<id>.*)/cluster/(?P<cluster_id>.*)/$',
         login_required(proc_def.Delete()), name=proc_def.Delete.url_name),
     url(r'^zato/process/definition/submit/(?P<cluster_id>.*)/$',
