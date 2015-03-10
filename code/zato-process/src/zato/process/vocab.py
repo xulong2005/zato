@@ -66,6 +66,6 @@ keywords2=Require, else, Wait for signal, Wait for signals, on timeout, If, Else
 keywords3=enter, invoke, Enter, Invoke, Fork to, under, and wait, =
 """.strip()
 
-vocab_codes = {
+vocab_dict = {
     PROCESS.LANGUAGE.English.value: en_uk
 }

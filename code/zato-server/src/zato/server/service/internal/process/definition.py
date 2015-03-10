@@ -50,9 +50,23 @@ class Validate(AdminService):
         pd = ProcessDefinition(self.request.input.lang_code)
         pd.text = self.request.input.text
         pd.parse()
-
         result = pd.validate()
 
         self.response.payload.is_valid = bool(result)
         self.response.payload.errors = [str(item) for item in result.errors]
         self.response.payload.warnings = [str(item) for item in result.warnings]
+
+class Highlight(AdminService):
+    """ Turns a copy of definition into one with syntax highlighting.
+    """
+    class SimpleIO(AdminSIO):
+        request_elem = 'zato_process_definition_validate_request'
+        response_elem = 'zato_process_definition_validate_response'
+        input_required = ('text', 'lang_code')
+        output_optional = ('highlight',)
+
+    def handle(self):
+        pd = ProcessDefinition(self.request.input.lang_code)
+        pd.text = self.request.input.text
+        pd.parse()
+        self.response.payload.highlight = pd.highlight(self.request.input.text, self.request.input.lang_code)

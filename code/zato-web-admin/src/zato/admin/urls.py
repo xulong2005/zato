@@ -691,8 +691,8 @@ urlpatterns += patterns('',
         login_required(proc_def.edit), name='process-definition-edit'),
     url(r'^zato/process/definition/delete/(?P<id>.*)/cluster/(?P<cluster_id>.*)/$',
         login_required(proc_def.Delete()), name=proc_def.Delete.url_name),
-    url(r'^zato/process/definition/validate-save/(?P<cluster_id>.*)/$',
-        login_required(proc_def.validate_save), name='process-definition-validate-save'),
+    url(r'^zato/process/definition/submit/(?P<cluster_id>.*)/$',
+        login_required(proc_def.submit), name='process-definition-submit'),
     )
 
 # ################################################################################################################################

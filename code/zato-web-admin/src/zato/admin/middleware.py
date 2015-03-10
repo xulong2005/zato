@@ -61,8 +61,13 @@ from zato.common.odb.model import Cluster
 
 class Client(AnyServiceInvoker):
     def __init__(self, req, *args, **kwargs):
-        self.forwarder_for = req.META.get('HTTP_X_FORWARDED_FOR') or req.META.get('REMOTE_ADDR')
+        self.django_req = req
+        self.forwarder_for = self.django_req.META.get('HTTP_X_FORWARDED_FOR') or self.django_req.META.get('REMOTE_ADDR')
         super(Client, self).__init__(*args, **kwargs)
+
+    def invoke_from_post(self, service, *keys):
+        input_dict = dict((k, v) for k, v in self.django_req.POST.iteritems() if k in keys)
+        return self.invoke(service, input_dict)
 
     def invoke(self, *args, **kwargs):
         response = super(Client, self).invoke(*args, headers={'X-Zato-Forwarded-For': self.forwarder_for}, **kwargs)

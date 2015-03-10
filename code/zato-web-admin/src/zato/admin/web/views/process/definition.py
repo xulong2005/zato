@@ -60,17 +60,30 @@ def create(req, cluster_id):
 def edit(req, cluster_id):
     return ''
 
-def validate_save(req, cluster_id):
+def validate(req, cluster_id):
+
     try:
-        response = req.zato.client.invoke('zato.process.definition.validate', {
-            'lang_code': req.POST['lang_code'],
-            'text': req.POST['text'],
-        })
+        response = req.zato.client.invoke_from_post('zato.process.definition.validate', 'lang_code', 'text')
     except Exception, e:
         return error_from_zato_env(e, 'Could not validate the definition')
     else:
-        return HttpResponse('OK') if response.data.is_valid else HttpResponseBadRequest(
+        return HttpResponse('OK, validated') if response.data.is_valid else HttpResponseBadRequest(
             ('\n'.join(response.data.errors) + '\n' + '\n'.join(response.data.warnings)).strip())
+
+def highlight(req, cluster_id):
+
+    try:
+        response = req.zato.client.invoke_from_post('zato.process.definition.highlight', 'lang_code', 'text')
+    except Exception, e:
+        return error_from_zato_env(e, 'Could not highlight the definition')
+    else:
+        return HttpResponse(response.data.highlight)
+
+def submit(req, cluster_id):
+    return {
+        'validate': validate,
+        'toggle_highlight': highlight
+    }[req.POST['action']](req, cluster_id)
 
 class Delete(_Delete):
     url_name = 'process-definition-delete'

@@ -27,6 +27,10 @@ from configobj import ConfigObj
 # parse
 from parse import compile as parse_compile
 
+# Pygments
+from pygments import highlight
+from pygments.formatters import HtmlFormatter, Terminal256Formatter
+
 # sortedcontainers
 from sortedcontainers import SortedDict
 
@@ -38,7 +42,15 @@ from zato.common.odb.model import ProcDef, ProcDefPath, ProcDefPathNode, ProcDef
      ProcDefConfigStart, ProcDefConfigServiceMap, to_json
 from zato.common.util import current_host, get_current_user
 from zato.process import step, OrderedDict
-from zato.process.vocab import vocab_codes
+from zato.process.lexer import lexer_dict
+from zato.process.vocab import vocab_dict
+
+# ################################################################################################################################
+
+highlight_modes = {
+    'html': HtmlFormatter,
+    'terminal256': Terminal256Formatter
+}
 
 # ################################################################################################################################
 
@@ -193,7 +205,7 @@ class ProcessDefinition(object):
         self.ext_version = ''
         self.lang_code = lang_code
         self.lang_name = '' 
-        self.vocab_text = vocab_codes[lang_code] if lang_code else ''
+        self.vocab_text = vocab_dict[lang_code] if lang_code else ''
         self.text = ''
         self.text_split = []
         self.eval_ = Interpreter()
@@ -668,5 +680,6 @@ class ProcessDefinition(object):
 
 # ################################################################################################################################
 
-    def highlight(self):
-        pass
+    def highlight(self, text=None, lang_code=None, mode='html'):
+        return highlight(
+            text or self.text, lexer_dict[lang_code or self.lang_code](stripnl=False), highlight_modes[mode](linenos='table'))
