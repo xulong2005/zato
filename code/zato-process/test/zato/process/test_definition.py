@@ -22,6 +22,7 @@ from sqlalchemy import orm
 
 # Zato
 from zato.common.odb.model import Base
+from zato.common.test import rand_string
 from zato.process.definition import Error, ProcessDefinition, Warning
 
 # This process doesn't make much business sense but it's
@@ -307,6 +308,8 @@ Path: my.path
 class DefinitionTestCase(TestCase):
 
     def setUp(self):
+        self.created_by = rand_string()
+        self.last_updated_by = rand_string()
         self.maxDiff = sys.maxint
         engine = sqlalchemy.create_engine('sqlite://') # I.e. :memory: in SQLite speak
         Base.metadata.create_all(engine)
@@ -319,6 +322,8 @@ class DefinitionTestCase(TestCase):
 
     def get_process(self, process):
         pd = ProcessDefinition('en_uk')
+        pd.created_by = self.created_by
+        pd.last_updated_by = self.last_updated_by
         pd.text = process.strip()
         pd.parse()
 
@@ -340,8 +345,8 @@ class DefinitionTestCase(TestCase):
 
         self.assertIsInstance(pd2.version, int)
         self.assertGreater(pd2.version, 0)
-        self.assertTrue(len(pd2.created_by) > 0)
-        self.assertTrue(len(pd2.last_updated_by) > 0)
+        self.assertEquals(pd2.created_by, self.created_by)
+        self.assertEquals(pd2.last_updated_by, self.last_updated_by)
 
         # Makes sure it can be parsed as timestamp
         self.assertTrue(datetime.utcnow() > dt_parse(pd2.created))
