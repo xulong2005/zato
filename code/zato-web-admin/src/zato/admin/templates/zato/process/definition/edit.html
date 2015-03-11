@@ -1,0 +1,89 @@
+{% extends "zato/index.html" %}
+
+{% block html_title %}Processes - Edit definition{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" type="text/css" href="/static/css/jquery.alerts.css">
+    <link rel="stylesheet" type="text/css" href="/static/css/pygments.css">
+
+    <style type="text/css">
+        table.highlighttable {
+            width: 100%;
+            background-color:#eeffcc;
+        }
+
+        td.code {
+            width: 100%;
+        }
+
+    </style>
+
+{% endblock %}
+
+{% block extra_js %}
+
+    <script type="text/javascript" src="/static/jquery/jquery.cookie.js"></script>
+    <script type="text/javascript" src="/static/js/common.js"></script>
+    <script type="text/javascript" src="/static/js/process/definition/edit.js"></script>
+
+    <script>
+    $.fn.zato.data_table.get_columns = function() {
+        return [
+            '_numbering',
+            '_selection',
+            'name',
+            '_is_active',
+            'version',
+            'ext_version',
+            'instances',
+            '_delete',
+            'id',
+            'is_active'
+        ]
+    }
+    </script>
+
+{% endblock %}
+
+{% block content %}
+<h2 class="zato">Processes - Edit definition</h2>
+
+<div id="user-message-div" style='display:none'><pre id="user-message" class="user-message"></pre></div>
+
+<div id="markup">
+    <form action="{% url process-definition-submit cluster_id %}" method="post" id="process-definition">
+        <table id="data-table">
+            <tr>
+
+                <td class="inline_header" style="width:5%">Language</td>
+                <td style="width:7%">{{ edit_form.lang_code }}</td>
+
+                <td class="inline_header" style="width:5%">Name</td>
+                <td>{{ edit_form.name }}</td>
+
+                <td class="inline_header" style="width:10%">Ext. version</td>
+                <td style="width:10%">{{ edit_form.ext_version }}</td>
+
+                <td class="inline_header" style="width:5%">Version</td>
+                <td style="width:5%">{{ version }}</td>
+
+            </tr>
+            <tr>
+                <td colspan="8" id="text_cell">
+                    {{ edit_form.text }}
+                </td>
+            </tr>
+            <tr>
+                <td colspan="8" style="text-align:right">
+                    <button id="toggle_highlight" name="toggle_highlight" type="submit">Toggle edit/view</button>
+                    <button id="validate" name="validate" type="submit">Validate</button>
+                    <button id="validate_save" name="validate_save" type="submit">Validate and save</button>
+                    <input type="hidden" name="cluster_id" value="{{ cluster_id }}" />
+                    <input type="hidden" name="last_updated_by" value="{{ last_updated_by }}" />
+                </td>
+            </tr>
+        </table>
+    </form>
+</div>
+
+{% endblock %}

@@ -1,6 +1,15 @@
 
-$.fn.zato.process.definition.on_validate_save = function(e) {
+$.fn.zato.process.definition.on_validate = function(e) {
     $.fn.zato.user_message(e.statusText == 'OK', e.responseText);
+}
+
+$.fn.zato.process.definition.on_validate_save = function(e) {
+    if(e.statusText == 'OK') {
+        window.location.replace(e.responseText)
+    }
+    else {
+        $.fn.zato.user_message(false, e.responseText);
+    }
 }
 
 $.fn.zato.process.definition.on_highlight = function(e) {

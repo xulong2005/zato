@@ -199,7 +199,7 @@ class ProcessDefinition(object):
     """ A definition of a process out of which new process instances are created.
     """
     def __init__(self, lang_code=''):
-        self.id = ''
+        self.id = -1
         self.is_active = True
         self.version = 0
         self.ext_version = ''
@@ -500,6 +500,7 @@ class ProcessDefinition(object):
 
         session.commit()
 
+        self.id = pd.id
         return pd
 
 # ################################################################################################################################

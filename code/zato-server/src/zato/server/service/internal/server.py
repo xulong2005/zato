@@ -116,7 +116,7 @@ class Edit(AdminService):
                 raise
             
 class GetByID(AdminService):
-    """ Returns a particular server
+    """ Returns a particular server.
     """
     class SimpleIO(AdminSIO):
         request_elem = 'zato_server_get_by_id_request'

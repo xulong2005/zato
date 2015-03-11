@@ -16,7 +16,7 @@ from traceback import format_exc
 
 # Django
 from django.core.urlresolvers import reverse
-from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseServerError
+from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseRedirect, HttpResponseServerError
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
 
@@ -30,6 +30,8 @@ logger = logging.getLogger(__name__)
 
 common_post = ('lang_code', 'text')
 
+# ################################################################################################################################
+
 class Index(_Index):
     method_allowed = 'GET'
     url_name = 'process-definition'
@@ -40,32 +42,50 @@ class Index(_Index):
     class SimpleIO(_Index.SimpleIO):
         input_required = ('cluster_id',)
         output_required = ('id', 'name', 'is_active', 'lang_code', 'text', 'version')
+        output_optional = ('ext_version',)
         output_repeated = True
 
     def handle(self):
         return {}
 
-class _CreateEdit(CreateEdit):
-    method_allowed = 'POST'
+# ################################################################################################################################
 
-    class SimpleIO(CreateEdit.SimpleIO):
-        input_required = ('name', 'is_active', 'lang_code', 'text')
-        output_required = ('id', 'name')
+def _create_edit(req, cluster_id, is_create=True, process_id=None):
 
-    def success_message(self, item):
-        return 'Successfully {0} the connection [{1}]'.format(self.verb, item.name)
+    extra_data = {}
 
-def create(req, cluster_id):
+    if is_create:
+        user = 'created_by'
+        form_name, form = 'create_form', CreateForm()
+    else:
+        user = 'last_updated_by'
+        form_name = 'edit_form'
+
+        response = req.zato.client.invoke('zato.process.definition.get-by-id', {'id':process_id})
+
+        extra_data['version'] = response.data.get('version', '')
+
+        form_data = dict(('edit-{}'.format(k), v) for k, v in response.data.iteritems())
+        form = EditForm('edit', form_data)
+
     return_data = {
         'cluster_id':cluster_id,
-        'created_by': '{} ({})'.format(req.user, '{}@{}'.format(get_current_user(), current_host())),
+        user: '{} ({})'.format(req.user, '{}@{}'.format(get_current_user(), current_host())),
         'zato_clusters':req.zato.clusters,
-        'create_form': CreateForm()
+        form_name: form,
     }
-    return TemplateResponse(req, 'zato/process/definition/create.html', return_data)
+
+    return_data.update(extra_data)
+
+    return TemplateResponse(req, 'zato/process/definition/{}.html'.format('create' if is_create else 'edit'), return_data)
+
+def create(req, cluster_id):
+    return _create_edit(req, cluster_id, True)
 
 def edit(req, cluster_id, process_id):
-    return HttpResponse('TODO Edit')
+    return _create_edit(req, cluster_id, False, process_id)
+
+# ################################################################################################################################
 
 def _validate_save(req, cluster_id, service_suffix, error_msg, success_msg, *args):
 
@@ -77,9 +97,13 @@ def _validate_save(req, cluster_id, service_suffix, error_msg, success_msg, *arg
         return HttpResponse(success_msg) if response.data.is_valid else HttpResponseBadRequest(
             ('\n'.join(response.data.errors) + '\n' + '\n'.join(response.data.warnings)).strip())
 
+# ################################################################################################################################
+
 def validate(req, cluster_id):
     return _validate_save(
         req, cluster_id, 'validate', 'Could not validate the definition', 'OK, validated', *common_post)
+
+# ################################################################################################################################
 
 def validate_save(req, cluster_id):
 
@@ -93,12 +117,13 @@ def validate_save(req, cluster_id):
     # Now attempt to actually create it
     try:
         response = req.zato.client.invoke_from_post(
-            'zato.process.definition.create', *(common_post + ('name', 'cluster_id', 'created_by')))
+            'zato.process.definition.create', *(common_post + ('name', 'cluster_id', 'created_by', 'ext_version')))
     except Exception, e:
         return error_from_zato_env(e, error_msg)
     else:
-        return redirect(reverse('account-settings-basic'))
-        #return HttpResponse('OK, validated and saved')
+        return HttpResponse(reverse('process-definition-edit', args=(cluster_id, response.data.id)))
+
+# ################################################################################################################################
 
 def highlight(req, cluster_id):
 
@@ -109,6 +134,8 @@ def highlight(req, cluster_id):
     else:
         return HttpResponse(response.data.highlight)
 
+# ################################################################################################################################
+
 def submit(req, cluster_id):
     return {
         'validate': validate,
@@ -116,7 +143,11 @@ def submit(req, cluster_id):
         'toggle_highlight': highlight
     }[req.POST['action']](req, cluster_id)
 
+# ################################################################################################################################
+
 class Delete(_Delete):
     url_name = 'process-definition-delete'
     error_message = 'Could not delete the definition'
     service_name = 'zato.process.definition.delete'
+
+# ################################################################################################################################
