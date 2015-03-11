@@ -9,11 +9,13 @@ Licensed under LGPLv3, see LICENSE.txt for terms and conditions.
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 # stdlib
+import difflib
+import itertools
+import json
+import pprint
 from datetime import datetime
 from operator import attrgetter
 from string import whitespace
-import itertools
-import json
 
 # asteval
 from asteval import Interpreter
@@ -228,6 +230,21 @@ class ProcessDefinition(object):
 
         self._initial_errros = []
         self._initial_warnings = []
+
+# ################################################################################################################################
+
+    def __eq__(self, other):
+        """ A definition is equal to another if their canonical representations, bar metadata, are equal.
+        """
+        # Definitions are always ordered so we can simply compare their repr values.
+
+        self_canonical = self.to_canonical()
+        del self_canonical['_meta']
+
+        other_canonical = other.to_canonical()
+        del other_canonical['_meta']
+
+        return repr(self_canonical) == repr(other_canonical)
 
 # ################################################################################################################################
 
