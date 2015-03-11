@@ -132,7 +132,7 @@ def validate_save(req, cluster_id):
         return error_from_zato_env(e, error_msg)
     else:
         redirect_to = reverse('process-definition-edit', args=(cluster_id, response.data.id))
-        redirect_to += '?msg=OK,%20validated%20and%20saved'
+        redirect_to += '?msg={}'.format(response.data.msg)
         return HttpResponse(redirect_to)
 
 # ################################################################################################################################

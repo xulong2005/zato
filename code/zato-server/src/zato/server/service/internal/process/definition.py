@@ -51,7 +51,7 @@ class Create(AdminService):
         response_elem = 'zato_process_definition_create_response'
         input_required = ('name', 'created_by', 'lang_code', 'text', 'cluster_id')
         input_optional = ('ext_version',)
-        output_required = ('id',)
+        output_required = ('id', 'msg')
 
     def handle(self):
         pd = ProcessDefinition(self.request.input.lang_code)
@@ -67,6 +67,7 @@ class Create(AdminService):
             pd.to_sql(session, self.request.input.cluster_id)
 
         self.response.payload.id = pd.id
+        self.response.payload.msg = 'OK, created successfully'
 
 class Edit(AdminService):
     class SimpleIO(AdminSIO):
@@ -74,7 +75,7 @@ class Edit(AdminService):
         response_elem = 'zato_process_definition_edit_response'
         input_required = ('id', 'name', 'last_updated_by', 'lang_code', 'text', 'cluster_id')
         input_optional = ('ext_version',)
-        output_required = ('id',)
+        output_required = ('id', 'msg')
 
     def handle(self):
         '''
@@ -92,9 +93,11 @@ class Edit(AdminService):
             '''
 
         with closing(self.odb.session()) as session:
-            pd = ProcessDefinition.from_sql(session, self.request.input.id)
+            existing = ProcessDefinition.from_sql(session, self.request.input.id)
+            print(existing.to_canonical())
 
-        self.response.payload.id = pd.id
+        self.response.payload.id = existing.id
+        self.response.payload.msg = 'OK, edited successfully'
 
 # ################################################################################################################################
 

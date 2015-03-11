@@ -349,7 +349,7 @@ class ProcessDefinition(object):
         self.add_path_handler_to_canonical(out, 'path', self.paths)
         self.add_path_handler_to_canonical(out, 'handler', self.handlers)
 
-        out['_meta']['is_actice'] = self.is_active
+        out['_meta']['is_active'] = self.is_active
         out['_meta']['version'] = self.version
         out['_meta']['ext_version'] = self.ext_version
         out['_meta']['created'] = self.created
