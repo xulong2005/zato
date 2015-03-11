@@ -30,6 +30,14 @@ logger = logging.getLogger(__name__)
 
 common_post = ('lang_code', 'text')
 
+# We keep this pass-through level of indirection
+# so that the service to be invoked is not taken
+# directly from user.
+func_types = {
+    'create': 'create',
+    'edit': 'edit',
+}
+
 # ################################################################################################################################
 
 class Index(_Index):
@@ -64,9 +72,10 @@ def _create_edit(req, cluster_id, is_create=True, process_id=None):
         response = req.zato.client.invoke('zato.process.definition.get-by-id', {'id':process_id})
 
         extra_data['version'] = response.data.get('version', '')
+        extra_data['msg'] = req.GET.get('msg', '')
+        extra_data['id'] = process_id
 
-        form_data = dict(('edit-{}'.format(k), v) for k, v in response.data.iteritems())
-        form = EditForm('edit', form_data)
+        form = EditForm(post_data=response.data)
 
     return_data = {
         'cluster_id':cluster_id,
@@ -87,7 +96,7 @@ def edit(req, cluster_id, process_id):
 
 # ################################################################################################################################
 
-def _validate_save(req, cluster_id, service_suffix, error_msg, success_msg, *args):
+def _validate_save(req, cluster_id, service_suffix, success_msg, error_msg, *args):
 
     try:
         response = req.zato.client.invoke_from_post('zato.process.definition.{}'.format(service_suffix), *args)
@@ -101,7 +110,7 @@ def _validate_save(req, cluster_id, service_suffix, error_msg, success_msg, *arg
 
 def validate(req, cluster_id):
     return _validate_save(
-        req, cluster_id, 'validate', 'Could not validate the definition', 'OK, validated', *common_post)
+        req, cluster_id, 'validate', 'OK, validated', 'Could not validate the definition', *common_post)
 
 # ################################################################################################################################
 
@@ -117,11 +126,14 @@ def validate_save(req, cluster_id):
     # Now attempt to actually create it
     try:
         response = req.zato.client.invoke_from_post(
-            'zato.process.definition.create', *(common_post + ('name', 'cluster_id', 'created_by', 'ext_version')))
+            'zato.process.definition.{}'.format(func_types[req.POST['func_type']]),
+            *(common_post + ('id', 'name', 'cluster_id', 'created_by', 'last_updated_by', 'ext_version')))
     except Exception, e:
         return error_from_zato_env(e, error_msg)
     else:
-        return HttpResponse(reverse('process-definition-edit', args=(cluster_id, response.data.id)))
+        redirect_to = reverse('process-definition-edit', args=(cluster_id, response.data.id))
+        redirect_to += '?msg=OK,%20validated%20and%20saved'
+        return HttpResponse(redirect_to)
 
 # ################################################################################################################################
 

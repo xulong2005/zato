@@ -55,7 +55,7 @@ class Create(AdminService):
 
     def handle(self):
         pd = ProcessDefinition(self.request.input.lang_code)
-        pd.last_updated_by = self.request.input.created_by
+        pd.last_updated_by = self.request.input.get('created_by')
         pd.is_active = True
 
         for name in self.SimpleIO.input_required + self.SimpleIO.input_optional:
@@ -68,10 +68,33 @@ class Create(AdminService):
 
         self.response.payload.id = pd.id
 
-# ################################################################################################################################
-
 class Edit(AdminService):
-    __metaclass__ = CreateEditMeta
+    class SimpleIO(AdminSIO):
+        request_elem = 'zato_process_definition_edit_request'
+        response_elem = 'zato_process_definition_edit_response'
+        input_required = ('id', 'name', 'last_updated_by', 'lang_code', 'text', 'cluster_id')
+        input_optional = ('ext_version',)
+        output_required = ('id',)
+
+    def handle(self):
+        '''
+        pd = ProcessDefinition(self.request.input.lang_code)
+        pd.last_updated_by = self.request.input.get('last_updated_by')
+        pd.is_active = True
+
+        for name in self.SimpleIO.input_required + self.SimpleIO.input_optional:
+            setattr(pd, name, self.request.input[name])
+
+        pd.parse()
+
+        with closing(self.odb.session()) as session:
+            pd.to_sql(session, self.request.input.cluster_id)
+            '''
+
+        with closing(self.odb.session()) as session:
+            pd = ProcessDefinition.from_sql(session, self.request.input.id)
+
+        self.response.payload.id = pd.id
 
 # ################################################################################################################################
 

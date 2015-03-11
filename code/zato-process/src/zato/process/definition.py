@@ -204,7 +204,6 @@ class ProcessDefinition(object):
         self.version = 0
         self.ext_version = ''
         self.lang_code = lang_code
-        self.lang_name = '' 
         self.vocab_text = vocab_dict[lang_code] if lang_code else ''
         self.text = ''
         self.text_split = []
@@ -294,7 +293,6 @@ class ProcessDefinition(object):
         conf = ConfigObj(self.vocab_text.splitlines())
         conf_bunch = bunchify(conf)
 
-        self.lang_name = conf_bunch.main.name
         self.vocab_top_level = conf_bunch.main.top_level
         self.pipeline.entry_pattern = parse_compile(conf_bunch.pipeline.pattern)
 
@@ -359,7 +357,6 @@ class ProcessDefinition(object):
         out['_meta']['last_updated'] = self.last_updated
         out['_meta']['last_updated_by'] = self.last_updated_by
         out['_meta']['lang_code'] = self.lang_code
-        out['_meta']['lang_name'] = self.lang_name
         out['_meta']['text'] = self.text
         out['_meta']['vocab_text'] = self.vocab_text
 
@@ -383,7 +380,6 @@ class ProcessDefinition(object):
 
     def extract_meta(self, meta):
         self.lang_code = meta.lang_code
-        self.lang_name = meta.lang_name
         self.text = meta.text
         self.vocab_text = meta.vocab_text
         self.version = meta.version
@@ -519,6 +515,7 @@ class ProcessDefinition(object):
             one()
 
         pd = ProcessDefinition()
+        pd.id = pd_model.id
 
         # Meta stuff
         pd.extract_meta(pd_model)

@@ -24,7 +24,7 @@
 
     <script type="text/javascript" src="/static/jquery/jquery.cookie.js"></script>
     <script type="text/javascript" src="/static/js/common.js"></script>
-    <script type="text/javascript" src="/static/js/process/definition/create.js"></script>
+    <script type="text/javascript" src="/static/js/process/definition/create-edit.js"></script>
 
     <script>
     $.fn.zato.data_table.get_columns = function() {
@@ -48,7 +48,7 @@
 {% block content %}
 <h2 class="zato">Processes - Create a new definition</h2>
 
-<div id="user-message-div" style='display:none'><pre id="user-message" class="user-message"></pre></div>
+<div id="user-message-div" style="display:none"><pre id="user-message" class="user-message"></pre></div>
 
 <div id="markup">
     <form action="{% url process-definition-submit cluster_id %}" method="post" id="process-definition">
@@ -77,6 +77,7 @@
                     <button id="validate_save" name="validate_save" type="submit">Validate and save</button>
                     <input type="hidden" name="cluster_id" value="{{ cluster_id }}" />
                     <input type="hidden" name="created_by" value="{{ created_by }}" />
+                    <input type="hidden" name="func_type" value="create" />
                 </td>
             </tr>
         </table>

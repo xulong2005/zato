@@ -48,7 +48,7 @@ $.fn.zato.process.definition.toggle_highlight = function(e) {
 
 $.fn.zato.process.definition.validate = function(e) {
     if($('#process-definition').data('bValidator').validate()) {
-        $.fn.zato.process.definition._on_click(e, 'validate', $.fn.zato.process.definition.on_validate_save, false);
+        $.fn.zato.process.definition._on_click(e, 'validate', $.fn.zato.process.definition.on_validate, false);
     }
 }
 
