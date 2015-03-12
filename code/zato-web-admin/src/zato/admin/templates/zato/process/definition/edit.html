@@ -54,27 +54,25 @@
     <form action="{% url process-definition-submit cluster_id %}" method="post" id="process-definition">
         <table id="data-table">
             <tr>
+                <td>
+                    <table style="text-align:left">
+                        <tr>
+                            <td class="inline_header" style="width:70px">Language</td>
+                            <td>{{ edit_form.lang_code }}</td>
 
-                <td class="inline_header" style="width:5%">Language</td>
-                <td style="width:7%">{{ edit_form.lang_code }}</td>
-
-                <td class="inline_header" style="width:5%">Name</td>
-                <td>{{ edit_form.name }}</td>
-
-                <td class="inline_header" style="width:10%">Ext. version</td>
-                <td style="width:10%">{{ edit_form.ext_version }}</td>
-
-                <td class="inline_header" style="width:5%">Version</td>
-                <td style="width:5%">{{ version }}</td>
-
+                            <td class="inline_header" style="width:110px">External version</td>
+                            <td style="width:500px">{{ edit_form.ext_version }}</td>
+                        </tr>
+                    </table>
+                </td>
             </tr>
             <tr>
-                <td colspan="8" id="text_cell">
+                <td id="text_cell">
                     {{ edit_form.text }}
                 </td>
             </tr>
             <tr>
-                <td colspan="8" style="text-align:right">
+                <td style="text-align:right">
                     <button id="toggle_highlight" name="toggle_highlight" type="submit">Toggle edit/view</button>
                     <button id="validate" name="validate" type="submit">Validate</button>
                     <button id="validate_save" name="validate_save" type="submit">Validate and save</button>

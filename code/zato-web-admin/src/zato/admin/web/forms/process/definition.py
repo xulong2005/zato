@@ -16,8 +16,7 @@ from zato.common import PROCESS
 
 class CreateForm(forms.Form):
     id = forms.CharField(widget=forms.HiddenInput())
-    ext_version = forms.CharField(widget=forms.TextInput(attrs={'style':'width:100%'}))
-    name = forms.CharField(widget=forms.TextInput(attrs={'style':'width:100%'}))
+    ext_version = forms.CharField(widget=forms.TextInput(attrs={'style':'width:400px'}))
     is_active = forms.BooleanField(required=False, widget=forms.CheckboxInput(attrs={'checked':'checked'}))
     lang_code = forms.ChoiceField(widget=forms.Select())
     text = forms.CharField(initial=PROCESS.DEFAULT.en_uk, widget=forms.Textarea(

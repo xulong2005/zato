@@ -66,7 +66,7 @@ $(document).ready(function() {
     $("#validate").click($.fn.zato.process.definition.validate);
     $("#validate_save").click($.fn.zato.process.definition.validate_save);
 
-    $.each(['name', 'text'], function(ignored, name) {
+    $.each(['text'], function(ignored, name) {
         $.fn.zato.data_table.set_field_required('#id_' + name);
     })
     $('#process-definition').bValidator();

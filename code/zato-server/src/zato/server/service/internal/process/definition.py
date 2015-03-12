@@ -15,7 +15,7 @@ from datetime import datetime
 # Zato
 from zato.common.broker_message import PROCESS
 from zato.common.odb.model import ProcDef
-from zato.common.odb.query import process_definition_list
+from zato.common.odb.query import process_definition, process_definition_list
 from zato.process.definition import ProcessDefinition
 from zato.process.vocab import vocab_dict
 from zato.server.service import List
@@ -49,7 +49,7 @@ class Create(AdminService):
     class SimpleIO(AdminSIO):
         request_elem = 'zato_process_definition_create_request'
         response_elem = 'zato_process_definition_create_response'
-        input_required = ('name', 'created_by', 'lang_code', 'text', 'cluster_id')
+        input_required = ('created_by', 'lang_code', 'text', 'cluster_id')
         input_optional = ('ext_version',)
         output_required = ('id', 'msg')
 
@@ -73,31 +73,54 @@ class Edit(AdminService):
     class SimpleIO(AdminSIO):
         request_elem = 'zato_process_definition_edit_request'
         response_elem = 'zato_process_definition_edit_response'
-        input_required = ('id', 'name', 'last_updated_by', 'lang_code', 'text', 'cluster_id')
+        input_required = ('id', 'last_updated_by', 'lang_code', 'text', 'cluster_id')
         input_optional = ('ext_version',)
         output_required = ('id', 'msg')
 
-    def handle(self):
-        '''
-        pd = ProcessDefinition(self.request.input.lang_code)
-        pd.last_updated_by = self.request.input.get('last_updated_by')
-        pd.is_active = True
-
+    def _set_attrs(self, instance):
         for name in self.SimpleIO.input_required + self.SimpleIO.input_optional:
-            setattr(pd, name, self.request.input[name])
+            setattr(instance, name, self.request.input[name])
 
-        pd.parse()
+    def handle(self):
+
+        new = ProcessDefinition(self.request.input.lang_code)
+        new.last_updated_by = self.request.input.get('last_updated_by')
+        new.is_active = True
+        self._set_attrs(new)
+        new.parse()
+
+        new_id = None
 
         with closing(self.odb.session()) as session:
-            pd.to_sql(session, self.request.input.cluster_id)
-            '''
+            existing_pd = ProcessDefinition.from_sql(session, self.request.input.id)
+            common_attrs_equal = new.config.name == existing_pd.config.name and new.ext_version == existing_pd.ext_version
 
-        with closing(self.odb.session()) as session:
-            existing = ProcessDefinition.from_sql(session, self.request.input.id)
-            print(existing.to_canonical())
+            if new == existing_pd and common_attrs_equal:
+                msg = 'Note: definition intact, leaving as is without saving'
+            else:
+                # The definition is updated in place if only name or external version
+                # have changed. Otherwise, a new version is created.
+                if common_attrs_equal:
 
-        self.response.payload.id = existing.id
-        self.response.payload.msg = 'OK, edited successfully'
+                    # Ok, it must have been something else that changed - we need a new version
+                    new.created_by = new.last_updated_by
+                    new_model = new.to_sql(session, self.request.input.cluster_id)
+                    new_id = new_model.id
+                    msg = 'OK, created a new version ({})'.format(new_model.version)
+
+                else:
+                    existing_model = process_definition(session, self.request.input.cluster_id, self.request.input.id)
+                    existing_model.name = new.config.name
+                    existing_model.text = new.text
+                    existing_model.ext_version = new.ext_version
+
+                    session.add(existing_model)
+                    session.commit()
+
+                    msg = 'OK, updated in place'
+
+        self.response.payload.id = new_id or existing_pd.id
+        self.response.payload.msg = msg
 
 # ################################################################################################################################
 
