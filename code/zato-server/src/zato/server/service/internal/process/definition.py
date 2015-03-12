@@ -13,6 +13,7 @@ from contextlib import closing
 from datetime import datetime
 
 # Zato
+from zato.common import KVDB
 from zato.common.broker_message import PROCESS
 from zato.common.odb.model import ProcDef
 from zato.common.odb.query import process_definition, process_definition_list
@@ -29,6 +30,7 @@ broker_message = PROCESS
 broker_message_prefix = 'DEFINITION_'
 list_func = process_definition_list
 skip_input_params = ['created']
+publish_on_delete = False
 
 # ################################################################################################################################
 
@@ -37,6 +39,9 @@ def response_hook(self, input, instance, attrs, action):
         for item in self.response.payload:
             item.created = item.created.isoformat()
             item.last_updated = item.last_updated.isoformat()
+
+def delete_hook(self, input, instance, attrs):
+    self.kvdb.conn.sadd(KVDB.PROC_DELETED, input.id)
 
 # ################################################################################################################################
 

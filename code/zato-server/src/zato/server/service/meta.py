@@ -113,6 +113,7 @@ def update_attrs(cls, name, attrs):
     attrs.skip_output_params = getattr(mod, 'skip_output_params', [])
     attrs.instance_hook = getattr(mod, 'instance_hook', None)
     attrs.response_hook = getattr(mod, 'response_hook', None)
+    attrs.publish_on_delete = getattr(mod, 'publish_on_delete', True)
     attrs.delete_hook = getattr(mod, 'delete_hook', None)
     attrs.broker_message_hook = getattr(mod, 'broker_message_hook', None)
     attrs.extra_delete_attrs = getattr(mod, 'extra_delete_attrs', [])
@@ -344,10 +345,11 @@ class DeleteMeta(AdminServiceMeta):
                     if attrs.broker_message_hook:
                         attrs.broker_message_hook(self, self.request.input, instance, attrs, 'delete')
 
-                    self.broker_client.publish(self.request.input)
+                    if attrs.publish_on_delete:
+                        self.broker_client.publish(self.request.input)
 
                     if attrs.delete_hook:
-                        attrs.delete_hook(self, input, instance, attrs)
+                        attrs.delete_hook(self, self.request.input, instance, attrs)
 
         return handle_impl
 

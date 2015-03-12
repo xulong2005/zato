@@ -383,6 +383,8 @@ class KVDB(Attrs):
     ASYNC_INVOKE_PROCESSED_FLAG_PATTERN = 'zato:async-invoke-with-pattern:processed:{}:{}'
     ASYNC_INVOKE_PROCESSED_FLAG = '1'
 
+    PROC_DELETED = 'zato:process:deleted'
+
 class SCHEDULER:
 
     class JOB_TYPE(Attrs):

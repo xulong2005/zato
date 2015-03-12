@@ -10,6 +10,7 @@
 
     <script type="text/javascript" src="/static/jquery/jquery.tablesorter.min.js"></script>
     <script type="text/javascript" src="/static/jquery/jquery.alerts.min.js"></script>
+    <script type="text/javascript" src="/static/jquery/jquery.cookie.js"></script>
 
     <script type="text/javascript" src="/static/js/common.js"></script>
     <script type="text/javascript" src="/static/js/process/definition/index.js"></script>
@@ -95,6 +96,7 @@
             </table>
         </div>
 
+    <form><input type="hidden" id="cluster_id" value="{{ cluster_id }}" />
     {% endif %} {% comment %}cluster_id{% endcomment %}
 
 {% endif %}{% comment %}not zato_clusters{% endcomment %}
