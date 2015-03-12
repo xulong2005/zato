@@ -145,20 +145,6 @@ class SIOLiveTestCase(LiveTestCase):
 
 # ################################################################################################################################
 
-    def test_channels_output_assigned_manually(self):
-        if not self.should_run:
-            return
-
-        service_data = (
-            ('zato-test-sio-live.roundtrip', zato_test_sio_live.Roundtrip),
-            ('zato-test-sio-live.from-dict', zato_test_sio_live.FromDict),
-        )
-
-        for service_info in service_data:
-            self._run_tests_output_assigned_manually(*service_info)
-
-# ################################################################################################################################
-
     def test_channels_output_from_sqlalchemy(self):
         if not self.should_run:
             return
