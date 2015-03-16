@@ -37,6 +37,7 @@ from zato.admin.web.views.outgoing import odoo as out_odoo
 from zato.admin.web.views.outgoing import sql as out_sql
 from zato.admin.web.views.outgoing import zmq as out_zmq
 from zato.admin.web.views.process import definition as proc_def
+from zato.admin.web.views.process import instance as proc_inst
 from zato.admin.web.views.pubsub import topics as pubsub_topics
 from zato.admin.web.views.pubsub import consumers as pubsub_consumers
 from zato.admin.web.views.pubsub import message as pubsub_message
@@ -687,14 +688,22 @@ urlpatterns += patterns('',
         login_required(proc_def.Index()), name=proc_def.Index.url_name),
     url(r'^zato/process/definition/create/(?P<cluster_id>.*)/$',
         login_required(proc_def.create), name='process-definition-create'),
-
     url(r'^zato/process/definition/edit/cluster_id/(?P<cluster_id>.*)/process_id/(?P<process_id>.*)/$',
         login_required(proc_def.edit), name='process-definition-edit'),
-
     url(r'^zato/process/definition/delete/(?P<id>.*)/cluster/(?P<cluster_id>.*)/$',
         login_required(proc_def.Delete()), name=proc_def.Delete.url_name),
     url(r'^zato/process/definition/submit/(?P<cluster_id>.*)/$',
         login_required(proc_def.submit), name='process-definition-submit'),
+    )
+
+# ################################################################################################################################
+
+urlpatterns += patterns('',
+
+    # Processes - instances
+    url(r'^zato/process/instance/$',
+        login_required(proc_inst.Index()), name=proc_inst.Index.url_name),
+
     )
 
 # ################################################################################################################################
