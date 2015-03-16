@@ -240,9 +240,11 @@ class ProcessDefinition(object):
 
         self_canonical = self.to_canonical()
         del self_canonical['_meta']
+        del self_canonical['config']['name']
 
         other_canonical = other.to_canonical()
         del other_canonical['_meta']
+        del other_canonical['config']['name']
 
         return repr(self_canonical) == repr(other_canonical)
 

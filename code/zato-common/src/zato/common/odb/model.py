@@ -1968,3 +1968,52 @@ class ProcDefConfigServiceMap(Base):
     proc_def = relationship(ProcDef, backref=backref('config_service_map', order_by=id, cascade='all, delete, delete-orphan'))
 
 # ################################################################################################################################
+
+class ProcInst(Base):
+    """ An instance of a process.
+    """
+    __tablename__ = 'proc_inst'
+
+    id = Column(Integer, Sequence('proc_inst_seq'), primary_key=True)
+
+    created = Column(DateTime(), nullable=False)
+    last_updated = Column(DateTime(), nullable=True)
+
+    proc_def_id = Column(Integer, ForeignKey('proc_def.id', ondelete='CASCADE'), nullable=False)
+    proc_def = relationship(ProcDef, backref=backref('instances', order_by=id, cascade='all, delete, delete-orphan'))
+
+# ################################################################################################################################
+
+class ProcInstPipeline(Base):
+    """ The current pipeline of an instance of a process.
+    """
+    __tablename__ = 'proc_inst_pipeline'
+
+    id = Column(Integer, Sequence('proc_inst_pipeline_seq'), primary_key=True)
+    value = Column(Text(), nullable=True)
+
+    instance_id = Column(Integer, ForeignKey('proc_inst.id', ondelete='CASCADE'), nullable=False)
+    instance = relationship(ProcInst, backref=backref('pipeline', order_by=id, cascade='all, delete, delete-orphan'))
+
+    def_id = Column(Integer, ForeignKey('proc_def_pipeline.id', ondelete='CASCADE'), nullable=False)
+    def_ = relationship(ProcDefPipeline, backref=backref('values', order_by=id, cascade='all, delete, delete-orphan'))
+
+# ################################################################################################################################
+
+class ProcInstPipelineHist(Base):
+    """ A list of historical values in the pipeline of a process.
+    """
+    __tablename__ = 'proc_inst_pipeline_hist'
+
+    id = Column(Integer, Sequence('proc_inst_pipeline_hist_seq'), primary_key=True)
+
+    value = Column(Text(), nullable=True)
+    created = Column(DateTime(), nullable=False)
+
+    instance_id = Column(Integer, ForeignKey('proc_inst.id', ondelete='CASCADE'), nullable=False)
+    instance = relationship(ProcInst, backref=backref('pipeline_history', order_by=id, cascade='all, delete, delete-orphan'))
+
+    def_id = Column(Integer, ForeignKey('proc_def_pipeline.id', ondelete='CASCADE'), nullable=False)
+    def_ = relationship(ProcDefPipeline, backref=backref('values_history', order_by=id, cascade='all, delete, delete-orphan'))
+
+# ################################################################################################################################

@@ -1227,9 +1227,12 @@ def out_odoo_list(session, cluster_id, needs_columns=False):
 
 # ################################################################################################################################
 
-def _process_definition(session, cluster_id):
+def process_definition_base(session, cluster_id):
     return session.query(m.ProcDef).\
-        filter(m.ProcDef.cluster_id==cluster_id).\
+        filter(m.ProcDef.cluster_id==cluster_id)
+
+def _process_definition(session, cluster_id):
+    return process_definition_base(session, cluster_id).\
         order_by(m.ProcDef.name, m.ProcDef.version)
 
 def process_definition(session, cluster_id, id):

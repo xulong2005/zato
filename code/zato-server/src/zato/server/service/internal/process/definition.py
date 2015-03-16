@@ -86,6 +86,11 @@ class Edit(AdminService):
         for name in self.SimpleIO.input_required + self.SimpleIO.input_optional:
             setattr(instance, name, self.request.input[name])
 
+    def _add_new_version(self, new, session):
+        new.created_by = new.last_updated_by
+        new_model = new.to_sql(session, self.request.input.cluster_id)
+        return new_model.id, 'OK, created a new version ({})'.format(new_model.version)
+
     def handle(self):
 
         new = ProcessDefinition(self.request.input.lang_code)
@@ -100,29 +105,39 @@ class Edit(AdminService):
             existing_pd = ProcessDefinition.from_sql(session, self.request.input.id)
             common_attrs_equal = new.config.name == existing_pd.config.name and new.ext_version == existing_pd.ext_version
 
+            # Nothing has changed at all
             if new == existing_pd and common_attrs_equal:
+                self.logger.warn(1)
                 msg = 'Note: definition intact, leaving as is without saving'
+
+            # Something must have been updated
             else:
-                # The definition is updated in place if only name or external version
-                # have changed. Otherwise, a new version is created.
+
+                # If only common attributes are equal it means that other one are different so we need a new version.
                 if common_attrs_equal:
 
                     # Ok, it must have been something else that changed - we need a new version
-                    new.created_by = new.last_updated_by
-                    new_model = new.to_sql(session, self.request.input.cluster_id)
-                    new_id = new_model.id
-                    msg = 'OK, created a new version ({})'.format(new_model.version)
+                    new_id, msg = self._add_new_version(new, session)
 
+                # Common attrs are not equal but we still need to confirm if it's only them that differ
                 else:
-                    existing_model = process_definition(session, self.request.input.cluster_id, self.request.input.id)
-                    existing_model.name = new.config.name
-                    existing_model.text = new.text
-                    existing_model.ext_version = new.ext_version
 
-                    session.add(existing_model)
-                    session.commit()
+                    # Yes, only common attrs were different so we update in place
+                    if new == existing_pd:
+                        self.logger.warn(5)
+                        existing_model = process_definition(session, self.request.input.cluster_id, self.request.input.id)
+                        existing_model.name = new.config.name
+                        existing_model.text = new.text
+                        existing_model.ext_version = new.ext_version
 
-                    msg = 'OK, updated in place'
+                        session.add(existing_model)
+                        session.commit()
+
+                        msg = 'OK, updated in place'
+
+                    # No, something got changed in addition to common attrs so we create a new version
+                    else:
+                        new_id, msg = self._add_new_version(new, session)
 
         self.response.payload.id = new_id or existing_pd.id
         self.response.payload.msg = msg
