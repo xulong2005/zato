@@ -19,18 +19,16 @@ from dateutil.parser import parse
 # Paste
 from paste.util.converters import asbool
 
-# WebHelpers
-from webhelpers.paginate import Page
-
 # Zato
-from zato.common import BATCH_DEFAULTS, DEFAULT_HTTP_PING_METHOD, DEFAULT_HTTP_POOL_SIZE, HTTP_SOAP_SERIALIZATION_TYPE, \
+from zato.common import DEFAULT_HTTP_PING_METHOD, DEFAULT_HTTP_POOL_SIZE, HTTP_SOAP_SERIALIZATION_TYPE, \
      MISC, MSG_PATTERN_TYPE, PARAMS_PRIORITY, SEC_DEF_TYPE, URL_PARAMS_PRIORITY, URL_TYPE, ZatoException, ZATO_NONE
 from zato.common.broker_message import CHANNEL, OUTGOING
 from zato.common.odb.model import Cluster, JSONPointer, HTTPSOAP, HTTSOAPAudit, HTTSOAPAuditReplacePatternsJSONPointer, \
      HTTSOAPAuditReplacePatternsXPath, SecurityBase, Service, TLSCACert, to_json, XPath
+from zato.common.odb.model import to_json
 from zato.common.odb.query import http_soap_audit_item, http_soap_audit_item_list, http_soap_list
-from zato.server.service import Boolean, Integer, List
-from zato.server.service.internal import AdminService, AdminSIO
+from zato.server.service import Boolean, Dict, Integer, List, ListOfDicts
+from zato.server.service.internal import AdminService, AdminSIO, PaginatingService
 
 class _HTTPSOAPService(object):
     """ A common class for various HTTP/SOAP-related services.
@@ -600,51 +598,25 @@ class SetAuditResponseData(AdminService):
 
 # ################################################################################################################################
 
-class _BaseAuditService(AdminService):
-    def get_page(self, session):
-        current_batch = self.request.input.get('current_batch', BATCH_DEFAULTS.PAGE_NO)
-        batch_size = self.request.input.get('batch_size', BATCH_DEFAULTS.SIZE)
-        batch_size = min(batch_size, BATCH_DEFAULTS.MAX_SIZE)
-
-        q = http_soap_audit_item_list(session, self.server.cluster_id, self.request.input.conn_id, 
-            self.request.input.get('start'), self.request.input.get('stop'), self.request.input.get('query'), False)
-
-        return Page(q, page=current_batch, items_per_page=batch_size)
-
-class GetAuditItemList(_BaseAuditService):
+class GetAuditItemList(PaginatingService):
     """ Returns a list of audit items for a particular HTTP/SOAP object.
     """
+    list_func = http_soap_audit_item_list
+
     class SimpleIO(AdminSIO):
         request_elem = 'zato_http_soap_get_audit_item_list_request'
         response_elem = 'zato_http_soap_get_audit_item_list_response'
         input_required = ('conn_id', )
         input_optional = ('start', 'stop', Integer('current_batch'), Integer('batch_size'), 'query')
-        output_required = ('id', 'cid', 'req_time_utc', 'remote_addr',)
-        output_optional = ('resp_time_utc', 'user_token', 'invoke_ok', 'auth_ok', )
+        output_optional = (ListOfDicts('item_list'), Dict('batch_info'))
 
     def handle(self):
         with closing(self.odb.session()) as session:
-            self.response.payload[:] = self.get_page(session)
+            self.response.payload.item_list = []
+            page = self.get_page(session, self.request.input.conn_id)
 
-        for item in self.response.payload.zato_output:
-            item.req_time_utc = item.req_time_utc.isoformat()
-            if item.resp_time_utc:
-                item.resp_time_utc = item.resp_time_utc.isoformat()
-
-class GetAuditBatchInfo(_BaseAuditService):
-    """ Returns pagination information for audit log for a specified object and from/to dates.
-    """
-    class SimpleIO(AdminSIO):
-        request_elem = 'zato_http_soap_get_batch_info_request'
-        response_elem = 'zato_http_soap_get_batch_info_response'
-        input_required = ('conn_id',)
-        input_optional = ('start', 'stop', Integer('current_batch'), Integer('batch_size'), 'query')
-        output_required = ('total_results', 'num_batches', 'has_previous', 'has_next', 'next_batch_number', 'previous_batch_number')
-
-    def handle(self):
-        with closing(self.odb.session()) as session:
-            page = self.get_page(session)
-            self.response.payload = {
+            # Batch info
+            self.response.payload.batch_info = {
                 'total_results': page.item_count,
                 'num_batches': page.page_count,
                 'has_previous': page.previous_page is not None,
@@ -653,7 +625,17 @@ class GetAuditBatchInfo(_BaseAuditService):
                 'previous_batch_number': page.previous_page,
             }
 
-class GetAuditItem(_BaseAuditService):
+            # List of results
+            for item in page:
+                item = item._asdict()
+                item['req_time_utc'] = item['req_time_utc'].isoformat()
+
+                if item.get('resp_time_utc'):
+                    item['resp_time_utc'] = item['resp_time_utc'].isoformat()
+
+                self.response.payload.item_list.append(item)
+
+class GetAuditItem(AdminService):
     """ Returns a particular audit item by its ID.
     """
     class SimpleIO(AdminSIO):

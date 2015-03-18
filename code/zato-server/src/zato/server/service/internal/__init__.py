@@ -13,8 +13,11 @@ import logging
 from contextlib import closing
 from traceback import format_exc
 
+# WebHelpers
+from webhelpers.paginate import Page
+
 # Zato
-from zato.common import SECRET_SHADOW, zato_namespace, ZATO_NONE
+from zato.common import BATCH_DEFAULTS, SECRET_SHADOW, zato_namespace, ZATO_NONE
 from zato.common.broker_message import MESSAGE_TYPE
 from zato.common.util import replace_private_key
 from zato.server.service import Service
@@ -23,6 +26,8 @@ success_code = 0
 success = '<error_code>{}</error_code>'.format(success_code)
 
 logger = logging.getLogger('zato_admin')
+
+# ################################################################################################################################
 
 class AdminService(Service):
     """ A Zato admin service, part of the API.
@@ -54,8 +59,12 @@ class AdminService(Service):
     def get_data(self, *args, **kwargs):
         raise NotImplementedError('Should be overridden by subclasses')
 
+# ################################################################################################################################
+
 class AdminSIO(object):
     namespace = zato_namespace
+
+# ################################################################################################################################
 
 class Ping(AdminService):
     class SimpleIO(AdminSIO):
@@ -65,9 +74,13 @@ class Ping(AdminService):
     def handle(self):
         self.response.payload.pong = 'zato'
 
+# ################################################################################################################################
+
 class Ping2(Ping):
     class SimpleIO(Ping.SimpleIO):
         response_elem = 'zato_ping2_response'
+
+# ################################################################################################################################
 
 class ChangePasswordBase(AdminService):
     """ A base class for handling the changing of any of the ODB passwords.
@@ -124,3 +137,21 @@ class ChangePasswordBase(AdminService):
                 session.rollback()
 
                 raise
+
+# ################################################################################################################################
+
+class PaginatingService(AdminService):
+    list_func = None
+
+    def get_page(self, session, *args):
+        current_batch = self.request.input.get('current_batch', BATCH_DEFAULTS.PAGE_NO)
+        batch_size = self.request.input.get('batch_size', BATCH_DEFAULTS.SIZE)
+        batch_size = min(batch_size, BATCH_DEFAULTS.MAX_SIZE)
+
+        args = list(args)
+        for name in('start', 'stop', 'query'):
+            args.append(self.request.input.get(name))
+
+        q = self.list_func(session, self.server.cluster_id, *args)
+
+        return Page(q, page=current_batch, items_per_page=batch_size)

@@ -304,7 +304,7 @@ def audit_log(req, **kwargs):
             out[key] = value
 
     out['form'] = AuditLogEntryList(initial=out)
-    
+
     request = {
         'conn_id': out['conn_id'],
         'start': out.get('start', ''),
@@ -315,16 +315,16 @@ def audit_log(req, **kwargs):
     }
 
     out['items'] = []
-    
+
     response = req.zato.client.invoke('zato.http-soap.get-audit-item-list', request)
     if response.ok:
-        for item in response.data:
+        for item in response.data.item_list:
             item.req_time = from_utc_to_user(item.req_time_utc+'+00:00', req.zato.user_profile)
             item.resp_time = from_utc_to_user(item.resp_time_utc+'+00:00', req.zato.user_profile) if item.resp_time_utc else '(None)'
             out['items'].append(item)
-        
-    out.update(**req.zato.client.invoke('zato.http-soap.get-audit-batch-info', request).data)
-    
+
+        out.update(response.data.batch_info)
+
     return TemplateResponse(req, 'zato/http_soap/audit/log.html', out)
 
 @method_allowed('GET')

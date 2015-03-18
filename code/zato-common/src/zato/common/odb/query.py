@@ -785,7 +785,7 @@ def _http_soap_audit(session, cluster_id, conn_id=None, start=None, stop=None, q
 
     return q
 
-def http_soap_audit_item_list(session, cluster_id, conn_id, start, stop, query, needs_req_payload):
+def http_soap_audit_item_list(ignored_self, session, cluster_id, conn_id, start, stop, query):
     return _http_soap_audit(session, cluster_id, conn_id, start, stop, query)
 
 def http_soap_audit_item(session, cluster_id, id):
