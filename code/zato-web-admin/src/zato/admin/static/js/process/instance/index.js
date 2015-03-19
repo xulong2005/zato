@@ -1,10 +1,10 @@
 
 // /////////////////////////////////////////////////////////////////////////////
 
-$.fn.zato.data_table.AuditLogEntry = new Class({
+$.fn.zato.data_table.ProcessInstance = new Class({
     toString: function() {
-        var s = '<AuditLogEntry name:{1}>';
-        return String.format(s, this.name ? this.name : '(none)');
+        var s = '<ProcessInstance id:{1}>';
+        return String.format(s, this.id ? this.id : '(none)');
     }
 });
 
@@ -13,7 +13,7 @@ $.fn.zato.data_table.AuditLogEntry = new Class({
 $(document).ready(function() {
     $('#data-table').tablesorter();
     $.fn.zato.data_table.password_required = false;
-    $.fn.zato.data_table.class_ = $.fn.zato.data_table.AuditLogEntry;
+    $.fn.zato.data_table.class_ = $.fn.zato.data_table.ProcessInstance;
     $.fn.zato.data_table.new_row_func = null;
             
     $.each(['start', 'stop'], function(ignored, suffix) {
@@ -30,11 +30,11 @@ $(document).ready(function() {
 
     })
     
-    $("#look-up-item").click($.fn.zato.http_soap.audit.look_up_item);
-    $("#look-up-form").submit($.fn.zato.http_soap.audit.look_up_item);
+    $("#look-up-item").click($.fn.zato.process.instance.look_up_item);
+    $("#look-up-form").submit($.fn.zato.process.instance.look_up_item);
 })
 
-$.fn.zato.http_soap.audit.look_up_item = function(e) {
+$.fn.zato.process.instance.look_up_item = function(e) {
     if(e) {
         e.preventDefault();
     }
