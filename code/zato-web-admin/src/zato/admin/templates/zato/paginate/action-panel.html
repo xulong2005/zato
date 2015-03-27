@@ -13,13 +13,13 @@
   
   |
   {% if has_previous %}
-    {% include "zato/http_soap/audit/prev-page.html" %}
+    {% include "zato/paginate/prev-page.html" %}
   {% else %}
     <span style="color:#666;font-size:12px">Previous</span>
   {% endif %}
   
   {% if has_next %}
-    {% include "zato/http_soap/audit/next-page.html" %}
+    {% include "zato/paginate/next-page.html" %}
   {% else %}
     <span style="color:#666;font-size:12px">Next</span>
   {% endif %}

@@ -1,6 +1,6 @@
 {% extends "zato/index.html" %}
 
-{% block html_title %}{{ conn_name }} - Audit log{% endblock %}
+{% block html_title %}Processes - instances{% endblock %}
 
 {% block extra_css %}
     <link rel="stylesheet" type="text/css" href="/static/css/jquery.alerts.css">
@@ -17,7 +17,7 @@
     <script type="text/javascript" src="/static/jquery/jquery.ui.timepicker.addon.js"></script>
 
     <script type="text/javascript" src="/static/js/common.js"></script>
-    <script type="text/javascript" src="/static/js/http_soap/audit/log.js"></script>
+    <script type="text/javascript" src="/static/js/process/instance/index.js"></script>
 
     <script>
     
@@ -25,7 +25,7 @@
         return [
             '_numbering',
             '_selection',
-            'cid',
+            'pid',
             'invoke_ok',
             'auth_ok',
             'user_token',
@@ -41,12 +41,7 @@
 
 {% block content %}
 
-<h2 class="zato">{{ conn_name }} : Audit log</h2>
-
-<div class='page_prompt'>
-    <a href="{% url http-soap-details connection transport conn_id conn_name cluster_id %}" class="common">Overview</a>
-    <a href="{% url http-soap-audit-log connection transport conn_id conn_name cluster_id %}" class="common current">Audit log</a>
-</div>
+<h2 class="zato">{{ process }} : Instances</h2>
 
 {% include "zato/user-message.html" %}
 
@@ -60,10 +55,10 @@
             <tr class='ignore'>
                 <th>&nbsp;</th>
                 <th>&nbsp;</th>
-                <th><a href="#">CID</a></th>
-                <th><a href="#">Invoke OK</a></th>
-                <th><a href="#">Auth OK</a></th>
-                <th><a href="#">User</a></th>
+                <th><a href="#">PID</a></th>
+                <th><a href="#">Start time</a></th>
+                <th><a href="#">Last updated</a></th>
+                <th><a href="#">Pipeline</a></th>
                 <th><a href="#">Remote addr</a></th>
                 <th><a href="#">Req. time</a></th>
                 <th><a href="#">Resp. time</a></th>
