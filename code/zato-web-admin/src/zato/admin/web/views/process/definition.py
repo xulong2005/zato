@@ -11,18 +11,15 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 # stdlib
 import logging
 from httplib import OK
-from json import dumps, loads
-from traceback import format_exc
 
 # Django
 from django.core.urlresolvers import reverse
-from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseRedirect, HttpResponseServerError
-from django.shortcuts import redirect
+from django.http import HttpResponse, HttpResponseBadRequest
 from django.template.response import TemplateResponse
 
 # Zato
 from zato.admin.web.forms.process.definition import CreateForm, EditForm
-from zato.admin.web.views import CreateEdit, Delete as _Delete, error_from_zato_env, Index as _Index
+from zato.admin.web.views import Delete as _Delete, error_from_zato_env, Index as _Index
 from zato.common.odb.model import ProcDef
 from zato.common.util import current_host, get_current_user
 
@@ -129,7 +126,7 @@ def validate_save(req, cluster_id):
             'zato.process.definition.{}'.format(func_types[req.POST['func_type']]),
             *(common_post + ('id', 'name', 'cluster_id', 'created_by', 'last_updated_by', 'ext_version')))
     except Exception, e:
-        return error_from_zato_env(e, error_msg)
+        return error_from_zato_env(e, 'Could not validate and save the definition')
     else:
         redirect_to = reverse('process-definition-edit', args=(cluster_id, response.data.id))
         redirect_to += '?msg={}'.format(response.data.msg)

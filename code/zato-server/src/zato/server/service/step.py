@@ -11,12 +11,10 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 # stdlib
 from contextlib import closing
 from datetime import datetime
-from traceback import format_exc
 
 # Zato
 from zato.common.odb import model as m
 from zato.common.odb import query as q
-from zato.process.definition import ProcessDefinition
 from zato.server.service import Service
 
 # ################################################################################################################################

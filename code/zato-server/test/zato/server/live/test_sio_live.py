@@ -17,9 +17,6 @@ from paste.util.converters import asbool
 # live test case
 from . import LiveTestCase
 
-# SIO live test services
-from . import zato_test_sio_live
-
 class SIOLiveTestCase(LiveTestCase):
 
     SERVICES_SOURCE = 'zato_test_sio_live.py'

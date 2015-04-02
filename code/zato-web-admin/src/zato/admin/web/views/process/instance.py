@@ -10,15 +10,6 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 # stdlib
 import logging
-from httplib import OK
-from json import dumps, loads
-from traceback import format_exc
-
-# Django
-from django.core.urlresolvers import reverse
-from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseRedirect, HttpResponseServerError
-from django.shortcuts import redirect
-from django.template.response import TemplateResponse
 
 # Zato
 from zato.admin.web.views import Index as _Index

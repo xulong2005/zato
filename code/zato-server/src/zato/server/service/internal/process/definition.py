@@ -10,7 +10,6 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 # stdlib
 from contextlib import closing
-from datetime import datetime
 
 # Zato
 from zato.common import KVDB
@@ -18,10 +17,9 @@ from zato.common.broker_message import PROCESS
 from zato.common.odb.model import ProcDef
 from zato.common.odb.query import process_definition, process_definition_list
 from zato.process.definition import ProcessDefinition
-from zato.process.vocab import vocab_dict
 from zato.server.service import List
 from zato.server.service.internal import AdminService, AdminSIO
-from zato.server.service.meta import CreateEditMeta, DeleteMeta, GetListMeta
+from zato.server.service.meta import DeleteMeta, GetListMeta
 
 elem = 'process_definition'
 model = ProcDef

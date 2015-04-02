@@ -25,7 +25,6 @@ from zato.common import DEFAULT_HTTP_PING_METHOD, DEFAULT_HTTP_POOL_SIZE, HTTP_S
 from zato.common.broker_message import CHANNEL, OUTGOING
 from zato.common.odb.model import Cluster, JSONPointer, HTTPSOAP, HTTSOAPAudit, HTTSOAPAuditReplacePatternsJSONPointer, \
      HTTSOAPAuditReplacePatternsXPath, SecurityBase, Service, TLSCACert, to_json, XPath
-from zato.common.odb.model import to_json
 from zato.common.odb.query import http_soap_audit_item, http_soap_audit_item_list, http_soap_list
 from zato.server.service import Boolean, Dict, Integer, List, ListOfDicts
 from zato.server.service.internal import AdminService, AdminSIO, PaginatingService

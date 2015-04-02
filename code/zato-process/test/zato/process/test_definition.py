@@ -23,7 +23,7 @@ from sqlalchemy import orm
 # Zato
 from zato.common.odb.model import Base
 from zato.common.test import rand_string
-from zato.process.definition import Error, ProcessDefinition, Warning
+from zato.process.definition import ProcessDefinition
 
 # This process doesn't make much business sense but it's
 # used only to check all the paths and nodes a process can go through
