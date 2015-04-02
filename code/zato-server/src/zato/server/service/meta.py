@@ -328,7 +328,7 @@ class DeleteMeta(AdminServiceMeta):
                         one()
 
                     session.delete(instance)
-                    session.commit()
+                    #session.commit()
                 except Exception, e:
                     msg = 'Could not delete {}, e:`%s`'.format(attrs.label)
                     self.logger.error(msg, format_exc(e))
@@ -364,12 +364,12 @@ class PingMeta(AdminServiceMeta):
     def handle(attrs):
         def handle_impl(self):
             with closing(self.odb.session()) as session:
-                instance = session.query(attrs.model).\
+                config = session.query(attrs.model).\
                     filter(attrs.model.id==self.request.input.id).\
                     one()
 
                 start_time = time()
-                self.ping(instance)
+                self.ping(config)
                 response_time = time() - start_time
 
                 self.response.payload.info = 'Ping issued in {0:03.4f} s, check server logs for details, if any.'.format(

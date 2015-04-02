@@ -392,6 +392,32 @@ def channel_amqp_list(session, cluster_id, needs_columns=False):
 
 # ################################################################################################################################
 
+def _channel_stomp(session, cluster_id):
+    return session.query(
+        m.ChannelSTOMP.id, m.ChannelSTOMP.name, m.ChannelSTOMP.is_active, m.ChannelSTOMP.username,
+        m.ChannelSTOMP.password, m.ChannelSTOMP.address, m.ChannelSTOMP.proto_version,
+        m.ChannelSTOMP.timeout, m.ChannelSTOMP.sub_to, m.ChannelSTOMP.service_id,
+        m.Service.name.label('service_name')).\
+        filter(m.Service.id==m.ChannelSTOMP.service_id).\
+        filter(m.Cluster.id==m.ChannelSTOMP.cluster_id).\
+        filter(m.Cluster.id==cluster_id).\
+        order_by(m.ChannelSTOMP.name)
+
+def channel_stomp(session, cluster_id, id):
+    """ A STOMP channel.
+    """
+    return _channel_stomp(session, cluster_id).\
+        filter(m.ChannelSTOMP.id==id).\
+        one()
+
+@needs_columns
+def channel_stomp_list(session, cluster_id, needs_columns=False):
+    """ A list of STOMP channels.
+    """
+    return _channel_stomp(session, cluster_id)
+
+# ################################################################################################################################
+
 def _channel_jms_wmq(session, cluster_id):
     return session.query(
         m.ChannelWMQ.id, m.ChannelWMQ.name, m.ChannelWMQ.is_active,
@@ -416,6 +442,27 @@ def channel_jms_wmq_list(session, cluster_id, needs_columns=False):
     """ JMS WebSphere MQ channels.
     """
     return _channel_jms_wmq(session, cluster_id)
+
+# ################################################################################################################################
+
+def _out_stomp(session, cluster_id):
+    return session.query(m.OutgoingSTOMP).\
+        filter(m.Cluster.id==m.OutgoingSTOMP.cluster_id).\
+        filter(m.Cluster.id==cluster_id).\
+        order_by(m.OutgoingSTOMP.name)
+
+def out_stomp(session, cluster_id, id):
+    """ An outgoing STOMP connection.
+    """
+    return _out_zmq(session, cluster_id).\
+        filter(m.OutgoingSTOMP.id==id).\
+        one()
+
+@needs_columns
+def out_stomp_list(session, cluster_id, needs_columns=False):
+    """ Outgoing STOMP connections.
+    """
+    return _out_stomp(session, cluster_id)
 
 # ################################################################################################################################
 

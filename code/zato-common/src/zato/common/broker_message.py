@@ -198,6 +198,11 @@ class OUTGOING(Constants):
     ODOO_DELETE = ValueConstant('')
     ODOO_CHANGE_PASSWORD = ValueConstant('')
 
+    STOMP_CREATE = ValueConstant('')
+    STOMP_EDIT = ValueConstant('')
+    STOMP_DELETE = ValueConstant('')
+    STOMP_CHANGE_PASSWORD = ValueConstant('')
+
 class CHANNEL(Constants):
     code_start = 101000
 
@@ -222,6 +227,11 @@ class CHANNEL(Constants):
     HTTP_SOAP_AUDIT_PATTERNS = ValueConstant('')
     HTTP_SOAP_AUDIT_STATE = ValueConstant('')
     HTTP_SOAP_AUDIT_CONFIG = ValueConstant('')
+
+    STOMP_CREATE = ValueConstant('')
+    STOMP_EDIT = ValueConstant('')
+    STOMP_DELETE = ValueConstant('')
+    STOMP_CHANGE_PASSWORD = ValueConstant('')
 
 class AMQP_CONNECTOR(Constants):
     code_start = 101200
@@ -250,8 +260,8 @@ class STATS(Constants):
 
 class HOT_DEPLOY(Constants):
     code_start = 102200
-    CREATE = ValueConstant('')
 
+    CREATE = ValueConstant('')
     AFTER_DEPLOY = ValueConstant('')
 
 class SINGLETON(Constants):
@@ -325,6 +335,9 @@ class NOTIF(Constants):
 
 class SEARCH(Constants):
     code_start = 104200
+    CREATE = ValueConstant('')
+    EDIT = ValueConstant('')
+    DELETE = ValueConstant('')
 
     ES_CREATE = ValueConstant('')
     ES_EDIT = ValueConstant('')
