@@ -28,6 +28,9 @@ from bunch import bunchify
 from lxml.etree import _Element as EtreeElement
 from lxml.objectify import ObjectifiedElement
 
+# Pympler
+from pympler.classtracker import ClassTracker
+
 # retools
 from retools.lock import Lock
 
@@ -471,6 +474,11 @@ class Service(object):
         kwargs.update({'serialize':serialize, 'as_bunch':as_bunch})
 
         try:
+            # Memory usage tracker
+            tracker = ClassTracker()
+            tracker.track_object(service)
+            tracker.create_snapshot()
+
             if timeout:
                 try:
                     g = spawn(self.update_handle, *invoke_args, **kwargs)
@@ -481,10 +489,15 @@ class Service(object):
                     if raise_timeout:
                         raise
             else:
-                return self.update_handle(*invoke_args, **kwargs)
+                out = self.update_handle(*invoke_args, **kwargs)
+                tracker.create_snapshot()
+                return out
         except Exception, e:
             logger.warn('Could not invoke `%s`, e:`%s`', service.name, format_exc(e))
             raise
+        finally:
+            tracker.create_snapshot()
+            tracker.stats.print_summary()
 
     def invoke(self, name, *args, **kwargs):
         """ Invokes a service synchronously by its name.
