@@ -1,3 +1,4 @@
+@security
 @security.wss
 Feature: zato.security.wss.delete
   Deletes a WS-Security definition.

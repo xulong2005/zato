@@ -1,3 +1,4 @@
+@channel
 @channel.amqp
 Feature: zato.channel.amqp.edit
  Updates an already existing AMQP channel. The channel will be stopped. If ‘is_active’ flag is ‘true’, the underlying 

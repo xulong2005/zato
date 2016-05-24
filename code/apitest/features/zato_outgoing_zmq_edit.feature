@@ -1,4 +1,5 @@
 @outgoing
+@outgoing.zmq
 Feature: zato.outgoing.zmq.edit
   Updates an existing ZeroMQ outgoing connection. The connection will be stopped. If ‘is_active’ flag is ‘true’, 
   the underlying ZeroMQ socket will then be started.

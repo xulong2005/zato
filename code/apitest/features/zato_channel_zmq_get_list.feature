@@ -1,3 +1,4 @@
+@channel
 @channel.zmq
 Feature: zato.channel.zmq.create
   Returns a list of ZeroMQ channels defined on a given cluster.

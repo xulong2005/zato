@@ -1,4 +1,5 @@
 @outgoing
+@outgoing.amqp
 Feature: zato.outgoing.amqp.get-list
   Returns a list of outgoing AMQP connections defined on a given cluster.
   
@@ -61,7 +62,7 @@ Feature: zato.outgoing.amqp.get-list
       Then status is "200"
       And I store "/zato_outgoing_amqp_create_response/name" from response under "amqp_conn_name"
       And I store "/zato_outgoing_amqp_create_response/id" from response under "amqp_conn_id"
-      And I sleep for "1"
+      And I sleep for "2"
 
   @outgoing.amqp.get-list
   Scenario: Get AMQP connections
@@ -72,7 +73,7 @@ Feature: zato.outgoing.amqp.get-list
     Given URL path "/zato/json/zato.outgoing.amqp.get-list"
     Given format "JSON"
     Given request is "{}"
-    Given JSON Pointer "/cluster_id" in request is "#amqp_conn_id"
+    Given JSON Pointer "/cluster_id" in request is "$ZATO_API_TEST_CLUSTER_ID"
 
     When the URL is invoked
 

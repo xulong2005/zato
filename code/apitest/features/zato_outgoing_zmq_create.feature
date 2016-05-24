@@ -1,4 +1,5 @@
 @outgoing
+@outgoing.zmq
 Feature: zato.outgoing.zmq.create
   Allows one to create a ZeroMQ outgoing connection.
 

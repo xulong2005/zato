@@ -1,4 +1,5 @@
 @outgoing
+@outgoing.sql
 Feature: zato.outgoing.sql.ping
   Pings an outgoing SQL connection by issuing a dummy no-op SQL statement.
 

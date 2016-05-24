@@ -1,4 +1,5 @@
 @definition
+@definition.amqp
 Feature: zato.definition.amqp.get-list
   Returns a list of AMQP connection definitions available on a given cluster.
 

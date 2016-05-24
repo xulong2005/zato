@@ -1,3 +1,4 @@
+@channel
 @channel.amqp
 Feature: zato.channel.amqp.delete
   Deletes an AMQP channel. The channel’s underlying AMQP consumer will be first stopped.

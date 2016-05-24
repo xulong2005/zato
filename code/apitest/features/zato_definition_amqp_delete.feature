@@ -1,4 +1,5 @@
 @definition
+@definition.amqp
 Feature: zato.definition.amqp.delete
   Deletes an AMQP connection definition. Any channels using the definition will be stopped and deleted.
 

@@ -1,4 +1,5 @@
 @outgoing
+@outgoing.amqp
 Feature: zato.outgoing.amqp.create
   Allows one to create an AMQP outgoing connection basing on an already existing AMQP connection definition.
 

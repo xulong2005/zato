@@ -1,3 +1,4 @@
+@kvdb
 @kvdb.data-dict
 Feature: kvdb.data-dict.dictionary.get-key-list
   Returns a list of KVDB keys defined for a given system.

@@ -1,3 +1,4 @@
+@channel
 @channel.zmq
 Feature: zato.channel.zmq.delete
   Deletes a ZeroMQ channel. The channel’s underlying socket will be first stopped.

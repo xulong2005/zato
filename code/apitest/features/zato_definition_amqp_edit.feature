@@ -1,4 +1,5 @@
 @definition
+@definition.amqp
 Feature: zato.definition.amqp.edit
   Updates an AMQP connection definition. A connection definition holds information on how to connect to a particular
   AMQP broker. Any channels using this definition will be restarted with new values.

@@ -1,3 +1,4 @@
+@kvdb
 @kvdb.data-dict
 Feature: kvdb.data.dict.dictionary.delete
   Deletes a data dictionary entry from a cluster’s KVDB by the entry’s ID along with any translations the entry may constitue a part of.

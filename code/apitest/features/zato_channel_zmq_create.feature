@@ -1,3 +1,4 @@
+@channel
 @channel.zmq
 Feature: zato.channel.zmq.create
   Allows one to create a ZeroMQ channel for accepting incoming messages.

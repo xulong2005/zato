@@ -1,3 +1,4 @@
+@security
 @security.basic-auth
 Feature: zato.security.basic-auth.delete
   Deletes an HTTP Basic Auth security definition.

@@ -1,4 +1,5 @@
 @outgoing
+@outgoing.ftp
 Feature: zato.outgoing.ftp.create
   Allows one to create an outgoing FTP connection. Note that it can be used for creating connections to both FTP 
   and FTPS (FTP Secure) servers.Changes the password of an already existing outgoing FTP connection.

@@ -1,3 +1,4 @@
+@kvdb
 @kvdb.data-dict
 Feature: kvdb.data.dict.dictionary.get-system-list
   Returns a list of systems defined in a KVDB.

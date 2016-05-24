@@ -1,4 +1,5 @@
 @outgoing
+@outgoing.zmq
 Feature: zato.outgoing.zmq.get-list
   Returns a list of outgoing ZeroMQ connections defined on a given cluster.
 

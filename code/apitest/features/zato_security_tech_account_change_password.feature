@@ -1,3 +1,4 @@
+@security
 @security.tech-account
 Feature: zato.security.tech-account.change-password
   Changes the password of an already existing technical account.

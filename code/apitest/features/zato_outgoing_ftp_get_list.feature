@@ -1,4 +1,5 @@
 @outgoing
+@outgoing.ftp
 Feature: zato.outgoing.ftp.get-list
   Returns a list of outgoing FTP connections defined on a given cluster.
 

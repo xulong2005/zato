@@ -1,3 +1,4 @@
+@security
 @security.basic-auth
 Feature: zato.security.basic-auth.get-list
   Returns a list of HTTP Basic Auth security definitions configured on a given cluster.

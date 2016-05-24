@@ -1,4 +1,5 @@
 @outgoing
+@outgoing.ftp
 Feature: zato.outgoing.ftp.change-password
   Changes the password of an already existing outgoing FTP connection.
 

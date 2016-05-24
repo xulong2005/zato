@@ -1,4 +1,5 @@
 @outgoing
+@outgoing.sql
 Feature: zato.outgoing.sql.edit
   Updates an outgoing SQL connection.
 

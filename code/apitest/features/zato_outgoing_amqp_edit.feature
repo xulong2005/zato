@@ -1,4 +1,5 @@
 @outgoing
+@outgoing.amqp
 Feature: zato.outgoing.amqp.edit
   Updates an existing AMQP outgoing connection. The connection will be stopped. If ‘is_active’ flag is ‘true’,
   the underlying AMQP producer will then be started.
