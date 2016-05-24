@@ -1,4 +1,5 @@
 @definition
+@definition.amqp
 Feature: zato.definition.amqp.get-by-id
   Returns details regarding a particular AMQP connection definition.
 

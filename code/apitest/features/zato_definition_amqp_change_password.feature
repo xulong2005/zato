@@ -1,4 +1,5 @@
 @definition
+@definition.amqp
 Feature: zato.definition.amqp.change-password
   Changes the password of an already existing AMQP connection definition.
 

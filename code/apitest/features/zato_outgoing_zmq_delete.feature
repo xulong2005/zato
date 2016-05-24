@@ -1,4 +1,5 @@
 @outgoing
+@outgoing.zmq
 Feature: zato.outgoing.zmq.delete
   Deletes an outgoing ZeroMQ connection by its ID. The underlying socket will first be stopped.
 

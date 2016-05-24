@@ -1,3 +1,4 @@
+@security
 @security.wss
 Feature: zato.security.wss.create
   Allows one to create a WS-Security definition.

@@ -1,3 +1,4 @@
+@channel
 @channel.amqp
 Feature: zato.channel.amqp.create
   Allows one to create an AMQP channel basing on an already existing AMQP connection definition.

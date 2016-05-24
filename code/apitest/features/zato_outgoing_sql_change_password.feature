@@ -1,4 +1,5 @@
 @outgoing
+@outgoing.sql
 Feature: zato.outgoing.sql.create
   Allows one to create an outgoing SQL connection.
 

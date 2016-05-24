@@ -1,4 +1,5 @@
 @outgoing
+@outgoing.ftp
 Feature: zato.outgoing.ftp.edit
   Updates an outgoing FTP connection. The connection can be to either a plain FTP or to an FTPS (Secure) server.
 

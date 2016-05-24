@@ -1,4 +1,5 @@
 @outgoing
+@outgoing.jms-wmq
 Feature: zato.outgoing.jms-wmq.create
   Allows one to create a JMS WebSphere MQ outgoing connection basing on an already existing connection definition.
 

@@ -1,3 +1,4 @@
+@security
 @security.tech-account
 Feature: zato.security.tech-account.delete
   Deletes a technical account.

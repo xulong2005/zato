@@ -1,4 +1,5 @@
 @outgoing
+@outgoing.amqp
 Feature: zato.outgoing.amqp.delete
   Deletes an outgoing AMQP connection by its ID. The underlying connector will first be stopped.
 

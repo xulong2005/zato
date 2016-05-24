@@ -1,3 +1,4 @@
+@channel
 @channel.amqp
 Feature: zato.channel.amqp.get-list
   Returns a list of AMQP channels defined on a given cluster.

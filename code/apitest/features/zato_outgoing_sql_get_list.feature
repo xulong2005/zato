@@ -1,4 +1,5 @@
 @outgoing
+@outgoing.sql
 Feature: zato.outgoing.sql.get-list
   Returns a list of outgoing SQL connections defined on a given cluster.
 

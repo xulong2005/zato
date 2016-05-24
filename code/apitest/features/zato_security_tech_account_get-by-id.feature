@@ -1,3 +1,4 @@
+@security
 @security.tech-account
 Feature: zato.security.tech-account.get-by-id
   Returns a technical account by its ID.

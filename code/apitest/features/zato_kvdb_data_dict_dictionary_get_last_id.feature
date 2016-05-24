@@ -1,3 +1,4 @@
+@kvdb
 @kvdb.data-dict
 Feature: kvdb.data-dict.dictionary.get-last-id
   Returns the value of the most recently assigned KVDB dictionary entry ID, that is, the value that the last invocation

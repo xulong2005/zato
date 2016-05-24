@@ -1,3 +1,4 @@
+@security
 @security.basic-auth
 Feature: zato.security.basic-auth.change-password
   Changes the password of an already existing HTTP Basic Auth security definition.

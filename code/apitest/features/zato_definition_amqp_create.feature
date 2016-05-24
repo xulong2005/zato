@@ -1,4 +1,5 @@
 @definition
+@definition.amqp
 Feature: zato.definition.amqp.create
   Create a new AMQP connection definition. A connection definition holds information on how to connect to
   a particular AMQP broker.

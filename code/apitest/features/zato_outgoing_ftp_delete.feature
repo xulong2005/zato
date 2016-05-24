@@ -1,4 +1,5 @@
 @outgoing
+@outgoing.ftp
 Feature: zato.outgoing.ftp.delete
   Deletes an outgoing FTP connection by its ID.
 

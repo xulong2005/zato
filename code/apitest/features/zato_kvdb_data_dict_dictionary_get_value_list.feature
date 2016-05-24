@@ -1,3 +1,4 @@
+@kvdb
 @kvdb.data-dict
 Feature: zato.kvdb.data-dict.dictionary.get-value-list
   Returns a list, possibly empty, of KVDB values defined for a given system and key.

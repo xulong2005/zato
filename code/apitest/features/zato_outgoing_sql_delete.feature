@@ -1,4 +1,5 @@
 @outgoing
+@outgoing.sql
 Feature: zato.outgoing.sql.delete
   Deletes an outgoing SQL connection by its ID.
 

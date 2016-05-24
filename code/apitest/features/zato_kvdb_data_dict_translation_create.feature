@@ -1,3 +1,4 @@
+@kvdb
 @kvdb.data-dict.translation
 Feature: zato.kvdb.data-dict.translation.create
   Creates a translation, a mapping, between two dictionary entries in order to express the idea that one entry is equal

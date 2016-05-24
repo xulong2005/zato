@@ -1,3 +1,4 @@
+@kvdb
 @kvdb.data-dict
 Feature: kvdb.data.dict.dictionary.create
   Allows one to create a new data dictionary entry in a cluster’s KVDB.

@@ -1,4 +1,5 @@
 @definition
+@definition.jms-wmq
 Feature: zato.definition.jms-wmq.get-list
   Returns a list of JMS WebSphere MQ connection definition on a given cluster.
 
