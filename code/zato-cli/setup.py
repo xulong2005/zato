@@ -21,7 +21,7 @@ setup(
       name = 'zato-cli',
       version = version,
 
-      author = 'Zato Developers',
+      author = 'Zato Source s.r.o.',
       author_email = 'info@zato.io',
       url = 'https://zato.io',
 

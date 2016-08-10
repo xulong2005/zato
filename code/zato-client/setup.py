@@ -31,7 +31,7 @@ setup(
       name = 'zato-client',
       version = version,
 
-      author = 'Zato Developers',
+      author = 'Zato Source s.r.o.',
       author_email = 'info@zato.io',
       url = 'https://zato.io',
       license = 'GNU Lesser General Public License v3 (LGPLv3)',
