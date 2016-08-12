@@ -17,7 +17,7 @@ execfile(_version_py, _locals)
 version = _locals['version']
 
 setup(
-      name = 'zato-orm',
+      name = 'zato-model',
       version = version,
 
       author = 'Zato Source s.r.o.',

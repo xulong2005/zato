@@ -16,16 +16,21 @@ from datetime import datetime
 from dictalchemy import make_class_dictable
 
 # SQLAlchemy
-from sqlalchemy import Boolean, Column, create_engine, DateTime, ForeignKey, Integer, Sequence, String, Text, UniqueConstraint
+from sqlalchemy import BigInteger, Boolean, Column, create_engine, Date, DateTime, Float, ForeignKey, Integer, LargeBinary, \
+     Numeric, Sequence, \
+     SmallInteger, String, Text, Time, UniqueConstraint
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import backref, relationship, sessionmaker
 
 # Zato
-from zato.common.odb.model import Base
+Base = declarative_base()
+make_class_dictable(Base)
 
-# This is only so that this module can be imported by create_odb.py
-# In that manner Base registers all of the model classes defined here.
-import_marker = 'import_marker'
+# ################################################################################################################################
+
+class Cluster(Base):
+    __tablename__ = 'cluster'
+    id = Column(Integer, Sequence('cluster_seq'), primary_key=True)
 
 # ################################################################################################################################
 
@@ -43,7 +48,7 @@ class Group(Base, _CreatedLastUpdated):
     name = Column(String(2048), unique=True, nullable=False)
     is_internal = Column(Boolean(), nullable=False, default=False)
 
-    cluster_id = Column(Integer, ForeignKey('cluster.id', ondelete='CASCADE'), nullable=False)
+    cluster_id = Column(Integer, ForeignKey('cluster.id', ondelete='CASCADE'), nullable=True)
 
 # ################################################################################################################################
 
@@ -60,7 +65,7 @@ class SubGroup(Base, _CreatedLastUpdated):
     group_id = Column(Integer, ForeignKey('data_group.id', ondelete='CASCADE'), nullable=False)
     group = relationship(Group, backref=backref('sub_groups', order_by=name, cascade='all, delete, delete-orphan'))
 
-    cluster_id = Column(Integer, ForeignKey('cluster.id', ondelete='CASCADE'), nullable=False)
+    cluster_id = Column(Integer, ForeignKey('cluster.id', ondelete='CASCADE'), nullable=True)
 
 # ################################################################################################################################
 
@@ -74,13 +79,47 @@ class Item(Base, _CreatedLastUpdated):
     __tablename__ = 'data_item'
     __table_args__ = (UniqueConstraint('cluster_id', 'group_id', 'sub_group_id', 'name'), {})
 
+    # Internal ID for SQL joins
     id = Column(Integer, Sequence('data_item_seq'), primary_key=True)
+
+    # External user-visible ID
+    object_id = Column(Text, index=True)
+
     parent_id = Column(Integer, ForeignKey('data_item.id', ondelete='CASCADE'), nullable=True)
     is_internal = Column(Boolean(), nullable=False, default=False)
     is_active = Column(Boolean(), nullable=False, default=True)
+    name = Column(String(2048), unique=False, nullable=False, index=True)
 
-    name = Column(String(2048), unique=True, nullable=False)
-    value = Column(Text, nullable=True)
+    # Versioning
+    version = Column(Integer, index=True)
+
+    # Boolean
+    value_bool = Column(Boolean(), nullable=True)
+
+    # Binary
+    value_binary = Column(LargeBinary(), nullable=True)
+
+    # Integers
+    value_int = Column(Integer(), nullable=True)
+    value_small_int = Column(SmallInteger(), nullable=True)
+    value_big_int = Column(BigInteger(), nullable=True)
+
+    # Decimal
+    value_decimal2 = Column(Numeric(scale=2), nullable=True)
+    value_decimal3 = Column(Numeric(scale=3), nullable=True)
+    value_decimal6 = Column(Numeric(scale=6), nullable=True)
+
+    # Float
+    value_float = Column(Float(), nullable=True)
+
+    # Date and time
+    value_date_time = Column(DateTime(), nullable=True)
+    value_date_time_tz = Column(DateTime(timezone=True), nullable=True)
+    value_time = Column(Time(), nullable=True)
+    value_time_tz = Column(Time(timezone=True), nullable=True)
+
+    # Text
+    value_text = Column(Text(), nullable=True)
 
     # Foreign keys are for both groups and sub-groups
 
@@ -90,7 +129,7 @@ class Item(Base, _CreatedLastUpdated):
     sub_group_id = Column(Integer, ForeignKey('data_sub_group.id', ondelete='CASCADE'), nullable=False)
     sub_group = relationship(SubGroup, backref=backref('items', order_by=name, cascade='all, delete, delete-orphan'))
 
-    cluster_id = Column(Integer, ForeignKey('cluster.id', ondelete='CASCADE'), nullable=False)
+    cluster_id = Column(Integer, ForeignKey('cluster.id', ondelete='CASCADE'), nullable=True)
 
 # ################################################################################################################################
 
@@ -103,9 +142,8 @@ class Tag(Base, _CreatedLastUpdated):
     id = Column(Integer, Sequence('data_tag_seq'), primary_key=True)
     name = Column(String(2048), unique=True, nullable=False)
     is_internal = Column(Boolean(), nullable=False, default=False)
-    value = Column(Text, nullable=True)
 
-    cluster_id = Column(Integer, ForeignKey('cluster.id', ondelete='CASCADE'), nullable=False)
+    cluster_id = Column(Integer, ForeignKey('cluster.id', ondelete='CASCADE'), nullable=True)
 
 # ################################################################################################################################
 
