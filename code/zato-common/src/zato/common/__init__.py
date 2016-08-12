@@ -168,6 +168,8 @@ FALSE_TRUE = 'false_true'
 # If self.response.payload 
 simple_types = (basestring, dict, list, tuple, bool, Number)
 
+invalid = '<zato-invalid>'
+
 # Queries to use in pinging the databases.
 ping_queries = {
     'access': 'SELECT 1',

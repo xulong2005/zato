@@ -16,9 +16,8 @@ from datetime import datetime
 from dictalchemy import make_class_dictable
 
 # SQLAlchemy
-from sqlalchemy import BigInteger, Boolean, Column, create_engine, Date, DateTime, Float, ForeignKey, Integer, LargeBinary, \
-     Numeric, Sequence, \
-     SmallInteger, String, Text, Time, UniqueConstraint
+from sqlalchemy import BigInteger, Boolean, Column, create_engine, Date, DateTime, Float, ForeignKey, Index, Integer, \
+     LargeBinary, Numeric, Sequence, SmallInteger, String, Text, Time, UniqueConstraint
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import backref, relationship, sessionmaker
 
@@ -77,7 +76,10 @@ class Item(Base, _CreatedLastUpdated):
     so as not to require 'value' to be parsed on client side in order to extract data or filter by 'value's contents.
     """
     __tablename__ = 'data_item'
-    __table_args__ = (UniqueConstraint('cluster_id', 'group_id', 'sub_group_id', 'name'), {})
+    __table_args__ = (
+        UniqueConstraint('cluster_id', 'group_id', 'sub_group_id', 'name'),
+        Index('idx_data_item_object_id_name', 'object_id', 'name'),
+    {})
 
     # Internal ID for SQL joins
     id = Column(Integer, Sequence('data_item_seq'), primary_key=True)
@@ -85,7 +87,7 @@ class Item(Base, _CreatedLastUpdated):
     # External user-visible ID
     object_id = Column(Text, index=True)
 
-    parent_id = Column(Integer, ForeignKey('data_item.id', ondelete='CASCADE'), nullable=True)
+    parent_id = Column(Integer, ForeignKey('data_item.id', ondelete='CASCADE'), nullable=True, index=True)
     is_internal = Column(Boolean(), nullable=False, default=False)
     is_active = Column(Boolean(), nullable=False, default=True)
     name = Column(String(2048), unique=False, nullable=False, index=True)
