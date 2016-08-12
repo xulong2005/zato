@@ -13,13 +13,22 @@ from contextlib import closing
 from datetime import datetime
 from inspect import isclass
 from uuid import uuid4
+import warnings
 
 # SQLAlchemy
 from sqlalchemy import create_engine
+from sqlalchemy.exc import SAWarning
 from sqlalchemy.orm.session import sessionmaker
 
 # Zato
 from zato.model.sql import Group, GroupTag, Item, ItemTag, SubGroup, SubGroupTag, Tag
+
+warnings.filterwarnings('ignore',
+                        r'^Dialect sqlite\+pysqlite does \*not\* support Decimal objects natively\, '
+                        'and SQLAlchemy must convert from floating point - rounding errors and other '
+                        'issues may occur\. Please consider storing Decimal numbers as strings or '
+                        'integers on this platform for lossless storage\.$',
+                        SAWarning, r'^sqlalchemy\.sql\.type_api$')
 
 # ################################################################################################################################
 
@@ -130,10 +139,21 @@ class NetAddress(DataType):
 
 class Model(object):
     model_name = _invalid
-    _model_name = None # Computed once in get_name
+
+    # Computed once in get_name
+    _model_name = None
+
+    # ModelManager instance
+    manager = None
 
     def __init__(self, tags=None):
+
+        # User-facing one
         self.id = None
+
+        # Internal, SQL-based one
+        self._id = None
+
         self.tags = tags or []
         self.attrs = {}
 
@@ -162,6 +182,55 @@ class Model(object):
             class_._model_name = class_.model_name if class_.model_name != _invalid else class_.__name__.lower()
 
         return class_._model_name
+
+    def save(self):
+        model_name = self.get_name()
+
+        # No ID = the instance surely doesn't exist in database
+        if not self.id:
+
+            with closing(self.manager.session()) as session:
+
+                # Add parent instance first
+                instance = Item()
+                instance.object_id = '{}.{}'.format(model_name, uuid4().hex)
+                instance.name = 'user.model.instance.{}'.format(model_name)
+                instance.version = 1
+                instance.group_id = self.manager.user_models_group_id
+                instance.sub_group_id = self.manager.user_models_sub_groups[model_name]
+
+                session.add(instance)
+                session.flush()
+
+                for attr_name, attr_type in self.attrs.iteritems():
+                    model_value = getattr(self, attr_name)
+
+                    # If model_value is still an instance of DataType it means that user never overwrote it
+                    has_value = not isinstance(model_value, DataType)
+
+                    if has_value:
+                        value = Item()
+                        value.object_id = uuid4().hex
+                        value.name = attr_name
+                        value.group_id = self.manager.user_models_group_id
+                        value.sub_group_id = self.manager.user_models_sub_groups[model_name]
+                        value.parent_id = instance.id
+                        setattr(value, 'value_{}'.format(attr_type.impl_type), model_value)
+
+                        session.add(value)
+
+                # Commit everything
+                session.commit()
+
+                # Note that external users receive object_id as self.id and id goes to self._id
+                # This is in order to prevent any ID guessing, e.g. the database may be required
+                # to offer strict isolation of data on multiple levels and this is one of them.
+                # This becomes important if we take into account the fact that self.id is the one
+                # that can be automaticall serialized to external data formats, such as JSON or XML.
+                self.id = instance.object_id
+                self._id = instance.id
+
+        # Else - it may potentially exist, or perhaps its ID is invalid
 
 # ################################################################################################################################
 
@@ -227,47 +296,7 @@ class ModelManager(object):
 
     def register(self, model_class):
         self.add_sub_group(model_class.get_name())
-
-    def save(self, model):
-        model_name = model.get_name()
-
-        # No ID = the instance surely doesn't exist in database
-        if not model.id:
-
-            with closing(self.session()) as session:
-
-                # Add parent instance first
-                instance = Item()
-                instance.object_id = '{}.{}'.format(model_name, uuid4().hex)
-                instance.name = 'user.model.instance.{}'.format(model_name)
-                instance.version = 1
-                instance.group_id = self.user_models_group_id
-                instance.sub_group_id = self.user_models_sub_groups[model_name]
-
-                session.add(instance)
-                session.flush()
-
-                for attr_name, attr_type in model.attrs.iteritems():
-                    model_value = getattr(model, attr_name)
-
-                    # If model_value is still an instance of DataType it means that user never overwrote it
-                    has_value = not isinstance(model_value, DataType)
-
-                    if has_value:
-                        value = Item()
-                        value.object_id = '{}.{}.{}'.format(model_name, attr_name, uuid4().hex)
-                        value.name = 'user.model.value.{}.{}'.format(model_name, attr_name)
-                        value.group_id = self.user_models_group_id
-                        value.sub_group_id = self.user_models_sub_groups[model_name]
-                        value.parent_id = instance.id
-                        setattr(value, 'value_{}'.format(attr_type.impl_type), model_value)
-
-                        session.add(value)
-
-                # Commit everything
-                session.commit()
-
-        # Else - it may potentially exist, or perhaps its ID is invalid
+        model_class.manager = self
 
 # ################################################################################################################################
 
@@ -308,6 +337,10 @@ if __name__ == '__main__':
     reader.tags = ['tag1', 'tag2', 'tag3']
 
     app = Application()
-    app.name
+    app.name = 'My Application'
+    app.token = 'app.token.01'
 
-    mgr.save(reader)
+    reader.save()
+    app.save()
+
+    print(reader.id, reader)
