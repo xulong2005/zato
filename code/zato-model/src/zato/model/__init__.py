@@ -226,11 +226,15 @@ class Model(object):
                 # This is in order to prevent any ID guessing, e.g. the database may be required
                 # to offer strict isolation of data on multiple levels and this is one of them.
                 # This becomes important if we take into account the fact that self.id is the one
-                # that can be automaticall serialized to external data formats, such as JSON or XML.
+                # that can be automatically serialized to external data formats, such as JSON or XML.
                 self.id = instance.object_id
                 self._id = instance.id
 
         # Else - it may potentially exist, or perhaps its ID is invalid
+
+    @classmethod
+    def get(class_, id=None, *args, **kwargs):
+        print(333, class_.manager, class_.get_name())
 
 # ################################################################################################################################
 
@@ -340,7 +344,8 @@ if __name__ == '__main__':
     app.name = 'My Application'
     app.token = 'app.token.01'
 
-    reader.save()
-    app.save()
+    #reader.save()
+    #app.save()
 
-    print(reader.id, reader)
+    app_id = 'application.66d4eaadc6174a1bb0791e5071e471c9'
+    reader2 = Application.get(app_id)
