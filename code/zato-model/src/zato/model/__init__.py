@@ -95,52 +95,52 @@ class Model(object):
 
         return class_._model_name
 
-    def save(self):
+    def save(self, session):
         model_name = self.get_name()
 
         # No ID = the instance surely doesn't exist in database
         if not self.id:
 
-            with closing(self.manager.session()) as session:
+            #with closing(self.manager.session()) as session:
 
-                # Add parent instance first
-                instance = Item()
-                instance.object_id = '{}.{}'.format(model_name, uuid4().hex)
-                instance.name = instance_name_template.format(model_name)
-                instance.version = 1
-                instance.group_id = self.manager.user_models_group_id
-                instance.sub_group_id = self.manager.user_models_sub_groups[model_name]
+            # Add parent instance first
+            instance = Item()
+            instance.object_id = '{}.{}'.format(model_name, uuid4().hex)
+            instance.name = instance_name_template.format(model_name)
+            instance.version = 1
+            instance.group_id = self.manager.user_models_group_id
+            instance.sub_group_id = self.manager.user_models_sub_groups[model_name]
 
-                session.add(instance)
-                session.flush()
+            session.add(instance)
+            #session.flush()
 
-                for attr_name, attr_type in self.attrs.iteritems():
-                    model_value = getattr(self, attr_name)
+            for attr_name, attr_type in self.attrs.iteritems():
+                model_value = getattr(self, attr_name)
 
-                    # If model_value is still an instance of DataType it means that user never overwrote it
-                    has_value = not isinstance(model_value, DataType)
+                # If model_value is still an instance of DataType it means that user never overwrote it
+                has_value = not isinstance(model_value, DataType)
 
-                    if has_value:
-                        value = Item()
-                        value.object_id = uuid4().hex
-                        value.name = attr_name
-                        value.group_id = self.manager.user_models_group_id
-                        value.sub_group_id = self.manager.user_models_sub_groups[model_name]
-                        value.parent_id = instance.id
-                        setattr(value, 'value_{}'.format(attr_type.impl_type), model_value)
+                if has_value:
+                    value = Item()
+                    value.object_id = uuid4().hex
+                    value.name = attr_name
+                    value.group_id = self.manager.user_models_group_id
+                    value.sub_group_id = self.manager.user_models_sub_groups[model_name]
+                    value.parent_id = instance.id
+                    setattr(value, 'value_{}'.format(attr_type.impl_type), model_value)
 
-                        session.add(value)
+                    session.add(value)
 
-                # Commit everything
-                session.commit()
+            # Commit everything
+            #session.commit()
 
-                # Note that external users receive object_id as self.id and id goes to self._id
-                # This is in order to prevent any ID guessing, e.g. the database may be required
-                # to offer strict isolation of data on multiple levels and this is one of them.
-                # This becomes important if we take into account the fact that self.id is the one
-                # that can be automatically serialized to external data formats, such as JSON or XML.
-                self.id = instance.object_id
-                self._id = instance.id
+            # Note that external users receive object_id as self.id and id goes to self._id
+            # This is in order to prevent any ID guessing, e.g. the database may be required
+            # to offer strict isolation of data on multiple levels and this is one of them.
+            # This becomes important if we take into account the fact that self.id is the one
+            # that can be automatically serialized to external data formats, such as JSON or XML.
+            self.id = instance.object_id
+            self._id = instance.id
 
         # Else - it may potentially exist, or perhaps its ID is invalid
 
@@ -286,21 +286,26 @@ if __name__ == '__main__':
     mgr.register(Facility)
     mgr.register(Application)
 
-    for x in range(0):
+    with closing(mgr.session()) as session:
 
-        if x % 10 == 0:
-            print(x)
+        for x in range(0):
 
-        reader = Reader()
-        reader.ruid = 'abcdef'
-        reader.tags = ['tag1', 'tag2', 'tag3']
+            if x % 250 == 0:
+                print(x)
 
-        app = Application()
-        app.name = 'My Application'
-        app.token = 'app.token.01'
+            if x % 10000 == 0:
+                session.commit()
 
-        reader.save()
-        app.save()
+            reader = Reader()
+            reader.ruid = 'abcdef'
+            reader.tags = ['tag1', 'tag2', 'tag3']
+
+            app = Application()
+            app.name = 'My Application'
+            app.token = 'app.token.01'
+
+            reader.save(session)
+            app.save(session)
 
     from datetime import datetime
 
@@ -309,7 +314,7 @@ if __name__ == '__main__':
     with closing(mgr.session()) as session:
 
         for x in range(1000):
-            app_id = 'application.733276e51802454394ea2643db8bbc6d'
+            app_id = 'application.aa881bea3e744107b2351d8ae2325666'
             app2 = Application.get(app_id, session)
 
     print(datetime.utcnow() - start)
