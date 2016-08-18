@@ -60,7 +60,7 @@ class Model(object):
         # Internal, SQL-based one
         self._id = None
 
-        self.name = ''
+        self._name = ''
         self.version = 0
         self.last_updated_ts = None
         self.is_active = True
@@ -88,6 +88,8 @@ class Model(object):
             if isinstance(attr, DataType):
                 self.attrs[name] = attr
 
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
+
     @classmethod
     def get_name(class_):
         if not class_._model_name:
@@ -95,52 +97,54 @@ class Model(object):
 
         return class_._model_name
 
-    def save(self, session):
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
+
+    def save(self, session=None):
         model_name = self.get_name()
 
         # No ID = the instance surely doesn't exist in database
         if not self.id:
 
-            #with closing(self.manager.session()) as session:
+            with closing(self.manager.session()) as session:
 
-            # Add parent instance first
-            instance = Item()
-            instance.object_id = '{}.{}'.format(model_name, uuid4().hex)
-            instance.name = instance_name_template.format(model_name)
-            instance.version = 1
-            instance.group_id = self.manager.user_models_group_id
-            instance.sub_group_id = self.manager.user_models_sub_groups[model_name]
+                # Add parent instance first
+                instance = Item()
+                instance.object_id = '{}.{}'.format(model_name, uuid4().hex)
+                instance.name = instance_name_template.format(model_name)
+                instance.version = 1
+                instance.group_id = self.manager.user_models_group_id
+                instance.sub_group_id = self.manager.user_models_sub_groups[model_name]
 
-            session.add(instance)
-            #session.flush()
+                session.add(instance)
+                session.flush()
 
-            for attr_name, attr_type in self.attrs.iteritems():
-                model_value = getattr(self, attr_name)
+                for attr_name, attr_type in self.attrs.iteritems():
+                    model_value = getattr(self, attr_name)
 
-                # If model_value is still an instance of DataType it means that user never overwrote it
-                has_value = not isinstance(model_value, DataType)
+                    # If model_value is still an instance of DataType it means that user never overwrote it
+                    has_value = not isinstance(model_value, DataType)
 
-                if has_value:
-                    value = Item()
-                    value.object_id = uuid4().hex
-                    value.name = attr_name
-                    value.group_id = self.manager.user_models_group_id
-                    value.sub_group_id = self.manager.user_models_sub_groups[model_name]
-                    value.parent_id = instance.id
-                    setattr(value, 'value_{}'.format(attr_type.impl_type), model_value)
+                    if has_value:
+                        value = Item()
+                        value.object_id = uuid4().hex
+                        value.name = attr_name
+                        value.group_id = self.manager.user_models_group_id
+                        value.sub_group_id = self.manager.user_models_sub_groups[model_name]
+                        value.parent_id = instance.id
+                        setattr(value, 'value_{}'.format(attr_type.impl_type), model_value)
 
-                    session.add(value)
+                        session.add(value)
 
-            # Commit everything
-            #session.commit()
+                # Commit everything
+                session.commit()
 
-            # Note that external users receive object_id as self.id and id goes to self._id
-            # This is in order to prevent any ID guessing, e.g. the database may be required
-            # to offer strict isolation of data on multiple levels and this is one of them.
-            # This becomes important if we take into account the fact that self.id is the one
-            # that can be automatically serialized to external data formats, such as JSON or XML.
-            self.id = instance.object_id
-            self._id = instance.id
+                # Note that external users receive object_id as self.id and id goes to self._id
+                # This is in order to prevent any ID guessing, e.g. the database may be required
+                # to offer strict isolation of data on multiple levels and this is one of them.
+                # This becomes important if we take into account the fact that self.id is the one
+                # that can be automatically serialized to external data formats, such as JSON or XML.
+                self.id = instance.object_id
+                self._id = instance.id
 
         # Else - it may potentially exist, or perhaps its ID is invalid
 
@@ -156,12 +160,18 @@ class List(object):
 
 # ################################################################################################################################
 
+class Ref(object):
+    def __init__(self, model):
+        self.model = model
+
+# ################################################################################################################################
+
 class ModelManager(object):
 
-    def __init__(self):
+    def __init__(self, sql_echo=False):
         db_path = '/home/dsuch/tmp/zzz.db'
         db_url = 'sqlite:///{}'.format(db_path)
-        engine = create_engine(db_url)
+        engine = create_engine(db_url, echo=sql_echo)
 
         self.session = sessionmaker()
         self.session.configure(bind=engine)
@@ -171,6 +181,8 @@ class ModelManager(object):
         self.user_models_sub_groups = {} # Group name -> group ID
 
         self.set_up_user_models_group()
+
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
 
     def set_up_user_models_group(self):
 
@@ -187,6 +199,8 @@ class ModelManager(object):
                 session.commit()
 
             self.user_models_group_id = g.id
+
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
 
     def add_sub_group(self, sub_group_name):
 
@@ -210,9 +224,13 @@ class ModelManager(object):
 
             return sg
 
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
+
     def register(self, model_class):
         self.add_sub_group(model_class.get_name())
         model_class.manager = self
+
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
 
     def get_by_object_id(self, session, class_, object_id):
         """ Returns an instance of an object by its externally visible ID (object_id).
@@ -221,8 +239,6 @@ class ModelManager(object):
 
         try:
             _session = self.session() if needs_new_session else session
-
-            #print(22, needs_new_session, session, class_, object_id, _session)
 
             model_name = class_.get_name()
 
@@ -241,10 +257,15 @@ class ModelManager(object):
             instance = class_()
             instance.id = db_instance.object_id
             instance._id = db_instance.id
+            instance._name = db_instance.name
             instance.version = db_instance.version
             instance.last_updated_ts = db_instance.last_updated_ts
             instance.is_active = db_instance.is_active
             instance.is_internal = db_instance.is_internal
+
+            for db_attr in db_attrs:
+                id, name, object_id, value_text = db_attr
+                setattr(instance, name, value_text)
 
             return instance
 
@@ -254,67 +275,111 @@ class ModelManager(object):
 
 # ################################################################################################################################
 
-class Reader(Model):
-    ruid = Text(unique=True)
-    last_seen = DateTime()
-    last_address = NetAddress()
 
-class ContactPerson(Model):
-    name = Text()
-    phone_number = List(Text())
-    email = List(Text())
+class Location(Model):
+    facility = Ref('Facility')
+    site = Ref('Site')
+    city = Ref('City')
+    state = Ref('State')
+    country = Ref('Country')
+    region = Ref('Region')
+
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
 
 class Facility(Model):
+    name = Text()
+
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
+
+class Site(Model):
+    name = Text()
     address = Text()
-    contact_persons = List(ContactPerson)
-    readers = List(Reader)
+    facilities = List(Facility)
+
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
+
+class City(Model):
+    name = Text()
+    sites = List(Site)
+
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
+
+class State(Model):
+    name = Text()
+    cities = List(City)
+
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
+
+class Country(Model):
+    name = Text()
+    code = Text()
+    states = List(State)
+
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
+
+class Region(Model):
+    name = Text()
+    countries = List(Country)
+
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
+
+class User(Model):
+    name = Text()
+
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
+
+class Reader(Model):
+    ruid = Text()
+    location = Ref(Location)
+
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
 
 class Application(Model):
-    name = Text(unique=True)
-    last_seen = DateTime()
-    token = Text()
+    name = Text()
+    location = Ref(Location)
+
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
+
+class Account(Model):
+    name = Text()
+    users = List(User)
     readers = List(Reader)
-    sub_general = List(Reader)
-    sub_tag_reply = List(Reader)
+
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
+
+class Customer(Model):
+    name = Text()
+    accounts = List(Account)
+
+# ################################################################################################################################
 
 if __name__ == '__main__':
 
     mgr = ModelManager()
 
-    mgr.register(Reader)
-    mgr.register(ContactPerson)
-    mgr.register(Facility)
-    mgr.register(Application)
+    #mgr.register(Facility)
+    #mgr.register(Site)
+    #mgr.register(City)
+    #mgr.register(State)
+    #mgr.register(Country)
+    mgr.register(Region)
+    #mgr.register(User)
+    #mgr.register(Reader)
+    #mgr.register(Application)
+    #mgr.register(Account)
+    #mgr.register(Customer)
+    #mgr.register(Location)
 
-    with closing(mgr.session()) as session:
+    region = Region()
+    region.name = 'Asia'
+    #region.save()
 
-        for x in range(0):
+    print(11, region.id)
 
-            if x % 250 == 0:
-                print(x)
+    region_id = 'region.30c52df80a434d5fb96d1d465e139bb9'
 
-            if x % 10000 == 0:
-                session.commit()
+    region2 = Region.get(region_id)
 
-            reader = Reader()
-            reader.ruid = 'abcdef'
-            reader.tags = ['tag1', 'tag2', 'tag3']
-
-            app = Application()
-            app.name = 'My Application'
-            app.token = 'app.token.01'
-
-            reader.save(session)
-            app.save(session)
-
-    from datetime import datetime
-
-    start = datetime.utcnow()
-
-    with closing(mgr.session()) as session:
-
-        for x in range(1000):
-            app_id = 'application.aa881bea3e744107b2351d8ae2325666'
-            app2 = Application.get(app_id, session)
-
-    print(datetime.utcnow() - start)
+    print(22, region2.id)
+    print(22, repr(region2.name))
+    print(22, repr(region2._name))
