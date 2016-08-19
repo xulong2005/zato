@@ -21,8 +21,8 @@ from sqlalchemy.exc import SAWarning
 from sqlalchemy.orm.session import sessionmaker
 
 # Zato
-from zato.common import invalid as _invalid
-from zato.model.data_type import DataType, DateTime, NetAddress, Text
+from zato.common import invalid as _invalid, ZATO_NONE
+from zato.model.data_type import DataType, DateTime, NetAddress, List, Ref, Text, Wrapper
 from zato.model.sql import Group, GroupTag, Item, ItemTag, SubGroup, SubGroupTag, Tag
 
 warnings.filterwarnings('ignore',
@@ -52,7 +52,7 @@ class Model(object):
     # ModelManager instance
     manager = None
 
-    def __init__(self, tags=None):
+    def __init__(self, tags=None, model_types=(DataType, Wrapper), default_columns='zxc'zx'c zxpch wphho:pk):
 
         # User-facing one
         self.id = None
@@ -83,10 +83,23 @@ class Model(object):
         #
         self.attrs = {}
 
+        # What column types does this model use to hold values of its attributes? Precomputed here so that each individual query
+        # does not need to build this set each time it's needed. There will be as many values in the set as there are different
+        # data types that are needed for all the attributes + the default ones so if there are 5 attributes, 4 of them are text
+        # and 1 is date, there will be 2 values in the set + defaults.
+        self.impl_types = set()
+
         for name in dir(self):
             attr = getattr(self, name)
-            if isinstance(attr, DataType):
+            if isinstance(attr, model_types):
                 self.attrs[name] = attr
+
+        for k, v in self.attrs.items():
+
+            # Wrapper types use ZATO_NONE to mark that they do not have a particular impl_type
+            if v.impl_type != ZATO_NONE:
+                sql_column = getattr(Item, 'value_{}'.format(v.impl_type))
+                self.impl_types.add(sql_column)
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
 
@@ -151,18 +164,6 @@ class Model(object):
     @classmethod
     def get(class_, id=None, session=None, *args, **kwargs):
         return class_.manager.get_by_object_id(session, class_, id)
-
-# ################################################################################################################################
-
-class List(object):
-    def __init__(self, model):
-        self.model = model
-
-# ################################################################################################################################
-
-class Ref(object):
-    def __init__(self, model):
-        self.model = model
 
 # ################################################################################################################################
 
@@ -373,8 +374,6 @@ if __name__ == '__main__':
     region = Region()
     region.name = 'Asia'
     #region.save()
-
-    print(11, region.id)
 
     region_id = 'region.30c52df80a434d5fb96d1d465e139bb9'
 

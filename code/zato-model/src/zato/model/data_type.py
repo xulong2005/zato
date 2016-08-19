@@ -9,7 +9,7 @@ Licensed under LGPLv3, see LICENSE.txt for terms and conditions.
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 # Zato
-from zato.common import invalid as _invalid
+from zato.common import invalid as _invalid, ZATO_NONE
 
 # ################################################################################################################################
 
@@ -111,5 +111,22 @@ class UUID4(DataType):
 
 class NetAddress(DataType):
     impl_type = 'text'
+
+# ################################################################################################################################
+
+class Wrapper(object):
+    impl_type = ZATO_NONE
+
+# ################################################################################################################################
+
+class List(Wrapper):
+    def __init__(self, model):
+        self.model = model
+
+# ################################################################################################################################
+
+class Ref(Wrapper):
+    def __init__(self, model):
+        self.model = model
 
 # ################################################################################################################################
