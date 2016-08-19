@@ -52,7 +52,27 @@ class Model(object):
     # ModelManager instance
     manager = None
 
-    def __init__(self, tags=None, model_types=(DataType, Wrapper), default_columns='zxc'zx'c zxpch wphho:pk):
+    # Maps attributes that can be set by users to instances of DataType.
+    # We do it here in __init__.py so that users are able to overwrite the attributes by mere assignment.
+    # For instance, if we have a class such as ..
+    #
+    # class Bank(DataType):
+    #   branch_name = Text()
+    #
+    # .. then branch_name will go to self.attrs and users are able to simply assign values to Python objects:
+    #
+    # bank = Bank()
+    # bank.branch_name = 'My Street 123'
+    #
+    model_attrs = {}
+
+    # What column types does this model use to hold values of its attributes? Made a class-wide attribute 
+    # so that each individual query does not need to build this set each time it's needed. There will be as many values
+    # in the set as there are different data types that are needed for all the attributes + the default ones
+    # so if there are 5 attributes, 4 of them are text and 1 is date, there will be 2 values in the set + defaults.
+    impl_types = set(_item_all_attrs)
+
+    def __init__(self, tags=None):
 
         # User-facing one
         self.id = None
@@ -67,39 +87,6 @@ class Model(object):
         self.is_internal = False
 
         self.tags = tags or []
-
-        #
-        # Maps attributes that can be set by users to instances of DataType.
-        # We do it here in __init__.py so that users are able to overwrite the attributes by mere assignment.
-        # For instance, if we have a class such as ..
-        #
-        # class Bank(DataType):
-        #   branch_name = Text()
-        #
-        # .. then branch_name will go to self.attrs and users are able to simply assign values to Python objects:
-        #
-        # bank = Bank()
-        # bank.branch_name = 'My Street 123'
-        #
-        self.attrs = {}
-
-        # What column types does this model use to hold values of its attributes? Precomputed here so that each individual query
-        # does not need to build this set each time it's needed. There will be as many values in the set as there are different
-        # data types that are needed for all the attributes + the default ones so if there are 5 attributes, 4 of them are text
-        # and 1 is date, there will be 2 values in the set + defaults.
-        self.impl_types = set()
-
-        for name in dir(self):
-            attr = getattr(self, name)
-            if isinstance(attr, model_types):
-                self.attrs[name] = attr
-
-        for k, v in self.attrs.items():
-
-            # Wrapper types use ZATO_NONE to mark that they do not have a particular impl_type
-            if v.impl_type != ZATO_NONE:
-                sql_column = getattr(Item, 'value_{}'.format(v.impl_type))
-                self.impl_types.add(sql_column)
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
 
@@ -227,9 +214,21 @@ class ModelManager(object):
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
 
-    def register(self, model_class):
+    def register(self, model_class, model_types=(DataType, Wrapper)):
         self.add_sub_group(model_class.get_name())
         model_class.manager = self
+
+        for name in dir(model_class):
+            attr = getattr(model_class, name)
+            if isinstance(attr, model_types):
+                model_class.model_attrs[name] = attr
+
+        for k, v in model_class.model_attrs.items():
+
+            # Wrapper types use ZATO_NONE to mark that they do not have a particular impl_type
+            if v.impl_type != ZATO_NONE:
+                sql_column = getattr(Item, 'value_{}'.format(v.impl_type))
+                model_class.impl_types.add(sql_column)
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
 
@@ -247,11 +246,7 @@ class ModelManager(object):
                 filter(Item.object_id==object_id).\
                 one()
 
-            db_attrs = _session.query(
-                Item.id,
-                Item.name,
-                Item.object_id,
-                Item.value_text).\
+            db_attrs = _session.query(*class_.impl_types).\
                 filter(Item.parent_id==db_instance.id).\
                 all()
 
@@ -265,8 +260,9 @@ class ModelManager(object):
             instance.is_internal = db_instance.is_internal
 
             for db_attr in db_attrs:
-                id, name, object_id, value_text = db_attr
-                setattr(instance, name, value_text)
+                #id, name, object_id, value_text = db_attr
+                #setattr(instance, name, value_text)
+                print(33, db_attr)
 
             return instance
 
