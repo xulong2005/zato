@@ -11,6 +11,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 # stdlib
 from contextlib import closing
 from datetime import datetime
+from logging import getLogger
 from inspect import isclass
 from uuid import uuid4
 import warnings
@@ -35,6 +36,10 @@ warnings.filterwarnings('ignore',
 
 # ################################################################################################################################
 
+logger = getLogger(__name__)
+
+# ################################################################################################################################
+
 instance_name_template = 'user.model.instance.{}'
 
 # ################################################################################################################################
@@ -42,6 +47,12 @@ instance_name_template = 'user.model.instance.{}'
 _item_by_id_attrs=(Item.id,)
 _item_all_attrs=(Item.id, Item.object_id, Item.name, Item.version, Item.created_ts, Item.last_updated_ts, Item.is_active, \
         Item.is_internal)
+
+# ################################################################################################################################
+
+class NoSuchObject(Exception):
+    """ Raised if an object was expected to exist yet could not have been found.
+    """
 
 # ################################################################################################################################
 
@@ -163,7 +174,76 @@ class Model(object):
 
     @classmethod
     def by_id(class_, id=None, session=None, *args, **kwargs):
-        return class_.manager.get_by_object_id(session, class_, id)
+        """ Returns an object by its ID or None if it does not exist.
+        """
+        needs_new_session = not bool(session)
+
+        with SessionProvider(session, class_.manager) as session:
+
+            db_instance = session.query(*_item_all_attrs).\
+                filter(Item.object_id==id).\
+                one()
+
+            db_attrs = session.query(*class_.impl_types).\
+                filter(Item.parent_id==db_instance.id).\
+                all()
+
+            instance = class_()
+            instance.id = db_instance.id
+            instance.meta.id = db_instance.id
+            instance.meta.name = db_instance.name
+            instance.meta.version = db_instance.version
+            instance.meta.created_ts = db_instance.created_ts
+            instance.meta.last_updated_ts = db_instance.last_updated_ts
+            instance.meta.is_active = db_instance.is_active
+            instance.meta.is_internal = db_instance.is_internal
+
+            for db_attr in db_attrs:
+                sql_type = class_.model_attrs[db_attr.name].get_sql_type()
+                if sql_type:
+                    value = getattr(db_attr, sql_type)
+                    setattr(instance, db_attr.name, value)
+
+            return instance
+
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
+
+    @classmethod
+    def filter(class_, session=None, **kwargs):
+        """ Returns a result of a compund query, e.g. one which will use multiple attributes to filter objects by.
+        """
+        #print(11, kwargs, class_, class_.get_name(), class_.manager)
+
+        group_id = class_.manager.user_models_group_id
+        sub_group_id = class_.manager.user_models_sub_groups[class_.get_name()]
+
+        print(33, group_id, sub_group_id)
+
+        return QueryResult()
+
+# ################################################################################################################################
+
+class SessionProvider(object):
+
+    def __init__(self, session, manager):
+        self.needs_new_session = not bool(session)
+        self.session = manager.session() if self.needs_new_session else session
+
+    def __enter__(self):
+        return self.session
+
+    def __exit__(self, exc_type, exc_value, traceback):
+
+        #  No matter if exception or not, always close a session if we opened it ourselves
+        if self.needs_new_session:
+            self.session.close()
+
+        return not exc_type
+
+# ################################################################################################################################
+
+class QueryResult(object):
+    pass
 
 # ################################################################################################################################
 
@@ -243,48 +323,6 @@ class ModelManager(object):
             if impl_type:
                 sql_column = getattr(Item, 'value_{}'.format(impl_type))
                 model_class.impl_types.add(sql_column)
-
-# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
-
-    def get_by_object_id(self, session, class_, object_id):
-        """ Returns an instance of an object by its externally visible ID (object_id).
-        """
-        needs_new_session = not bool(session)
-
-        try:
-            _session = self.session() if needs_new_session else session
-
-            model_name = class_.get_name()
-
-            db_instance = _session.query(*_item_all_attrs).\
-                filter(Item.object_id==object_id).\
-                one()
-
-            db_attrs = _session.query(*class_.impl_types).\
-                filter(Item.parent_id==db_instance.id).\
-                all()
-
-            instance = class_()
-            instance.id = db_instance.object_id
-            instance.meta.id = db_instance.id
-            instance.meta.name = db_instance.name
-            instance.meta.version = db_instance.version
-            instance.meta.created_ts = db_instance.created_ts
-            instance.meta.last_updated_ts = db_instance.last_updated_ts
-            instance.meta.is_active = db_instance.is_active
-            instance.meta.is_internal = db_instance.is_internal
-
-            for db_attr in db_attrs:
-                sql_type = class_.model_attrs[db_attr.name].get_sql_type()
-                if sql_type:
-                    value = getattr(db_attr, sql_type)
-                    setattr(instance, db_attr.name, value)
-
-            return instance
-
-        finally:
-            if needs_new_session:
-                _session.close()
 
 # ################################################################################################################################
 
@@ -385,15 +423,15 @@ if __name__ == '__main__':
     #mgr.register(Location)
 
     region = Region()
-    region.region_id = 1
-    region.name = 'Asia'
+    region.region_id = 2
+    region.name = 'Europe'
     #region.save()
 
     region_id = 'region.dd7de2d747d448cd8b0da32c70793a22'
 
     region2 = Region.by_id(region_id)
 
-    print(22, region_id)
-    print(22, repr(region2.name))
-    print(22, repr(region2.region_id))
-    print(22, region2.meta)
+    #print(22, region_id)
+    #print(22, repr(region2.name))
+    #print(22, repr(region2.region_id))
+    print('ff', region2.filter(region_id=2, name='Europe'))
