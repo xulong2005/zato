@@ -162,7 +162,7 @@ class Model(object):
         # Else - it may potentially exist, or perhaps its ID is invalid
 
     @classmethod
-    def get(class_, id=None, session=None, *args, **kwargs):
+    def by_id(class_, id=None, session=None, *args, **kwargs):
         return class_.manager.get_by_object_id(session, class_, id)
 
 # ################################################################################################################################
@@ -391,7 +391,7 @@ if __name__ == '__main__':
 
     region_id = 'region.dd7de2d747d448cd8b0da32c70793a22'
 
-    region2 = Region.get(region_id)
+    region2 = Region.by_id(region_id)
 
     print(22, region_id)
     print(22, repr(region2.name))
