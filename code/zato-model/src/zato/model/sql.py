@@ -35,7 +35,7 @@ class Cluster(Base):
 
 class _CreatedLastUpdated(object):
     created_ts = Column(DateTime, default=datetime.utcnow)
-    last_updated_ts = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    last_updated_ts = Column(DateTime, onupdate=datetime.utcnow)
 
 class Group(Base, _CreatedLastUpdated):
     """ Groups common items.

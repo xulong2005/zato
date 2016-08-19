@@ -22,6 +22,7 @@ from sqlalchemy.orm.session import sessionmaker
 
 # Zato
 from zato.common import invalid as _invalid, ZATO_NONE
+from zato.common.util import make_repr
 from zato.model.data_type import DataType, DateTime, Int, NetAddress, List, Ref, Text, Wrapper
 from zato.model.sql import Group, GroupTag, Item, ItemTag, SubGroup, SubGroupTag, Tag
 
@@ -39,7 +40,25 @@ instance_name_template = 'user.model.instance.{}'
 # ################################################################################################################################
 
 _item_by_id_attrs=(Item.id,)
-_item_all_attrs=(Item.id, Item.object_id, Item.name, Item.version, Item.last_updated_ts, Item.is_active, Item.is_internal)
+_item_all_attrs=(Item.id, Item.object_id, Item.name, Item.version, Item.created_ts, Item.last_updated_ts, Item.is_active, \
+        Item.is_internal)
+
+# ################################################################################################################################
+
+class ModelMeta(object):
+    __slots__ = ('created_ts', 'last_updated_ts', 'is_internal', 'is_active', 'version', 'id', 'name')
+
+    def __init__(self):
+        self.created_ts = None
+        self.last_updated_ts = None
+        self.is_internal = None
+        self.is_active = None
+        self.version = None
+        self.id = None
+        self.name = None
+
+    def __repr__(self):
+        return make_repr(self)
 
 # ################################################################################################################################
 
@@ -79,13 +98,7 @@ class Model(object):
 
         # Internal, SQL-based one
         self._id = None
-
-        self._name = ''
-        self.version = 0
-        self.last_updated_ts = None
-        self.is_active = True
-        self.is_internal = False
-
+        self.meta = ModelMeta()
         self.tags = tags or []
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
@@ -253,23 +266,19 @@ class ModelManager(object):
 
             instance = class_()
             instance.id = db_instance.object_id
-            instance._id = db_instance.id
-            instance._name = db_instance.name
-            instance.version = db_instance.version
-            instance.last_updated_ts = db_instance.last_updated_ts
-            instance.is_active = db_instance.is_active
-            instance.is_internal = db_instance.is_internal
+            instance.meta.id = db_instance.id
+            instance.meta.name = db_instance.name
+            instance.meta.version = db_instance.version
+            instance.meta.created_ts = db_instance.created_ts
+            instance.meta.last_updated_ts = db_instance.last_updated_ts
+            instance.meta.is_active = db_instance.is_active
+            instance.meta.is_internal = db_instance.is_internal
 
             for db_attr in db_attrs:
-                #id, name, object_id, value_text = db_attr
-                #setattr(instance, name, value_text)
                 sql_type = class_.model_attrs[db_attr.name].get_sql_type()
                 if sql_type:
                     value = getattr(db_attr, sql_type)
                     setattr(instance, db_attr.name, value)
-
-            #for name in class_.model_attrs:
-            #    print(11, name)
 
             return instance
 
@@ -380,10 +389,11 @@ if __name__ == '__main__':
     region.name = 'Asia'
     #region.save()
 
-    region_id = 'region.d56d85ab627e45139549362cf6dbfd63'
+    region_id = 'region.dd7de2d747d448cd8b0da32c70793a22'
 
     region2 = Region.get(region_id)
 
-    #print(22, region2.id)
+    print(22, region_id)
     print(22, repr(region2.name))
     print(22, repr(region2.region_id))
+    print(22, region2.meta)
