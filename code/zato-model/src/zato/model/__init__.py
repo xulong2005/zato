@@ -22,7 +22,7 @@ from sqlalchemy.orm.session import sessionmaker
 
 # Zato
 from zato.common import invalid as _invalid, ZATO_NONE
-from zato.model.data_type import DataType, DateTime, NetAddress, List, Ref, Text, Wrapper
+from zato.model.data_type import DataType, DateTime, Int, NetAddress, List, Ref, Text, Wrapper
 from zato.model.sql import Group, GroupTag, Item, ItemTag, SubGroup, SubGroupTag, Tag
 
 warnings.filterwarnings('ignore',
@@ -118,7 +118,7 @@ class Model(object):
                 session.add(instance)
                 session.flush()
 
-                for attr_name, attr_type in self.attrs.iteritems():
+                for attr_name, attr_type in self.model_attrs.iteritems():
                     model_value = getattr(self, attr_name)
 
                     # If model_value is still an instance of DataType it means that user never overwrote it
@@ -131,7 +131,7 @@ class Model(object):
                         value.group_id = self.manager.user_models_group_id
                         value.sub_group_id = self.manager.user_models_sub_groups[model_name]
                         value.parent_id = instance.id
-                        setattr(value, 'value_{}'.format(attr_type.impl_type), model_value)
+                        setattr(value, 'value_{}'.format(attr_type.get_impl_type()), model_value)
 
                         session.add(value)
 
@@ -226,8 +226,9 @@ class ModelManager(object):
         for k, v in model_class.model_attrs.items():
 
             # Wrapper types use ZATO_NONE to mark that they do not have a particular impl_type
-            if v.impl_type != ZATO_NONE:
-                sql_column = getattr(Item, 'value_{}'.format(v.impl_type))
+            impl_type = v.get_impl_type()
+            if impl_type:
+                sql_column = getattr(Item, 'value_{}'.format(impl_type))
                 model_class.impl_types.add(sql_column)
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
@@ -262,7 +263,13 @@ class ModelManager(object):
             for db_attr in db_attrs:
                 #id, name, object_id, value_text = db_attr
                 #setattr(instance, name, value_text)
-                print(33, db_attr)
+                sql_type = class_.model_attrs[db_attr.name].get_sql_type()
+                if sql_type:
+                    value = getattr(db_attr, sql_type)
+                    setattr(instance, db_attr.name, value)
+
+            #for name in class_.model_attrs:
+            #    print(11, name)
 
             return instance
 
@@ -315,6 +322,7 @@ class Country(Model):
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
 
 class Region(Model):
+    region_id = Int()
     name = Text()
     countries = List(Country)
 
@@ -368,13 +376,14 @@ if __name__ == '__main__':
     #mgr.register(Location)
 
     region = Region()
+    region.region_id = 1
     region.name = 'Asia'
     #region.save()
 
-    region_id = 'region.30c52df80a434d5fb96d1d465e139bb9'
+    region_id = 'region.d56d85ab627e45139549362cf6dbfd63'
 
     region2 = Region.get(region_id)
 
-    print(22, region2.id)
+    #print(22, region2.id)
     print(22, repr(region2.name))
-    print(22, repr(region2._name))
+    print(22, repr(region2.region_id))
