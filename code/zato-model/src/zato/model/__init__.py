@@ -21,7 +21,7 @@ from uuid import uuid4
 import warnings
 
 # SQLAlchemy
-from sqlalchemy import and_, create_engine, union, union_all, or_
+from sqlalchemy import and_, case, create_engine, func, union, or_
 from sqlalchemy.exc import SAWarning
 from sqlalchemy.orm.session import sessionmaker
 
@@ -248,12 +248,19 @@ class Model(object):
 
             db_attrs = session.query(union(*db_attrs).alias('db_attrs_union')).subquery('db_attrs')
 
-            db_instances = session.query(Item.id, Item.value_text).\
+            db_instances = session.query(Item.id, Item).\
                 filter(Item.group_id==group_id).\
                 filter(Item.sub_group_id==sub_group_id).\
                 filter(Item.name==class_.sql_instance_name).\
                 filter(Item.id==db_attrs.c.data_item_parent_id).\
                 order_by(Item.id)
+
+            #total = session.execute(db_instances).scalar()
+            total_q = db_instances.statement.with_only_columns([func.count()]).order_by(None)
+            print('Total', session.execute(total_q).scalar())
+
+            #for db_instance in db_instances.all():
+            db_instances.slice(50, 100).all()
 
         return QueryResult()
 
@@ -484,15 +491,15 @@ if __name__ == '__main__':
         for x in range(3):
             region = Region()
             region.name = 'Europe'
-            region.region_class = 2
-            region.region_type = 7
+            region.region_class = 78
+            region.region_type = 3
             region.save()
             
         for x in range(3):
             region = Region()
             region.name = 'Asia'
-            region.region_class = 1
-            region.region_type = 1
+            region.region_class = 78
+            region.region_type = 5
             region.save()
     
         for x in range(2):
@@ -517,7 +524,7 @@ if __name__ == '__main__':
 
     start = datetime.utcnow()
 
-    for x in range(1000):
-        results = Region.filter(name='Europe', region_class=2)
+    for x in range(1):
+        Region.filter(name='Eirp', region_class=78, region_type=6)
 
     print(datetime.utcnow() - start)
