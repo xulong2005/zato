@@ -14,7 +14,7 @@ patch_all()
 # stdlib
 from contextlib import closing
 from datetime import datetime
-from logging import getLogger
+from logging import basicConfig, getLogger, INFO
 from inspect import isclass
 from random import randrange
 from uuid import uuid4
@@ -22,6 +22,7 @@ import warnings
 
 # SQLAlchemy
 from sqlalchemy import and_, case, create_engine, func, union, or_
+from sqlalchemy.engine import reflection
 from sqlalchemy.exc import SAWarning
 from sqlalchemy.orm.session import sessionmaker
 
@@ -42,9 +43,12 @@ warnings.filterwarnings('ignore',
 
 logger = getLogger(__name__)
 
+basicConfig(level=INFO, format='%(asctime)s - %(levelname)s - %(process)d:%(threadName)s - %(name)s:%(lineno)d - %(message)s')
+
 # ################################################################################################################################
 
 instance_name_template = 'user.model.instance.{}'
+di_table_prefix = 'di_'
 
 # ################################################################################################################################
 
@@ -308,12 +312,23 @@ class ModelManager(object):
 
         self.session = sessionmaker()
         self.session.configure(bind=engine)
+        self.sa_inspector = reflection.Inspector.from_engine(engine)
 
+        # Table names, repopulated each time a model gets registered
+        self.table_names = []
+
+        # Groups and sub groups
         self.user_models_group_name = 'user.models'
         self.user_models_group_id = None
         self.user_models_sub_groups = {} # Group name -> group ID
 
         self.set_up_user_models_group()
+        self.set_up_table_names()
+
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
+
+    def set_up_table_names(self):
+        self.table_names = self.sa_inspector.get_table_names()
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
 
@@ -360,6 +375,21 @@ class ModelManager(object):
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
 
     def register(self, model_class, model_types=(DataType, Wrapper)):
+
+        model_name = model_class.get_model_name()
+
+        # So that models can easily issue queries
+        model_class.manager = self
+
+        # Adds if doesn't exist already
+        self.add_sub_group(model_name)
+
+        table_name = di_table_prefix + model_name
+
+        if table_name not in self.table_names:
+            logger.info('Creating table `%s`', table_name)
+
+        '''
         self.add_sub_group(model_class.get_model_name())
         model_class.manager = self
 
@@ -375,6 +405,7 @@ class ModelManager(object):
             if impl_type:
                 sql_column = getattr(Item, 'value_{}'.format(impl_type))
                 model_class.impl_types.add(sql_column)
+                '''
 
 # ################################################################################################################################
 
@@ -476,6 +507,7 @@ if __name__ == '__main__':
     #mgr.register(Location)
 
 
+    '''
     for a in range(0):
 
         if a % 5 == 0:
@@ -521,10 +553,13 @@ if __name__ == '__main__':
 
     #print(22, repr(region.name))
     #print(22, repr(region.abc.value))
+    '''
 
+    '''
     start = datetime.utcnow()
 
     for x in range(1):
         Region.filter(name='Eirp', region_class=78, region_type=6)
 
     print(datetime.utcnow() - start)
+    '''
