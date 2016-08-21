@@ -10,6 +10,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 # Zato
 from zato.common import invalid as _invalid, ZATO_NONE
+from zato.model.sql import Item
 
 # ################################################################################################################################
 
@@ -20,6 +21,7 @@ value_column_prefix = 'value_'
 class DataType(object):
     impl_type = _invalid
     sql_type = impl_type
+    _sql_column = None
 
     def __init__(self, required=True, unique=False, default=None, choices=None):
         self.required = required
@@ -36,6 +38,11 @@ class DataType(object):
 
     def get_sql_type(self):
         return self.sql_type
+
+    def get_sql_column(self):
+        if not self._sql_column:
+            self._sql_column = getattr(Item, self.sql_type)
+        return self._sql_column
 
 # ################################################################################################################################
 
@@ -71,6 +78,7 @@ class BigInt(Int):
 
 class Decimal(DataType):
     _built_in_impl_types = (2, 3, 6)
+    _sql_column = None
 
     def __init__(self, scale=2):
         self.orig_scale = scale
@@ -88,6 +96,11 @@ class Decimal(DataType):
 
     def get_sql_type(self, _value_column_prefix=value_column_prefix):
         return '{}decimal{}'.format(_value_column_prefix, self.scale)
+
+    def get_sql_column(self):
+        if not self._sql_column:
+            self._sql_column = getattr(Item, self.get_sql_type())
+        return self._sql_column
 
 # ################################################################################################################################
 

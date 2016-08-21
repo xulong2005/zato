@@ -79,15 +79,17 @@ class Item(Base, _CreatedLastUpdated):
     __table_args__ = (
         UniqueConstraint('cluster_id', 'group_id', 'sub_group_id', 'name'),
         Index('idx_data_item_object_id_name', 'object_id', 'name'),
+        Index('idx_data_item_name', 'name'),
+        Index('idx_data_item_gr_sub_gr_name', 'group_id', 'sub_group_id', 'name'),
     {})
 
     # Internal ID for SQL joins
-    id = Column(Integer, Sequence('data_item_seq'), primary_key=True)
+    id = Column(Text, primary_key=True)
 
     # External user-visible ID
     object_id = Column(Text, index=True)
 
-    parent_id = Column(Integer, ForeignKey('data_item.id', ondelete='CASCADE'), nullable=True, index=True)
+    parent_id = Column(Text, ForeignKey('data_item.id', ondelete='CASCADE'), nullable=True, index=True)
     is_internal = Column(Boolean(), nullable=False, default=False)
     is_active = Column(Boolean(), nullable=False, default=True)
     name = Column(String(2048), unique=False, nullable=False, index=True)
@@ -189,7 +191,7 @@ class ItemTag(Base, _CreatedLastUpdated):
 
     id = Column(Integer, Sequence('data_item_tag_seq'), primary_key=True)
 
-    item_id = Column(Integer, ForeignKey('data_item.id', ondelete='CASCADE'), nullable=False)
+    item_id = Column(Text, ForeignKey('data_item.id', ondelete='CASCADE'), nullable=False)
     item = relationship(Item, backref=backref('tags', order_by=id, cascade='all, delete, delete-orphan'))
 
     tag_id = Column(Integer, ForeignKey('data_tag.id', ondelete='CASCADE'), nullable=False)

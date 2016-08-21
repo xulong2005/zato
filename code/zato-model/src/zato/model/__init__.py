@@ -8,16 +8,20 @@ Licensed under LGPLv3, see LICENSE.txt for terms and conditions.
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from gevent.monkey import patch_all
+patch_all()
+
 # stdlib
 from contextlib import closing
 from datetime import datetime
 from logging import getLogger
 from inspect import isclass
+from random import randrange
 from uuid import uuid4
 import warnings
 
 # SQLAlchemy
-from sqlalchemy import create_engine
+from sqlalchemy import and_, create_engine, union, union_all, or_
 from sqlalchemy.exc import SAWarning
 from sqlalchemy.orm.session import sessionmaker
 
@@ -46,7 +50,7 @@ instance_name_template = 'user.model.instance.{}'
 
 _item_by_id_attrs=(Item.id,)
 _item_all_attrs=(Item.id, Item.object_id, Item.name, Item.version, Item.created_ts, Item.last_updated_ts, Item.is_active, \
-        Item.is_internal)
+        Item.is_internal, Item.parent_id)
 
 # ################################################################################################################################
 
@@ -74,7 +78,9 @@ class ModelMeta(object):
 # ################################################################################################################################
 
 class Model(object):
+
     model_name = _invalid
+    sql_instance_name = _invalid
 
     # Computed once in get_name
     _model_name = None
@@ -115,7 +121,7 @@ class Model(object):
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
 
     @classmethod
-    def get_name(class_):
+    def get_model_name(class_):
         if not class_._model_name:
             class_._model_name = class_.model_name if class_.model_name != _invalid else class_.__name__.lower()
 
@@ -123,24 +129,34 @@ class Model(object):
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
 
+    def new_id(self, max=2**256, _randrage=randrange):
+        """ Returns a new string with a random integer between 0 and max. It's not safe to use this integer for crypto purposes.
+        """
+        return str(_randrage(0, max))
+
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
+
     def save(self, session=None):
-        model_name = self.get_name()
+        model_name = self.get_model_name()
 
         # No ID = the instance surely doesn't exist in database
         if not self.id:
 
-            with closing(self.manager.session()) as session:
+            with SessionProvider(session, self.manager) as session:
+
+                instance_id = self.new_id()
 
                 # Add parent instance first
                 instance = Item()
                 instance.object_id = '{}.{}'.format(model_name, uuid4().hex)
-                instance.name = instance_name_template.format(model_name)
+                instance.name = self.sql_instance_name
                 instance.version = 1
+                instance.id = instance_id
                 instance.group_id = self.manager.user_models_group_id
                 instance.sub_group_id = self.manager.user_models_sub_groups[model_name]
 
                 session.add(instance)
-                session.flush()
+                #session.flush()
 
                 for attr_name, attr_type in self.model_attrs.iteritems():
                     model_value = getattr(self, attr_name)
@@ -150,11 +166,12 @@ class Model(object):
 
                     if has_value:
                         value = Item()
-                        value.object_id = uuid4().hex
+                        value.id = self.new_id()
+                        value.object_id = str(self.new_id())
                         value.name = attr_name
                         value.group_id = self.manager.user_models_group_id
                         value.sub_group_id = self.manager.user_models_sub_groups[model_name]
-                        value.parent_id = instance.id
+                        value.parent_id = instance_id
                         setattr(value, 'value_{}'.format(attr_type.get_impl_type()), model_value)
 
                         session.add(value)
@@ -209,17 +226,42 @@ class Model(object):
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
 
     @classmethod
-    def filter(class_, session=None, **kwargs):
-        """ Returns a result of a compund query, e.g. one which will use multiple attributes to filter objects by.
+    def filter(class_, session=None, sqlalchemy_op=and_, **kwargs):
+        """ Returns result of an AND-joined compound query, e.g. one which will use multiple attributes to filter objects by.
         """
-        #print(11, kwargs, class_, class_.get_name(), class_.manager)
+        #print(11, kwargs)
 
         group_id = class_.manager.user_models_group_id
-        sub_group_id = class_.manager.user_models_sub_groups[class_.get_name()]
+        sub_group_id = class_.manager.user_models_sub_groups[class_.get_model_name()]
 
-        print(33, group_id, sub_group_id)
+        with SessionProvider(session, class_.manager) as session:
+
+            db_attrs = []
+
+            for attr_name, value in kwargs.iteritems():
+                attrs = session.query(Item.parent_id).\
+                    filter(Item.group_id==group_id).\
+                    filter(Item.sub_group_id==sub_group_id).\
+                    filter(Item.name==attr_name).\
+                    filter(class_.model_attrs[attr_name].get_sql_column()==value)
+                db_attrs.append(attrs)
+
+            db_attrs = session.query(union(*db_attrs).alias('db_attrs_union')).subquery('db_attrs')
+
+            db_instances = session.query(Item.id, Item.value_text).\
+                filter(Item.group_id==group_id).\
+                filter(Item.sub_group_id==sub_group_id).\
+                filter(Item.name==class_.sql_instance_name).\
+                filter(Item.id==db_attrs.c.data_item_parent_id).\
+                order_by(Item.id)
 
         return QueryResult()
+
+    @classmethod
+    def filter_or(class_, session=None, **kwargs):
+        """ Same as filter by OR-joined
+        """
+        return class_.filter(session, sqlalchemy_op=or_, **kwargs)
 
 # ################################################################################################################################
 
@@ -251,8 +293,11 @@ class ModelManager(object):
 
     def __init__(self, sql_echo=False):
         db_path = '/home/dsuch/tmp/zzz.db'
-        db_url = 'sqlite:///{}'.format(db_path)
-        engine = create_engine(db_url, echo=sql_echo)
+        db_url = 'postgresql+pg8000://zato1:zato1@localhost/zato1'
+        #db_url = 'sqlite:////home/dsuch/tmp/zzz.db'
+        #from sqlalchemy.pool import QueuePool
+        #engine = create_engine(db_url, echo=sql_echo, pool_size=300)
+        engine = create_engine(db_url, echo=sql_echo, pool_size=150)
 
         self.session = sessionmaker()
         self.session.configure(bind=engine)
@@ -308,17 +353,17 @@ class ModelManager(object):
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
 
     def register(self, model_class, model_types=(DataType, Wrapper)):
-        self.add_sub_group(model_class.get_name())
+        self.add_sub_group(model_class.get_model_name())
         model_class.manager = self
 
         for name in dir(model_class):
             attr = getattr(model_class, name)
             if isinstance(attr, model_types):
                 model_class.model_attrs[name] = attr
+                model_class.sql_instance_name = instance_name_template.format(model_class.get_model_name())
 
         for k, v in model_class.model_attrs.items():
 
-            # Wrapper types use ZATO_NONE to mark that they do not have a particular impl_type
             impl_type = v.get_impl_type()
             if impl_type:
                 sql_column = getattr(Item, 'value_{}'.format(impl_type))
@@ -369,7 +414,8 @@ class Country(Model):
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
 
 class Region(Model):
-    region_id = Int()
+    region_type = Int()
+    region_class = Int()
     name = Text()
     countries = List(Country)
 
@@ -407,7 +453,7 @@ class Customer(Model):
 
 if __name__ == '__main__':
 
-    mgr = ModelManager()
+    mgr = ModelManager(0)
 
     #mgr.register(Facility)
     #mgr.register(Site)
@@ -422,16 +468,56 @@ if __name__ == '__main__':
     #mgr.register(Customer)
     #mgr.register(Location)
 
-    region = Region()
-    region.region_id = 2
-    region.name = 'Europe'
-    #region.save()
 
-    region_id = 'region.dd7de2d747d448cd8b0da32c70793a22'
+    for a in range(0):
 
-    region2 = Region.by_id(region_id)
+        if a % 5 == 0:
+            print(a)
 
-    #print(22, region_id)
-    #print(22, repr(region2.name))
-    #print(22, repr(region2.region_id))
-    print('ff', region2.filter(region_id=2, name='Europe'))
+        for x in range(3):
+            region = Region()
+            region.name = 'Europe'
+            region.region_class = 4
+            region.region_type = 2
+            region.save()
+    
+        for x in range(3):
+            region = Region()
+            region.name = 'Europe'
+            region.region_class = 2
+            region.region_type = 7
+            region.save()
+            
+        for x in range(3):
+            region = Region()
+            region.name = 'Asia'
+            region.region_class = 1
+            region.region_type = 1
+            region.save()
+    
+        for x in range(2):
+            region = Region()
+            region.name = 'Europe'
+            region.region_class = 1
+            region.region_type = 2
+            region.save()
+    
+        for x in range(2):
+            region = Region()
+            region.name = 'Africa'
+            region.region_class = 2
+            region.region_type = 2
+            region.save()
+
+    #region_id = 'region.f1165539f58b44debbda88b89e77a1c6'
+    #region = Region.by_id(region_id)
+
+    #print(22, repr(region.name))
+    #print(22, repr(region.abc.value))
+
+    start = datetime.utcnow()
+
+    for x in range(1000):
+        results = Region.filter(name='Europe', region_class=2)
+
+    print(datetime.utcnow() - start)
