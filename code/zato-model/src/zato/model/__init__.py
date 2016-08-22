@@ -55,8 +55,11 @@ di_table_prefix = 'di_'
 # ################################################################################################################################
 
 _item_by_id_attrs=(Item.id,)
-_item_all_attrs=(Item.id, Item.object_id, Item.name, Item.version, Item.created_ts, Item.last_updated_ts, Item.is_active, \
-        Item.is_internal, Item.parent_id)
+_item_all_attrs=(Item.id.label('zato_di_id'), Item.object_id.label('zato_di_object_id'), Item.name.label('zato_di_name'),
+        Item.version.label('zato_di_version'), Item.created_ts.label('zato_di_created_ts'),
+        Item.last_updated_ts.label('zato_di_last_updated_ts'),
+        Item.is_active.label('zato_di_is_active'), Item.is_internal.label('zato_di_is_internal'),
+        Item.parent_id.label('di_zato_parent_id'))
 
 # ################################################################################################################################
 
@@ -87,6 +90,9 @@ class Model(object):
 
     # Will be set in subclassess
     model_name = _invalid
+
+    # Each subclass has its own
+    table = table_name = _invalid
 
     # Computed once in get_name
     _model_name = None
@@ -194,29 +200,27 @@ class Model(object):
 
         with SessionProvider(session, class_.manager) as session:
 
-            db_instance = session.query(*_item_all_attrs).\
+            db_instance = session.query(class_.table, *_item_all_attrs).\
                 filter(Item.object_id==id).\
+                filter(Item.id==class_.table.item_id).\
                 one()
 
-            db_attrs = session.query(*class_.impl_types).\
-                filter(Item.parent_id==db_instance.id).\
-                all()
+            attrs = getattr(db_instance, class_.table_name)
 
             instance = class_()
-            instance.id = db_instance.id
-            instance.meta.id = db_instance.id
-            instance.meta.name = db_instance.name
-            instance.meta.version = db_instance.version
-            instance.meta.created_ts = db_instance.created_ts
-            instance.meta.last_updated_ts = db_instance.last_updated_ts
-            instance.meta.is_active = db_instance.is_active
-            instance.meta.is_internal = db_instance.is_internal
+            instance.id = db_instance.zato_di_id
+            instance.meta.id = db_instance.zato_di_id
+            instance.meta.name = db_instance.zato_di_name
+            instance.meta.version = db_instance.zato_di_version
+            instance.meta.created_ts = db_instance.zato_di_created_ts
+            instance.meta.last_updated_ts = db_instance.zato_di_last_updated_ts
+            instance.meta.is_active = db_instance.zato_di_is_active
+            instance.meta.is_internal = db_instance.zato_di_is_internal
 
-            for db_attr in db_attrs:
-                sql_type = class_.model_attrs[db_attr.name].get_sql_type()
-                if sql_type:
-                    value = getattr(db_attr, sql_type)
-                    setattr(instance, db_attr.name, value)
+            for attr_name, attr_value in class_.model_attrs.items():
+                if isinstance(attr_value, Wrapper):
+                    continue
+                setattr(instance, attr_name, getattr(attrs, attr_name))
 
             return instance
 
@@ -426,6 +430,7 @@ class ModelManager(object):
             pass
 
         model_class.table = table
+        model_class.table_name = table_name
 
 # ################################################################################################################################
 
@@ -516,8 +521,8 @@ if __name__ == '__main__':
     #mgr.register(Facility)
     #mgr.register(Site)
     #mgr.register(City)
-    #mgr.register(State)
-    #mgr.register(Country)
+    mgr.register(State)
+    mgr.register(Country)
     mgr.register(Region)
     #mgr.register(User)
     #mgr.register(Reader)
@@ -526,9 +531,10 @@ if __name__ == '__main__':
     #mgr.register(Customer)
     #mgr.register(Location)
 
+    '''
     start = datetime.utcnow()
 
-    for x in range(10):
+    for x in range(1):
         region = Region()
         region.name = 'Europe' + new_cid()[:10]
         region.region_class = 4
@@ -536,6 +542,7 @@ if __name__ == '__main__':
         region.save()
 
     print('Took', datetime.utcnow() - start)
+    '''
 
     #state = State()
     #state.name = 'Bahamas' + new_cid()[:10]
@@ -581,13 +588,23 @@ if __name__ == '__main__':
             region.region_class = 2
             region.region_type = 2
             region.save()
+            '''
 
-    #region_id = 'region.f1165539f58b44debbda88b89e77a1c6'
-    #region = Region.by_id(region_id)
+    region_id = 'region.48ea72183f504462ab9ca4f563b14518'
+    region = Region.by_id(region_id)
+    print(22, repr(region.name))
+
+    #start = datetime.utcnow()
+
+    #for x in range(0):
+    #    Region.by_id(region_id)
+
+    #print('Took', datetime.utcnow() - start)
 
     #print(22, repr(region.name))
+    #print(22, repr(region.region_type))
+    #print(22, repr(region.region_class))
     #print(22, repr(region.abc.value))
-    '''
 
     '''
     start = datetime.utcnow()
