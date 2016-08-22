@@ -21,7 +21,8 @@ from uuid import uuid4
 import warnings
 
 # SQLAlchemy
-from sqlalchemy import and_, case, create_engine, func, union, or_
+from sqlalchemy import and_, BigInteger, Boolean, Column, create_engine, Date, DateTime, Float, ForeignKey, Index, Integer, \
+     LargeBinary, MetaData, Numeric, Sequence, SmallInteger, String, Table, Text as SAText, Time, UniqueConstraint
 from sqlalchemy.engine import reflection
 from sqlalchemy.exc import SAWarning
 from sqlalchemy.orm.session import sessionmaker
@@ -29,8 +30,8 @@ from sqlalchemy.orm.session import sessionmaker
 # Zato
 from zato.common import invalid as _invalid, ZATO_NONE
 from zato.common.util import make_repr
-from zato.model.data_type import DataType, DateTime, Int, NetAddress, List, Ref, Text, Wrapper
-from zato.model.sql import Group, GroupTag, Item, ItemTag, SubGroup, SubGroupTag, Tag
+from zato.model.data_type import DataType, DateTime, Int, NetAddress, List, Ref, String, Text, Wrapper
+from zato.model.sql import Base, Group, GroupTag, Item, ItemTag, SubGroup, SubGroupTag, Tag
 
 warnings.filterwarnings('ignore',
                         r'^Dialect sqlite\+pysqlite does \*not\* support Decimal objects natively\, '
@@ -308,11 +309,11 @@ class ModelManager(object):
         #db_url = 'sqlite:////home/dsuch/tmp/zzz.db'
         #from sqlalchemy.pool import QueuePool
         #engine = create_engine(db_url, echo=sql_echo, pool_size=300)
-        engine = create_engine(db_url, echo=sql_echo, pool_size=150)
+        self.engine = create_engine(db_url, echo=sql_echo, pool_size=150)
 
         self.session = sessionmaker()
-        self.session.configure(bind=engine)
-        self.sa_inspector = reflection.Inspector.from_engine(engine)
+        self.session.configure(bind=self.engine)
+        self.sa_inspector = reflection.Inspector.from_engine(self.engine)
 
         # Table names, repopulated each time a model gets registered
         self.table_names = []
@@ -374,6 +375,40 @@ class ModelManager(object):
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
 
+    def get_table_object(self, name, model_class):
+
+        model = type(str(name), (Base,), {
+            '__tablename__':name,
+            '__table_args__':None,
+            'id': Column(Integer, Sequence('{}_seq'.format(name)), primary_key=True),
+            'item_id': Column(SAText, ForeignKey('data_item.id', ondelete='CASCADE'), nullable=False)
+        })
+
+        for column_name, column_info in model_class.model_attrs.items():
+
+            if isinstance(column_info, Wrapper):
+                continue
+
+            sql_type = column_info.sql_type
+            dt_args = column_info.dt_args
+            dt_kwargs = column_info.dt_kwargs
+            col_kwargs = column_info.col_kwargs
+            setattr(model, column_name, Column(sql_type(*dt_args, **dt_kwargs), **col_kwargs))
+
+        return model
+
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
+
+    def create_table(self, name, model_class):
+        logger.info('Creating table `%s` for `%s`', name, model_class)
+
+        model = self.get_table_object(name, model_class)
+        Base.metadata.create_all(self.engine)
+
+        logger.warn(model().asdict())
+
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
+
     def register(self, model_class, model_types=(DataType, Wrapper)):
 
         model_name = model_class.get_model_name()
@@ -384,10 +419,18 @@ class ModelManager(object):
         # Adds if doesn't exist already
         self.add_sub_group(model_name)
 
+        for name in dir(model_class):
+            attr = getattr(model_class, name)
+            if isinstance(attr, model_types):
+                model_class.model_attrs[name] = attr
+                model_class.sql_instance_name = instance_name_template.format(model_class.get_model_name())
+
         table_name = di_table_prefix + model_name
 
-        if table_name not in self.table_names:
-            logger.info('Creating table `%s`', table_name)
+        if table_name in self.table_names:
+            Base.metadata.drop_all(self.engine, [Table(table_name, MetaData(bind=None))])
+
+        self.create_table(table_name, model_class)
 
         '''
         self.add_sub_group(model_class.get_model_name())
@@ -454,7 +497,7 @@ class Country(Model):
 class Region(Model):
     region_type = Int()
     region_class = Int()
-    name = Text()
+    name = String(18, col_unique=True, col_index=True)
     countries = List(Country)
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
@@ -496,8 +539,8 @@ if __name__ == '__main__':
     #mgr.register(Facility)
     #mgr.register(Site)
     #mgr.register(City)
-    #mgr.register(State)
-    #mgr.register(Country)
+    mgr.register(State)
+    mgr.register(Country)
     mgr.register(Region)
     #mgr.register(User)
     #mgr.register(Reader)
