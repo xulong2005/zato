@@ -25,11 +25,12 @@ from sqlalchemy import and_, BigInteger, Boolean, Column, create_engine, Date, D
      LargeBinary, MetaData, Numeric, Sequence, SmallInteger, String, Table, Text as SAText, Time, UniqueConstraint
 from sqlalchemy.engine import reflection
 from sqlalchemy.exc import SAWarning
+from sqlalchemy.orm import relationship
 from sqlalchemy.orm.session import sessionmaker
 
 # Zato
 from zato.common import invalid as _invalid, ZATO_NONE
-from zato.common.util import make_repr
+from zato.common.util import make_repr, new_cid
 from zato.model.data_type import DataType, DateTime, Int, NetAddress, List, Ref, String, Text, Wrapper
 from zato.model.sql import Base, Group, GroupTag, Item, ItemTag, SubGroup, SubGroupTag, Tag
 
@@ -84,8 +85,8 @@ class ModelMeta(object):
 
 class Model(object):
 
+    # Will be set in subclassess
     model_name = _invalid
-    sql_instance_name = _invalid
 
     # Computed once in get_name
     _model_name = None
@@ -107,11 +108,6 @@ class Model(object):
     #
     model_attrs = {}
 
-    # What column types does this model use to hold values of its attributes? Made a class-wide attribute 
-    # so that each individual query does not need to build this set each time it's needed. There will be as many values
-    # in the set as there are different data types that are needed for all the attributes + the default ones
-    # so if there are 5 attributes, 4 of them are text and 1 is date, there will be 2 values in the set + defaults.
-    impl_types = set(_item_all_attrs)
 
     def __init__(self, tags=None):
 
@@ -137,11 +133,11 @@ class Model(object):
     def new_id(self, max=2**256, _randrage=randrange):
         """ Returns a new string with a random integer between 0 and max. It's not safe to use this integer for crypto purposes.
         """
-        return str(_randrage(0, max))
+        return str(_randrage(0, max)).encode('hex')
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
 
-    def save(self, session=None):
+    def save(self, session=None, new_cid=new_cid):
         model_name = self.get_model_name()
 
         # No ID = the instance surely doesn't exist in database
@@ -149,37 +145,33 @@ class Model(object):
 
             with SessionProvider(session, self.manager) as session:
 
-                instance_id = self.new_id()
+                instance_id = new_cid()
 
                 # Add parent instance first
-                instance = Item()
-                instance.object_id = '{}.{}'.format(model_name, uuid4().hex)
-                instance.name = self.sql_instance_name
-                instance.version = 1
-                instance.id = instance_id
-                instance.group_id = self.manager.user_models_group_id
-                instance.sub_group_id = self.manager.user_models_sub_groups[model_name]
+                item = Item()
+                item.object_id = '{}.{}'.format(model_name, uuid4().hex)
+                item.name = self.sql_instance_name
+                item.version = 1
+                item.id = instance_id
+                item.group_id = self.manager.user_models_group_id
+                item.sub_group_id = self.manager.user_models_sub_groups[model_name]
 
-                session.add(instance)
-                #session.flush()
+                value_instance = self.table()
 
                 for attr_name, attr_type in self.model_attrs.iteritems():
-                    model_value = getattr(self, attr_name)
+
+                    value = getattr(self, attr_name)
 
                     # If model_value is still an instance of DataType it means that user never overwrote it
-                    has_value = not isinstance(model_value, DataType)
+                    has_value = not isinstance(value, DataType)
 
                     if has_value:
-                        value = Item()
-                        value.id = self.new_id()
-                        value.object_id = str(self.new_id())
-                        value.name = attr_name
-                        value.group_id = self.manager.user_models_group_id
-                        value.sub_group_id = self.manager.user_models_sub_groups[model_name]
-                        value.parent_id = instance_id
-                        setattr(value, 'value_{}'.format(attr_type.get_impl_type()), model_value)
+                        setattr(value_instance, attr_name, value)
 
-                        session.add(value)
+                value_instance.data_item = item
+
+                session.add(item)
+                session.add(value_instance)
 
                 # Commit everything
                 session.commit()
@@ -189,8 +181,8 @@ class Model(object):
                 # to offer strict isolation of data on multiple levels and this is one of them.
                 # This becomes important if we take into account the fact that self.id is the one
                 # that can be automatically serialized to external data formats, such as JSON or XML.
-                self.id = instance.object_id
-                self._id = instance.id
+                self.id = item.object_id
+                self._id = item.id
 
         # Else - it may potentially exist, or perhaps its ID is invalid
 
@@ -304,11 +296,7 @@ class QueryResult(object):
 class ModelManager(object):
 
     def __init__(self, sql_echo=False):
-        db_path = '/home/dsuch/tmp/zzz.db'
         db_url = 'postgresql+pg8000://zato1:zato1@localhost/zato1'
-        #db_url = 'sqlite:////home/dsuch/tmp/zzz.db'
-        #from sqlalchemy.pool import QueuePool
-        #engine = create_engine(db_url, echo=sql_echo, pool_size=300)
         self.engine = create_engine(db_url, echo=sql_echo, pool_size=150)
 
         self.session = sessionmaker()
@@ -324,11 +312,11 @@ class ModelManager(object):
         self.user_models_sub_groups = {} # Group name -> group ID
 
         self.set_up_user_models_group()
-        self.set_up_table_names()
+        self.update_table_names()
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
 
-    def set_up_table_names(self):
+    def update_table_names(self):
         self.table_names = self.sa_inspector.get_table_names()
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
@@ -381,7 +369,8 @@ class ModelManager(object):
             '__tablename__':name,
             '__table_args__':None,
             'id': Column(Integer, Sequence('{}_seq'.format(name)), primary_key=True),
-            'item_id': Column(SAText, ForeignKey('data_item.id', ondelete='CASCADE'), nullable=False)
+            'item_id': Column(SAText, ForeignKey('data_item.id', ondelete='CASCADE'), nullable=False),
+            'data_item': relationship('Item')
         })
 
         for column_name, column_info in model_class.model_attrs.items():
@@ -405,8 +394,6 @@ class ModelManager(object):
         model = self.get_table_object(name, model_class)
         Base.metadata.create_all(self.engine)
 
-        logger.warn(model().asdict())
-
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
 
     def register(self, model_class, model_types=(DataType, Wrapper)):
@@ -419,36 +406,26 @@ class ModelManager(object):
         # Adds if doesn't exist already
         self.add_sub_group(model_name)
 
+        model_attrs = {}
+        setattr(model_class, 'model_attrs', model_attrs)
+
         for name in dir(model_class):
             attr = getattr(model_class, name)
             if isinstance(attr, model_types):
-                model_class.model_attrs[name] = attr
+                model_attrs[name] = attr
                 model_class.sql_instance_name = instance_name_template.format(model_class.get_model_name())
 
         table_name = di_table_prefix + model_name
+        table = self.get_table_object(table_name, model_class)
 
-        if table_name in self.table_names:
-            Base.metadata.drop_all(self.engine, [Table(table_name, MetaData(bind=None))])
+        if table.__name__ not in self.table_names:
+            self.create_table(table_name, model_class)
+            self.update_table_names()
+        else:
+            #Base.metadata.drop_all(self.engine, [Table(table_name, MetaData(bind=None))])
+            pass
 
-        self.create_table(table_name, model_class)
-
-        '''
-        self.add_sub_group(model_class.get_model_name())
-        model_class.manager = self
-
-        for name in dir(model_class):
-            attr = getattr(model_class, name)
-            if isinstance(attr, model_types):
-                model_class.model_attrs[name] = attr
-                model_class.sql_instance_name = instance_name_template.format(model_class.get_model_name())
-
-        for k, v in model_class.model_attrs.items():
-
-            impl_type = v.get_impl_type()
-            if impl_type:
-                sql_column = getattr(Item, 'value_{}'.format(impl_type))
-                model_class.impl_types.add(sql_column)
-                '''
+        model_class.table = table
 
 # ################################################################################################################################
 
@@ -539,8 +516,8 @@ if __name__ == '__main__':
     #mgr.register(Facility)
     #mgr.register(Site)
     #mgr.register(City)
-    mgr.register(State)
-    mgr.register(Country)
+    #mgr.register(State)
+    #mgr.register(Country)
     mgr.register(Region)
     #mgr.register(User)
     #mgr.register(Reader)
@@ -549,6 +526,20 @@ if __name__ == '__main__':
     #mgr.register(Customer)
     #mgr.register(Location)
 
+    start = datetime.utcnow()
+
+    for x in range(10):
+        region = Region()
+        region.name = 'Europe' + new_cid()[:10]
+        region.region_class = 4
+        region.region_type = 2
+        region.save()
+
+    print('Took', datetime.utcnow() - start)
+
+    #state = State()
+    #state.name = 'Bahamas' + new_cid()[:10]
+    #state.save()
 
     '''
     for a in range(0):
