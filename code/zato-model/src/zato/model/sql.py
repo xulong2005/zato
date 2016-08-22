@@ -77,10 +77,8 @@ class Item(Base, _CreatedLastUpdated):
     """
     __tablename__ = 'data_item'
     __table_args__ = (
-        UniqueConstraint('cluster_id', 'group_id', 'sub_group_id', 'name'),
-        Index('idx_data_item_object_id_name', 'object_id', 'name'),
-        Index('idx_data_item_name', 'name'),
-        Index('idx_data_item_gr_sub_gr_name', 'group_id', 'sub_group_id', 'name'),
+        UniqueConstraint('cluster_id', 'group_id', 'sub_group_id'),
+        Index('idx_data_item_gr_sub_gr', 'group_id', 'sub_group_id'),
     {})
 
     # Internal ID for SQL joins
@@ -92,46 +90,17 @@ class Item(Base, _CreatedLastUpdated):
     parent_id = Column(Text, ForeignKey('data_item.id', ondelete='CASCADE'), nullable=True, index=True)
     is_internal = Column(Boolean(), nullable=False, default=False)
     is_active = Column(Boolean(), nullable=False, default=True)
-    name = Column(String(2048), unique=False, nullable=False, index=True)
 
     # Versioning
     version = Column(Integer, index=True)
 
-    # Boolean
-    value_bool = Column(Boolean(), nullable=True)
-
-    # Binary
-    value_binary = Column(LargeBinary(), nullable=True)
-
-    # Integers
-    value_int = Column(Integer(), nullable=True)
-    value_small_int = Column(SmallInteger(), nullable=True)
-    value_big_int = Column(BigInteger(), nullable=True)
-
-    # Decimal
-    value_decimal2 = Column(Numeric(scale=2), nullable=True)
-    value_decimal3 = Column(Numeric(scale=3), nullable=True)
-    value_decimal6 = Column(Numeric(scale=6), nullable=True)
-
-    # Float
-    value_float = Column(Float(), nullable=True)
-
-    # Date and time
-    value_date_time = Column(DateTime(), nullable=True)
-    value_date_time_tz = Column(DateTime(timezone=True), nullable=True)
-    value_time = Column(Time(), nullable=True)
-    value_time_tz = Column(Time(timezone=True), nullable=True)
-
-    # Text
-    value_text = Column(Text(), nullable=True)
-
     # Foreign keys are for both groups and sub-groups
 
     group_id = Column(Integer, ForeignKey('data_group.id', ondelete='CASCADE'), nullable=False)
-    group = relationship(Group, backref=backref('items', order_by=name, cascade='all, delete, delete-orphan'))
+    group = relationship(Group, backref=backref('items', order_by=id, cascade='all, delete, delete-orphan'))
 
     sub_group_id = Column(Integer, ForeignKey('data_sub_group.id', ondelete='CASCADE'), nullable=False)
-    sub_group = relationship(SubGroup, backref=backref('items', order_by=name, cascade='all, delete, delete-orphan'))
+    sub_group = relationship(SubGroup, backref=backref('items', order_by=id, cascade='all, delete, delete-orphan'))
 
     cluster_id = Column(Integer, ForeignKey('cluster.id', ondelete='CASCADE'), nullable=True)
 

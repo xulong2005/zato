@@ -139,8 +139,8 @@ class TestORM(TestCase):
         if os.path.exists(db_path):
             os.unlink(db_path)
 
-        #db_url = 'postgresql+pg8000://zato1:zato1@localhost/zato1'
-        db_url = 'sqlite:////home/dsuch/tmp/zzz.db'
+        db_url = 'postgresql+pg8000://zato1:zato1@localhost/zato1'
+        #db_url = 'sqlite:////home/dsuch/tmp/zzz.db'
         engine = create_engine(db_url)
         Base.metadata.create_all(engine)
 

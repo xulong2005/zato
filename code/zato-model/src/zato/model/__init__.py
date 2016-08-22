@@ -55,7 +55,7 @@ di_table_prefix = 'di_'
 # ################################################################################################################################
 
 _item_by_id_attrs=(Item.id,)
-_item_all_attrs=(Item.id.label('zato_di_id'), Item.object_id.label('zato_di_object_id'), Item.name.label('zato_di_name'),
+_item_all_attrs=(Item.id.label('zato_di_id'), Item.object_id.label('zato_di_object_id'),
         Item.version.label('zato_di_version'), Item.created_ts.label('zato_di_created_ts'),
         Item.last_updated_ts.label('zato_di_last_updated_ts'),
         Item.is_active.label('zato_di_is_active'), Item.is_internal.label('zato_di_is_internal'),
@@ -405,8 +405,10 @@ class ModelManager(object):
     def create_table(self, name, model_class):
         logger.info('Creating table `%s` for `%s`', name, model_class)
 
-        model = self.get_table_object(name, model_class)
+        table = self.get_table_object(name, model_class)
         Base.metadata.create_all(self.engine)
+
+        return table
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
 
@@ -429,17 +431,15 @@ class ModelManager(object):
                 model_attrs[name] = attr
 
         table_name = di_table_prefix + model_name
-        table = self.get_table_object(table_name, model_class)
 
-        if table.__name__ not in self.table_names:
-            self.create_table(table_name, model_class)
+        if table_name not in self.table_names:
+            table = self.create_table(table_name, model_class)
             self.update_table_names()
         else:
-            #Base.metadata.drop_all(self.engine, [Table(table_name, MetaData(bind=None))])
-            pass
+            table = self.get_table_object(table_name, model_class)
 
-        model_class.table = table
-        model_class.table_name = table_name
+        setattr(model_class, 'table', table)
+        setattr(model_class, 'table_name', table_name)
 
 # ################################################################################################################################
 
@@ -531,7 +531,7 @@ if __name__ == '__main__':
     #mgr.register(Site)
     #mgr.register(City)
     mgr.register(State)
-    mgr.register(Country)
+    #mgr.register(Country)
     mgr.register(Region)
     #mgr.register(User)
     #mgr.register(Reader)
@@ -553,9 +553,10 @@ if __name__ == '__main__':
     print('Took', datetime.utcnow() - start)
     '''
 
-    state = State()
-    state.name = 'Bahamas' + new_cid()[:10]
-    state.save()
+    #state = State()
+    #print(state.manager)
+    #state.name = 'Bahamas' + new_cid()[:10]
+    #state.save()
 
     '''
     for a in range(0):
