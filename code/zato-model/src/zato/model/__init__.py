@@ -21,8 +21,8 @@ from uuid import uuid4
 import warnings
 
 # SQLAlchemy
-from sqlalchemy import and_, BigInteger, Boolean, Column, create_engine, Date, DateTime, Float, ForeignKey, Index, Integer, \
-     LargeBinary, MetaData, Numeric, Sequence, SmallInteger, String, Table, Text as SAText, Time, UniqueConstraint
+from sqlalchemy import and_, BigInteger, Boolean, Column, create_engine, Date, DateTime, Float, ForeignKey, func, Index, \
+     Integer, LargeBinary, MetaData, Numeric, or_, Sequence, SmallInteger, String, Table, Text as SAText, Time, UniqueConstraint
 from sqlalchemy.engine import reflection
 from sqlalchemy.exc import SAWarning
 from sqlalchemy.orm import relationship
@@ -60,6 +60,19 @@ _item_all_attrs=(Item.id.label('zato_di_id'), Item.object_id.label('zato_di_obje
         Item.last_updated_ts.label('zato_di_last_updated_ts'),
         Item.is_active.label('zato_di_is_active'), Item.is_internal.label('zato_di_is_internal'),
         Item.parent_id.label('di_zato_parent_id'))
+
+
+# ################################################################################################################################
+
+class QueryResult(object):
+    __slots__ = ['total', 'page_current', 'page_prev', 'page_next', 'page_last']
+
+    def __init__(self):
+        self.total = 0
+        self.page_current = 0
+        self.page_prev = 0
+        self.page_next = 0
+        self.page_last = 0
 
 # ################################################################################################################################
 
@@ -156,7 +169,6 @@ class Model(object):
                 # Add parent instance first
                 item = Item()
                 item.object_id = '{}.{}'.format(model_name, uuid4().hex)
-                item.name = self.sql_instance_name
                 item.version = 1
                 item.id = instance_id
                 item.group_id = self.manager.user_models_group_id
@@ -227,49 +239,52 @@ class Model(object):
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
 
     @classmethod
-    def filter(class_, session=None, sqlalchemy_op=and_, **kwargs):
+    def filter(class_, session=None, _is_and=True, _list_values=(list, tuple), **kwargs):
         """ Returns result of an AND-joined compound query, e.g. one which will use multiple attributes to filter objects by.
         """
-        #print(11, kwargs)
-
-        group_id = class_.manager.user_models_group_id
-        sub_group_id = class_.manager.user_models_sub_groups[class_.get_model_name()]
+        group_id = int(class_.manager.user_models_group_id)
+        sub_group_id = int(class_.manager.user_models_sub_groups[class_.get_model_name()])
 
         with SessionProvider(session, class_.manager) as session:
 
-            db_attrs = []
-
-            for attr_name, value in kwargs.iteritems():
-                attrs = session.query(Item.parent_id).\
-                    filter(Item.group_id==group_id).\
-                    filter(Item.sub_group_id==sub_group_id).\
-                    filter(Item.name==attr_name).\
-                    filter(class_.model_attrs[attr_name].get_sql_column()==value)
-                db_attrs.append(attrs)
-
-            db_attrs = session.query(union(*db_attrs).alias('db_attrs_union')).subquery('db_attrs')
-
-            db_instances = session.query(Item.id, Item).\
+            db_instances = session.query(class_.table, *_item_all_attrs).\
                 filter(Item.group_id==group_id).\
                 filter(Item.sub_group_id==sub_group_id).\
-                filter(Item.name==class_.sql_instance_name).\
-                filter(Item.id==db_attrs.c.data_item_parent_id).\
-                order_by(Item.id)
+                filter(Item.id==class_.table.item_id)
 
-            #total = session.execute(db_instances).scalar()
+            if _is_and:
+                for name, value in kwargs.iteritems():
+                    if name in class_.model_attrs:
+                        db_instances = db_instances.filter(getattr(class_.table, name)==value)
+            else:
+                or_criteria = []
+
+                for name, values in kwargs.iteritems():
+                    values = values if isinstance(values, _list_values) else [values]
+                    if name in class_.model_attrs:
+                        column = getattr(class_.table, name)
+                        for value in values:
+                            or_criteria.append(column.__eq__(value))
+
+                db_instances = db_instances.filter(or_(*or_criteria))
+
+            db_instances = db_instances.order_by(Item.id)
+
+            result = db_instances.all()
+
             total_q = db_instances.statement.with_only_columns([func.count()]).order_by(None)
-            print('Total', session.execute(total_q).scalar())
+            total = session.execute(total_q).scalar()
 
-            #for db_instance in db_instances.all():
-            db_instances.slice(50, 100).all()
+        query_result = QueryResult()
+        query_result.total = total
 
-        return QueryResult()
+        return query_result
 
     @classmethod
     def filter_or(class_, session=None, **kwargs):
         """ Same as filter by OR-joined
         """
-        return class_.filter(session, sqlalchemy_op=or_, **kwargs)
+        return class_.filter(session, _is_and=False, **kwargs)
 
 # ################################################################################################################################
 
@@ -289,11 +304,6 @@ class SessionProvider(object):
             self.session.close()
 
         return not exc_type
-
-# ################################################################################################################################
-
-class QueryResult(object):
-    pass
 
 # ################################################################################################################################
 
@@ -417,7 +427,6 @@ class ModelManager(object):
             attr = getattr(model_class, name)
             if isinstance(attr, model_types):
                 model_attrs[name] = attr
-                model_class.sql_instance_name = instance_name_template.format(model_class.get_model_name())
 
         table_name = di_table_prefix + model_name
         table = self.get_table_object(table_name, model_class)
@@ -544,9 +553,9 @@ if __name__ == '__main__':
     print('Took', datetime.utcnow() - start)
     '''
 
-    #state = State()
-    #state.name = 'Bahamas' + new_cid()[:10]
-    #state.save()
+    state = State()
+    state.name = 'Bahamas' + new_cid()[:10]
+    state.save()
 
     '''
     for a in range(0):
@@ -590,9 +599,9 @@ if __name__ == '__main__':
             region.save()
             '''
 
-    region_id = 'region.48ea72183f504462ab9ca4f563b14518'
-    region = Region.by_id(region_id)
-    print(22, repr(region.name))
+    #region_id = 'region.48ea72183f504462ab9ca4f563b14518'
+    #region = Region.by_id(region_id)
+    #print(22, repr(region.name))
 
     #start = datetime.utcnow()
 
@@ -606,11 +615,10 @@ if __name__ == '__main__':
     #print(22, repr(region.region_class))
     #print(22, repr(region.abc.value))
 
-    '''
     start = datetime.utcnow()
 
     for x in range(1):
-        Region.filter(name='Eirp', region_class=78, region_type=6)
+        result = Region.filter(name='Europefa9bf56d26', region_class=4, region_type=2)
+        print('Total', result.total)
 
     print(datetime.utcnow() - start)
-    '''
