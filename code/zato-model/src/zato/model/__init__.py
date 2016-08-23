@@ -390,6 +390,13 @@ class ModelManager(object):
         for column_name, column_info in model_class.model_attrs.items():
 
             if isinstance(column_info, Wrapper):
+
+                if isinstance(column_info, List):
+                    ref_model_name = di_table_prefix + column_info.model.get_model_name()
+                    ref_column_name = ref_model_name + '_id'
+                    setattr(model, ref_column_name,
+                            Column(Integer, ForeignKey('{}.id'.format(ref_model_name), ondelete='CASCADE'), nullable=False))
+
                 continue
 
             sql_type = column_info.sql_type
@@ -481,14 +488,15 @@ class State(Model):
 class Country(Model):
     name = Text()
     code = Text()
-    states = List(State)
+    #states = List(State)
+    region = Ref('Region', backref='countries')
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
 
 class Region(Model):
     region_type = Int()
     region_class = Int()
-    name = String(18, col_unique=True, col_index=True)
+    name = String(60, col_unique=True, col_index=True)
     countries = List(Country)
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
@@ -530,8 +538,8 @@ if __name__ == '__main__':
     #mgr.register(Facility)
     #mgr.register(Site)
     #mgr.register(City)
-    mgr.register(State)
-    #mgr.register(Country)
+    #mgr.register(State)
+    mgr.register(Country)
     mgr.register(Region)
     #mgr.register(User)
     #mgr.register(Reader)
@@ -540,86 +548,3 @@ if __name__ == '__main__':
     #mgr.register(Customer)
     #mgr.register(Location)
 
-    '''
-    start = datetime.utcnow()
-
-    for x in range(1):
-        region = Region()
-        region.name = 'Europe' + new_cid()[:10]
-        region.region_class = 4
-        region.region_type = 2
-        region.save()
-
-    print('Took', datetime.utcnow() - start)
-    '''
-
-    #state = State()
-    #print(state.manager)
-    #state.name = 'Bahamas' + new_cid()[:10]
-    #state.save()
-
-    '''
-    for a in range(0):
-
-        if a % 5 == 0:
-            print(a)
-
-        for x in range(3):
-            region = Region()
-            region.name = 'Europe'
-            region.region_class = 4
-            region.region_type = 2
-            region.save()
-    
-        for x in range(3):
-            region = Region()
-            region.name = 'Europe'
-            region.region_class = 78
-            region.region_type = 3
-            region.save()
-            
-        for x in range(3):
-            region = Region()
-            region.name = 'Asia'
-            region.region_class = 78
-            region.region_type = 5
-            region.save()
-    
-        for x in range(2):
-            region = Region()
-            region.name = 'Europe'
-            region.region_class = 1
-            region.region_type = 2
-            region.save()
-    
-        for x in range(2):
-            region = Region()
-            region.name = 'Africa'
-            region.region_class = 2
-            region.region_type = 2
-            region.save()
-            '''
-
-    #region_id = 'region.48ea72183f504462ab9ca4f563b14518'
-    #region = Region.by_id(region_id)
-    #print(22, repr(region.name))
-
-    #start = datetime.utcnow()
-
-    #for x in range(0):
-    #    Region.by_id(region_id)
-
-    #print('Took', datetime.utcnow() - start)
-
-    #print(22, repr(region.name))
-    #print(22, repr(region.region_type))
-    #print(22, repr(region.region_class))
-    #print(22, repr(region.abc.value))
-
-    start = datetime.utcnow()
-
-    for x in range(1):
-        result = Region.filter(name='Europefa9bf56d26', region_class=4, region_type=2)
-        print('Total', result.total)
-
-    print(datetime.utcnow() - start)
