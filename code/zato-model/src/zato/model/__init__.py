@@ -56,10 +56,10 @@ di_table_prefix = 'di_'
 
 _item_by_id_attrs=(Item.id,)
 _item_all_attrs=(Item.id.label('zato_di_id'), Item.object_id.label('zato_di_object_id'),
-        Item.version.label('zato_di_version'), Item.created_ts.label('zato_di_created_ts'),
-        Item.last_updated_ts.label('zato_di_last_updated_ts'),
-        Item.is_active.label('zato_di_is_active'), Item.is_internal.label('zato_di_is_internal'),
-        Item.parent_id.label('di_zato_parent_id'))
+                 Item.version.label('zato_di_version'), Item.created_ts.label('zato_di_created_ts'),
+                 Item.last_updated_ts.label('zato_di_last_updated_ts'),
+                 Item.is_active.label('zato_di_is_active'), Item.is_internal.label('zato_di_is_internal'),
+                 Item.parent_id.label('di_zato_parent_id'))
 
 
 # ################################################################################################################################
@@ -79,6 +79,14 @@ class QueryResult(object):
 class NoSuchObject(Exception):
     """ Raised if an object was expected to exist yet could not have been found.
     """
+
+# ################################################################################################################################
+
+def model_name_from_class_name(class_name):
+    """ Does not do much at the moment but may be made more sophisticated if need be.
+    """
+    class_name = class_name.__name__ if isclass(class_name) else class_name
+    return class_name.lower()
 
 # ################################################################################################################################
 
@@ -143,7 +151,8 @@ class Model(object):
     @classmethod
     def get_model_name(class_):
         if not class_._model_name:
-            class_._model_name = class_.model_name if class_.model_name != _invalid else class_.__name__.lower()
+            class_._model_name = class_.model_name if class_.model_name != _invalid else \
+                model_name_from_class_name(class_.__name__)
 
         return class_._model_name
 
@@ -317,6 +326,9 @@ class ModelManager(object):
         self.session.configure(bind=self.engine)
         self.sa_inspector = reflection.Inspector.from_engine(self.engine)
 
+        # SA table objects, keyed by their names
+        self.models = {}
+
         # Table names, repopulated each time a model gets registered
         self.table_names = []
 
@@ -389,14 +401,8 @@ class ModelManager(object):
 
         for column_name, column_info in model_class.model_attrs.items():
 
+            # List wrappers are not handled by SQLAlchemy
             if isinstance(column_info, Wrapper):
-
-                if isinstance(column_info, List):
-                    ref_model_name = di_table_prefix + column_info.model.get_model_name()
-                    ref_column_name = ref_model_name + '_id'
-                    setattr(model, ref_column_name,
-                            Column(Integer, ForeignKey('{}.id'.format(ref_model_name), ondelete='CASCADE'), nullable=False))
-
                 continue
 
             sql_type = column_info.sql_type
@@ -404,6 +410,8 @@ class ModelManager(object):
             dt_kwargs = column_info.dt_kwargs
             col_kwargs = column_info.col_kwargs
             setattr(model, column_name, Column(sql_type(*dt_args, **dt_kwargs), **col_kwargs))
+
+        self.models[name] = model
 
         return model
 
@@ -419,34 +427,67 @@ class ModelManager(object):
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
 
-    def register(self, model_class, model_types=(DataType, Wrapper)):
+    def register_tables(self, model_classes, model_types=(DataType, Wrapper)):
+        """ Registers SQLAlchemy-backed table for given models.
+        """
+        for model_class in model_classes:
+            model_name = model_class.get_model_name()
 
-        model_name = model_class.get_model_name()
+            # So that models can easily issue queries
+            model_class.manager = self
 
-        # So that models can easily issue queries
-        model_class.manager = self
+            # Adds if doesn't exist already
+            self.add_sub_group(model_name)
 
-        # Adds if doesn't exist already
-        self.add_sub_group(model_name)
+            model_attrs = {}
+            setattr(model_class, 'model_attrs', model_attrs)
 
-        model_attrs = {}
-        setattr(model_class, 'model_attrs', model_attrs)
+            for name in dir(model_class):
+                attr = getattr(model_class, name)
+                if isinstance(attr, model_types):
+                    model_attrs[name] = attr
 
-        for name in dir(model_class):
-            attr = getattr(model_class, name)
-            if isinstance(attr, model_types):
-                model_attrs[name] = attr
+            table_name = di_table_prefix + model_name
 
-        table_name = di_table_prefix + model_name
+            if table_name not in self.table_names:
+                table = self.create_table(table_name, model_class)
+                self.update_table_names()
+            else:
+                table = self.get_table_object(table_name, model_class)
 
-        if table_name not in self.table_names:
-            table = self.create_table(table_name, model_class)
-            self.update_table_names()
-        else:
-            table = self.get_table_object(table_name, model_class)
+            setattr(model_class, 'table', table)
+            setattr(model_class, 'table_name', table_name)
 
-        setattr(model_class, 'table', table)
-        setattr(model_class, 'table_name', table_name)
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
+
+    def create_constraints(self, name, model_class):
+        for column_name, column_info in model_class.model_attrs.items():
+
+            model = self.models['di_{}'.format(name)]
+
+            # Ref wrappers are translated into foreign keys
+            if isinstance(column_info, Ref):
+
+                ref_model_name = di_table_prefix + model_name_from_class_name(column_info.model)
+                ref_column_name = ref_model_name + '_id'
+                setattr(model, ref_column_name,
+                        Column(Integer, ForeignKey('{}.id'.format(ref_model_name), ondelete='CASCADE'), nullable=False))
+
+                print(333, getattr(model, ref_column_name))
+
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
+
+    def register_constraints(self, model_classes):
+        """ Registers SQL constrains for models given on input.
+        """
+        for model_class in model_classes:
+            self.create_constraints(model_class.get_model_name(), model_class)
+
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
+
+    def register(self, model_classes):
+        self.register_tables(model_classes)
+        self.register_constraints(model_classes)
 
 # ################################################################################################################################
 
@@ -463,6 +504,7 @@ class Location(Model):
 
 class Facility(Model):
     name = Text()
+    location = Location()
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
 
@@ -489,7 +531,7 @@ class Country(Model):
     name = Text()
     code = Text()
     #states = List(State)
-    region = Ref('Region', backref='countries')
+    region = Ref('Region')
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
 
@@ -535,12 +577,28 @@ if __name__ == '__main__':
 
     mgr = ModelManager(0)
 
+    models = [
+        #Facility,
+        #Site,
+        #State,
+        #Country,
+        #Region,
+        #User,
+        #Reader,
+        Application,
+        Account,
+        Customer,
+        Location
+    ]
+
+    mgr.register(models)
+
     #mgr.register(Facility)
     #mgr.register(Site)
     #mgr.register(City)
     #mgr.register(State)
-    mgr.register(Country)
-    mgr.register(Region)
+    #mgr.register(Country)
+    #mgr.register(Region)
     #mgr.register(User)
     #mgr.register(Reader)
     #mgr.register(Application)

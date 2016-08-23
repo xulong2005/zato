@@ -114,7 +114,7 @@ class List(Wrapper):
 # ################################################################################################################################
 
 class Ref(Wrapper):
-    def __init__(self, model, backref):
+    def __init__(self, model, backref=None):
         self.model = model
         self.backref = backref
 
