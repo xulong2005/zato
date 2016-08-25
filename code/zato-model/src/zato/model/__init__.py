@@ -20,6 +20,12 @@ from random import randrange
 from uuid import uuid4
 import warnings
 
+# Alembic
+from alembic import context, op
+
+# Bunch
+from bunch import bunchify
+
 # SQLAlchemy
 from sqlalchemy import and_, BigInteger, Boolean, Column, create_engine, Date, DateTime, Float, ForeignKey, func, Index, \
      Integer, LargeBinary, MetaData, Numeric, or_, Sequence, SmallInteger, String, Table, Text as SAText, Time, UniqueConstraint
@@ -27,6 +33,7 @@ from sqlalchemy.engine import reflection
 from sqlalchemy.exc import SAWarning
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.session import sessionmaker
+from sqlalchemy.sql import text
 
 # Zato
 from zato.common import invalid as _invalid, ZATO_NONE
@@ -460,20 +467,55 @@ class ModelManager(object):
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
 
-    def create_constraints(self, name, model_class):
-        for column_name, column_info in model_class.model_attrs.items():
+    def _has_fkey(self, model, model_fkeys, referred_table, referred_columns):
+        """ Returns True if a given model references another table through a foreign key.
+        """
+        for fkey in bunchify(model_fkeys):
+            if fkey.referred_table == referred_table and sorted(referred_columns) == sorted(fkey.referred_columns):
+                return True
 
-            model = self.models['di_{}'.format(name)]
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
+
+    def _add_fkey(self, model, model_name, ref_model_name, fkey):
+        """ Adds a foreign from model to the target table's ID.
+        """
+        print(33, model, model_name, ref_model_name, fkey)
+
+        '''
+        bind_params = {
+            'table': model_name,
+            'fkey': fkey,
+            'ref_model_name': ref_model_name
+        }
+
+        q_column = 'ALTER TABLE :table ADD COLUMN :fkey INTEGER'
+        q_fkey = 'ALTER TABLE :table ADD FOREIGN KEY (:fkey) REFERENCES :ref_model_name(id)'
+
+        with closing(self.session()) as session:
+            session.execute(q_column, params=bind_params)
+            session.execute(q_fkey, params=bind_params)
+            '''
+
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
+
+    def create_constraints(self, name, model_class):
+
+        di_name = 'di_{}'.format(name)
+        model = self.models[di_name]
+        model_fkeys = self.sa_inspector.get_foreign_keys(di_name)
+
+        for column_name, column_info in model_class.model_attrs.items():
 
             # Ref wrappers are translated into foreign keys
             if isinstance(column_info, Ref):
 
                 ref_model_name = di_table_prefix + model_name_from_class_name(column_info.model)
-                ref_column_name = ref_model_name + '_id'
-                setattr(model, ref_column_name,
+                fkey = ref_model_name + '_id'
+                setattr(model, fkey,
                         Column(Integer, ForeignKey('{}.id'.format(ref_model_name), ondelete='CASCADE'), nullable=False))
 
-                print(333, getattr(model, ref_column_name))
+                if not self._has_fkey(model, model_fkeys, ref_model_name, fkey):
+                    self._add_fkey(model, di_name, ref_model_name, fkey)
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
 
