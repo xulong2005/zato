@@ -24,11 +24,12 @@ from alembic.operations import Operations
 from bunch import bunchify
 
 # SQLAlchemy
-from sqlalchemy import Column, create_engine, ForeignKey, func, Integer, or_, Sequence, Text as SAText
+from sqlalchemy import Column, create_engine, ForeignKey, ForeignKeyConstraint, func, Integer, INTEGER, or_, Sequence, text, Text as SAText
 from sqlalchemy.engine import reflection
 from sqlalchemy.exc import SAWarning
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.session import sessionmaker
+from sqlalchemy.sql import true as sa_true
 
 # Zato
 from zato.common import invalid as _invalid
@@ -318,7 +319,8 @@ class ModelManager(object):
 
     def __init__(self, db_url, sql_echo=False):
         #db_url = 'postgresql+pg8000://zato1:zato1@localhost/zato1'
-        self.engine = create_engine(db_url, echo=sql_echo, pool_size=150)
+        kwargs = {} if 'sqlite' in db_url else {'pool_size':150}
+        self.engine = create_engine(db_url, echo=sql_echo, **kwargs)
 
         self.session = sessionmaker()
         self.session.configure(bind=self.engine)
@@ -416,7 +418,7 @@ class ModelManager(object):
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
 
     def create_table(self, name, model_class):
-        logger.info('Creating table `%s` for `%s`', name, model_class)
+        logger.info('Creating table `%s` for `%s` in `%s`', name, model_class, self.engine.url)
 
         table = self.get_table_object(name, model_class)
         Base.metadata.create_all(self.engine)
@@ -467,14 +469,21 @@ class ModelManager(object):
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
 
-    def _add_fkey(self, model, model_name, ref_model_name, fkey):
+    def _add_fkey(self, model, model_name, ref_model_name, fkey_name):
         """ Adds a foreign from model to the target table's ID.
         """
         op = Operations(MigrationContext.configure(self.engine.connect()))
 
-        op.add_column(model_name, Column(fkey, Integer, nullable=False))
-        op.create_foreign_key(fkey, model_name, ref_model_name, [fkey], ['id'])
-        op.create_index('ix_{}_{}'.format(model_name, fkey), model_name, [fkey], unique=True)
+        logger.info('Adding fkey for %s %s %s', model_name, ref_model_name, fkey_name)
+
+        with op.batch_alter_table(model_name) as batch:
+
+            fkey = ForeignKey('{}.id'.format(ref_model_name), name='fk_{}'.format(fkey_name), ondelete='CASCADE')
+            #fkey = ForeignKeyConstraint([fkey_name], ['{}.id'.format(ref_model_name)], name='fk_{}'.format(fkey_name), ondelete='zzz')
+            column = Column(fkey_name, Integer, fkey, nullable=False)
+            batch.add_column(column)
+
+        op.create_index(str('ix_{}_{}'.format(model_name, fkey_name)), str(model_name), [str(fkey_name)], unique=True)
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
 
@@ -490,7 +499,7 @@ class ModelManager(object):
             if isinstance(column_info, Ref):
 
                 ref_model_name = di_table_prefix + model_name_from_class_name(column_info.model)
-                fkey = 'fk_' + ref_model_name
+                fkey = ref_model_name + '_id'
                 setattr(model, fkey,
                         Column(Integer, ForeignKey('{}.id'.format(ref_model_name), ondelete='CASCADE'), nullable=False))
 
@@ -512,136 +521,3 @@ class ModelManager(object):
         self.register_constraints(model_classes)
 
 # ################################################################################################################################
-
-
-class Location(Model):
-    facility = Ref('Facility')
-    site = Ref('Site')
-    city = Ref('City')
-    state = Ref('State')
-    country = Ref('Country')
-    region = Ref('Region')
-
-# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
-
-class Facility(Model):
-    name = Text()
-    location = Location()
-
-# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
-
-class Site(Model):
-    name = Text()
-    address = Text()
-    facilities = List(Facility)
-
-# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
-
-class City(Model):
-    name = Text()
-    sites = List(Site)
-
-# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
-
-class State(Model):
-    name = Text()
-    cities = List(City)
-
-# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
-
-class Country(Model):
-    name = Text()
-    code = Text()
-    states = List(State)
-    region = Ref('Region')
-
-# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
-
-class Region(Model):
-    region_type = Int()
-    region_class = Int()
-    name = String(60, col_unique=True, col_index=True)
-    countries = List(Country)
-
-# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
-
-class User(Model):
-    name = Text()
-
-# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
-
-class Reader(Model):
-    ruid = Text()
-    location = Ref(Location)
-
-# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
-
-class Application(Model):
-    name = Text()
-    location = Ref(Location)
-
-# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
-
-class Account(Model):
-    name = Text()
-    users = List(User)
-    readers = List(Reader)
-
-# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
-
-class Customer(Model):
-    name = Text()
-    accounts = List(Account)
-
-# ################################################################################################################################
-
-if __name__ == '__main__':
-
-    mgr = ModelManager(0)
-
-    models = [
-        Facility,
-        Site,
-        City,
-        State,
-        Country,
-        Region,
-        User,
-        Reader,
-        Application,
-        Account,
-        Customer,
-        Location
-    ]
-
-    mgr.register(models)
-
-    #mgr.register(Facility)
-    #mgr.register(Site)
-    #mgr.register(City)
-    #mgr.register(State)
-    #mgr.register(Country)
-    #mgr.register(Region)
-    #mgr.register(User)
-    #mgr.register(Reader)
-    #mgr.register(Application)
-    #mgr.register(Account)
-    #mgr.register(Customer)
-    #mgr.register(Location)
-
-'''
-
---drop table di_aaa cascade;
---drop table di_bbb cascade;
-drop table di_account cascade;
-drop table di_application cascade;
-drop table di_country cascade;
-drop table di_customer cascade;
-drop table di_facility cascade;
-drop table di_location cascade;
-drop table di_reader cascade;
-drop table di_region cascade;
-drop table di_site cascade;
-drop table di_state cascade;
-drop table di_user cascade;
-'''
