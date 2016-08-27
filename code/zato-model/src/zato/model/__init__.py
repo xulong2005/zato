@@ -21,7 +21,9 @@ from uuid import uuid4
 import warnings
 
 # Alembic
-from alembic import context, op
+from alembic import op
+from alembic.migration import MigrationContext
+from alembic.operations import Operations
 
 # Bunch
 from bunch import bunchify
@@ -30,14 +32,14 @@ from bunch import bunchify
 from sqlalchemy import and_, BigInteger, Boolean, Column, create_engine, Date, DateTime, Float, ForeignKey, func, Index, \
      Integer, LargeBinary, MetaData, Numeric, or_, Sequence, SmallInteger, String, Table, Text as SAText, Time, UniqueConstraint
 from sqlalchemy.engine import reflection
-from sqlalchemy.exc import SAWarning
+from sqlalchemy.exc import ProgrammingError, SAWarning
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.session import sessionmaker
 from sqlalchemy.sql import text
 
 # Zato
 from zato.common import invalid as _invalid, ZATO_NONE
-from zato.common.util import make_repr, new_cid
+from zato.common.util import alter_column_nullable_false, make_repr, new_cid
 from zato.model.data_type import DataType, DateTime, Int, NetAddress, List, Ref, String, Text, Wrapper
 from zato.model.sql import Base, Group, GroupTag, Item, ItemTag, SubGroup, SubGroupTag, Tag
 
@@ -471,7 +473,7 @@ class ModelManager(object):
         """ Returns True if a given model references another table through a foreign key.
         """
         for fkey in bunchify(model_fkeys):
-            if fkey.referred_table == referred_table and sorted(referred_columns) == sorted(fkey.referred_columns):
+            if fkey.referred_table == referred_table and fkey.referred_columns == ['id']:
                 return True
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
@@ -479,22 +481,9 @@ class ModelManager(object):
     def _add_fkey(self, model, model_name, ref_model_name, fkey):
         """ Adds a foreign from model to the target table's ID.
         """
-        print(33, model, model_name, ref_model_name, fkey)
-
-        '''
-        bind_params = {
-            'table': model_name,
-            'fkey': fkey,
-            'ref_model_name': ref_model_name
-        }
-
-        q_column = 'ALTER TABLE :table ADD COLUMN :fkey INTEGER'
-        q_fkey = 'ALTER TABLE :table ADD FOREIGN KEY (:fkey) REFERENCES :ref_model_name(id)'
-
-        with closing(self.session()) as session:
-            session.execute(q_column, params=bind_params)
-            session.execute(q_fkey, params=bind_params)
-            '''
+        op = Operations(MigrationContext.configure(self.engine.connect()))
+        op.add_column(model_name, Column(fkey, Integer, nullable=True))
+        op.create_foreign_key(fkey, model_name, ref_model_name, [fkey], ['id'])
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
 
@@ -510,7 +499,7 @@ class ModelManager(object):
             if isinstance(column_info, Ref):
 
                 ref_model_name = di_table_prefix + model_name_from_class_name(column_info.model)
-                fkey = ref_model_name + '_id'
+                fkey = 'fk_' + ref_model_name
                 setattr(model, fkey,
                         Column(Integer, ForeignKey('{}.id'.format(ref_model_name), ondelete='CASCADE'), nullable=False))
 
@@ -572,7 +561,7 @@ class State(Model):
 class Country(Model):
     name = Text()
     code = Text()
-    #states = List(State)
+    states = List(State)
     region = Ref('Region')
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
@@ -615,23 +604,35 @@ class Customer(Model):
 
 # ################################################################################################################################
 
+class AAA(Model):
+    name = Text
+    bbb = Ref('BBB')
+
+class BBB(Model):
+    username = Int()
+
+# ################################################################################################################################
+
 if __name__ == '__main__':
 
     mgr = ModelManager(0)
 
     models = [
-        #Facility,
-        #Site,
-        #State,
-        #Country,
-        #Region,
-        #User,
-        #Reader,
+        Facility,
+        Site,
+        City,
+        State,
+        Country,
+        Region,
+        User,
+        Reader,
         Application,
         Account,
         Customer,
         Location
     ]
+
+    #models = [AAA, BBB]
 
     mgr.register(models)
 
