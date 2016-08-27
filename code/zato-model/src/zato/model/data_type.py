@@ -9,12 +9,11 @@ Licensed under LGPLv3, see LICENSE.txt for terms and conditions.
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 # SQLAlchemy
-from sqlalchemy import BigInteger, Boolean, Column, create_engine, Date, DateTime as SADateTime, Float, ForeignKey, Index, \
-     Integer, LargeBinary, Numeric, Sequence, SmallInteger, String as SAString, Text as SAText, Time as SATime, UniqueConstraint
+from sqlalchemy import BigInteger, Boolean, DateTime as SADateTime, Float, Integer, LargeBinary, Numeric, SmallInteger, \
+     String as SAString, Text as SAText, Time as SATime
 
 # Zato
-from zato.common import invalid as _invalid, ZATO_NONE
-from zato.model.sql import Item
+from zato.common import invalid as _invalid
 
 # ################################################################################################################################
 

@@ -8,12 +8,8 @@ Licensed under LGPLv3, see LICENSE.txt for terms and conditions.
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from gevent.monkey import patch_all
-patch_all()
-
 # stdlib
 from contextlib import closing
-from datetime import datetime
 from logging import basicConfig, getLogger, INFO
 from inspect import isclass
 from random import randrange
@@ -21,7 +17,6 @@ from uuid import uuid4
 import warnings
 
 # Alembic
-from alembic import op
 from alembic.migration import MigrationContext
 from alembic.operations import Operations
 
@@ -29,19 +24,17 @@ from alembic.operations import Operations
 from bunch import bunchify
 
 # SQLAlchemy
-from sqlalchemy import and_, BigInteger, Boolean, Column, create_engine, Date, DateTime, Float, ForeignKey, func, Index, \
-     Integer, LargeBinary, MetaData, Numeric, or_, Sequence, SmallInteger, String, Table, Text as SAText, Time, UniqueConstraint
+from sqlalchemy import Column, create_engine, ForeignKey, func, Integer, or_, Sequence, Text as SAText
 from sqlalchemy.engine import reflection
-from sqlalchemy.exc import ProgrammingError, SAWarning
+from sqlalchemy.exc import SAWarning
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.session import sessionmaker
-from sqlalchemy.sql import text
 
 # Zato
-from zato.common import invalid as _invalid, ZATO_NONE
-from zato.common.util import alter_column_nullable_false, make_repr, new_cid
-from zato.model.data_type import DataType, DateTime, Int, NetAddress, List, Ref, String, Text, Wrapper
-from zato.model.sql import Base, Group, GroupTag, Item, ItemTag, SubGroup, SubGroupTag, Tag
+from zato.common import invalid as _invalid
+from zato.common.util import make_repr, new_cid
+from zato.model.data_type import DataType, Int, List, Ref, String, Text, Wrapper
+from zato.model.sql import Base, Group, Item, SubGroup
 
 warnings.filterwarnings('ignore',
                         r'^Dialect sqlite\+pysqlite does \*not\* support Decimal objects natively\, '
@@ -226,8 +219,6 @@ class Model(object):
     def by_id(class_, id=None, session=None, *args, **kwargs):
         """ Returns an object by its ID or None if it does not exist.
         """
-        needs_new_session = not bool(session)
-
         with SessionProvider(session, class_.manager) as session:
 
             db_instance = session.query(class_.table, *_item_all_attrs).\
@@ -288,8 +279,6 @@ class Model(object):
 
             db_instances = db_instances.order_by(Item.id)
 
-            result = db_instances.all()
-
             total_q = db_instances.statement.with_only_columns([func.count()]).order_by(None)
             total = session.execute(total_q).scalar()
 
@@ -327,8 +316,8 @@ class SessionProvider(object):
 
 class ModelManager(object):
 
-    def __init__(self, sql_echo=False):
-        db_url = 'postgresql+pg8000://zato1:zato1@localhost/zato1'
+    def __init__(self, db_url, sql_echo=False):
+        #db_url = 'postgresql+pg8000://zato1:zato1@localhost/zato1'
         self.engine = create_engine(db_url, echo=sql_echo, pool_size=150)
 
         self.session = sessionmaker()
@@ -482,8 +471,10 @@ class ModelManager(object):
         """ Adds a foreign from model to the target table's ID.
         """
         op = Operations(MigrationContext.configure(self.engine.connect()))
-        op.add_column(model_name, Column(fkey, Integer, nullable=True))
+
+        op.add_column(model_name, Column(fkey, Integer, nullable=False))
         op.create_foreign_key(fkey, model_name, ref_model_name, [fkey], ['id'])
+        op.create_index('ix_{}_{}'.format(model_name, fkey), model_name, [fkey], unique=True)
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
 
@@ -604,15 +595,6 @@ class Customer(Model):
 
 # ################################################################################################################################
 
-class AAA(Model):
-    name = Text
-    bbb = Ref('BBB')
-
-class BBB(Model):
-    username = Int()
-
-# ################################################################################################################################
-
 if __name__ == '__main__':
 
     mgr = ModelManager(0)
@@ -632,8 +614,6 @@ if __name__ == '__main__':
         Location
     ]
 
-    #models = [AAA, BBB]
-
     mgr.register(models)
 
     #mgr.register(Facility)
@@ -649,3 +629,19 @@ if __name__ == '__main__':
     #mgr.register(Customer)
     #mgr.register(Location)
 
+'''
+
+--drop table di_aaa cascade;
+--drop table di_bbb cascade;
+drop table di_account cascade;
+drop table di_application cascade;
+drop table di_country cascade;
+drop table di_customer cascade;
+drop table di_facility cascade;
+drop table di_location cascade;
+drop table di_reader cascade;
+drop table di_region cascade;
+drop table di_site cascade;
+drop table di_state cascade;
+drop table di_user cascade;
+'''

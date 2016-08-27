@@ -9,17 +9,15 @@ Licensed under LGPLv3, see LICENSE.txt for terms and conditions.
 """
 
 # stdlib
-import logging
 from datetime import datetime
 
 # dictalchemy
 from dictalchemy import make_class_dictable
 
 # SQLAlchemy
-from sqlalchemy import BigInteger, Boolean, Column, create_engine, Date, DateTime, Float, ForeignKey, Index, Integer, \
-     LargeBinary, Numeric, Sequence, SmallInteger, String, Text, Time, UniqueConstraint
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Index, Integer, Sequence, String, Text, UniqueConstraint
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import backref, relationship, sessionmaker
+from sqlalchemy.orm import backref, relationship
 
 # Zato
 Base = declarative_base()
