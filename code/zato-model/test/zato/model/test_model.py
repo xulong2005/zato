@@ -13,6 +13,7 @@ from unittest import TestCase
 
 # SQLAlchemy
 from sqlalchemy import create_engine
+from sqlalchemy.orm import clear_mappers
 from sqlalchemy.orm.session import sessionmaker
 
 # Zato
@@ -122,13 +123,29 @@ class TestModels(TestCase):
             os.unlink(db_path)
 
         self.db_url = 'sqlite:///{}'.format(db_path)
-        Base.metadata.create_all(create_engine(self.db_url))
+
+        Base.metadata.bind = create_engine(self.db_url)
+        Base.metadata.create_all()
+        Base.metadata.reflect()
 
         self.mgr = ModelManager(self.db_url)
 
+    def tearDown(self):
+        Base.metadata.drop_all()
+
+        for model in models:
+            Base.metadata.remove(model.table.__table__)
+
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
 
-    def test_register_models_twice(self):
+    def test_register_models(self):
+
+        # All models are registered twice yet there should be no errors here, the latter run should be a no-op
+        self.mgr.register(models)
+
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
+
+    def test_register_models_twice_no_op(self):
 
         # All models are registered twice yet there should be no errors here, the latter run should be a no-op
         self.mgr.register(models)

@@ -24,9 +24,11 @@ from alembic.operations import Operations
 from bunch import bunchify
 
 # SQLAlchemy
-from sqlalchemy import Column, create_engine, ForeignKey, ForeignKeyConstraint, func, Integer, INTEGER, or_, Sequence, text, Text as SAText
+from sqlalchemy import Column, create_engine, ForeignKey, ForeignKeyConstraint, func, Integer, INTEGER, or_, Sequence, text, \
+     Text as SAText
 from sqlalchemy.engine import reflection
 from sqlalchemy.exc import SAWarning
+from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.session import sessionmaker
 from sqlalchemy.sql import true as sa_true
@@ -34,7 +36,7 @@ from sqlalchemy.sql import true as sa_true
 # Zato
 from zato.common import invalid as _invalid
 from zato.common.util import make_repr, new_cid
-from zato.model.data_type import DataType, Int, List, Ref, String, Text, Wrapper
+from zato.model.data_type import DataType, di_table_prefix, Int, List, Ref, String, Text, Wrapper
 from zato.model.sql import Base, Group, Item, SubGroup
 
 warnings.filterwarnings('ignore',
@@ -53,7 +55,6 @@ basicConfig(level=INFO, format='%(asctime)s - %(levelname)s - %(process)d:%(thre
 # ################################################################################################################################
 
 instance_name_template = 'user.model.instance.{}'
-di_table_prefix = 'di_'
 
 # ################################################################################################################################
 
@@ -158,13 +159,6 @@ class Model(object):
                 model_name_from_class_name(class_.__name__)
 
         return class_._model_name
-
-# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
-
-    def new_id(self, max=2**256, _randrage=randrange):
-        """ Returns a new string with a random integer between 0 and max. It's not safe to use this integer for crypto purposes.
-        """
-        return str(_randrage(0, max)).encode('hex')
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
 
@@ -426,7 +420,7 @@ class ModelManager(object):
         logger.info('Creating table `%s` for `%s` in `%s`', name, model_class, self.engine.url)
 
         table = self.get_table_object(name, model_class)
-        Base.metadata.create_all(self.engine)
+        table.__table__.create(self.engine)
 
         return table
 
