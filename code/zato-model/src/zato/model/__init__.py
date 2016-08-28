@@ -469,21 +469,21 @@ class ModelManager(object):
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
 
-    def _add_fkey(self, model, model_name, ref_model_name, fkey_name):
+    def _add_fkeys(self, model_name, fkeys):#model, model_name, ref_model_name, fkey_name):
         """ Adds a foreign from model to the target table's ID.
         """
         op = Operations(MigrationContext.configure(self.engine.connect()))
 
-        logger.info('Adding fkey for %s %s %s', model_name, ref_model_name, fkey_name)
-
         with op.batch_alter_table(model_name) as batch:
 
-            fkey = ForeignKey('{}.id'.format(ref_model_name), name='fk_{}'.format(fkey_name), ondelete='CASCADE')
-            #fkey = ForeignKeyConstraint([fkey_name], ['{}.id'.format(ref_model_name)], name='fk_{}'.format(fkey_name), ondelete='zzz')
-            column = Column(fkey_name, Integer, fkey, nullable=False)
-            batch.add_column(column)
+            for model, di_name, ref_model_name, fkey_name in fkeys:
 
-        op.create_index(str('ix_{}_{}'.format(model_name, fkey_name)), str(model_name), [str(fkey_name)], unique=True)
+                fkey = ForeignKey('{}.id'.format(ref_model_name), name='fk_{}'.format(fkey_name), ondelete='CASCADE')
+                column = Column(fkey_name, Integer, fkey, nullable=False)
+                batch.add_column(column)
+
+        for model, di_name, ref_model_name, fkey_name in fkeys:
+            op.create_index(str('ix_{}_{}'.format(model_name, fkey_name)), str(model_name), [str(fkey_name)], unique=True)
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
 
@@ -492,6 +492,7 @@ class ModelManager(object):
         di_name = 'di_{}'.format(name)
         model = self.models[di_name]
         model_fkeys = self.sa_inspector.get_foreign_keys(di_name)
+        fkeys_to_add = []
 
         for column_name, column_info in model_class.model_attrs.items():
 
@@ -504,7 +505,9 @@ class ModelManager(object):
                         Column(Integer, ForeignKey('{}.id'.format(ref_model_name), ondelete='CASCADE'), nullable=False))
 
                 if not self._has_fkey(model, model_fkeys, ref_model_name, fkey):
-                    self._add_fkey(model, di_name, ref_model_name, fkey)
+                    fkeys_to_add.append((model, model_fkeys, ref_model_name, fkey))
+
+        self._add_fkeys(di_name, fkeys_to_add)
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
 

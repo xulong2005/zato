@@ -114,19 +114,8 @@ class TestModels(TestCase):
 
         mgr = ModelManager(self.db_url)
 
-        class AAA(Model):
-            bbb = Ref('BBB')
-            ccc = Ref('CCC')
 
-        class BBB(Model):
-            name = Text()
-
-        class CCC(Model):
-            name = Text()
-
-        models = AAA, BBB, CCC
-
-        xmodels = [
+        models = [
             Facility,
             Site,
             City,
