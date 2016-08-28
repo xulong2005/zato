@@ -324,7 +324,6 @@ class ModelManager(object):
 
         self.session = sessionmaker()
         self.session.configure(bind=self.engine)
-        self.sa_inspector = reflection.Inspector.from_engine(self.engine)
 
         # SA table objects, keyed by their names
         self.models = {}
@@ -337,6 +336,7 @@ class ModelManager(object):
         self.user_models_group_id = None
         self.user_models_sub_groups = {} # Group name -> group ID
 
+        self.set_up_inspector()
         self.set_up_user_models_group()
         self.update_table_names()
 
@@ -344,6 +344,11 @@ class ModelManager(object):
 
     def update_table_names(self):
         self.table_names = self.sa_inspector.get_table_names()
+
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
+
+    def set_up_inspector(self):
+        self.sa_inspector = reflection.Inspector.from_engine(self.engine)
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
 
@@ -430,8 +435,13 @@ class ModelManager(object):
     def register_tables(self, model_classes, model_types=(DataType, Wrapper)):
         """ Registers SQLAlchemy-backed table for given models.
         """
+
         for model_class in model_classes:
             model_name = model_class.get_model_name()
+            table_name = di_table_prefix + model_name
+
+            if table_name in self.models:
+                continue
 
             # So that models can easily issue queries
             model_class.manager = self
@@ -447,7 +457,6 @@ class ModelManager(object):
                 if isinstance(attr, model_types):
                     model_attrs[name] = attr
 
-            table_name = di_table_prefix + model_name
 
             if table_name not in self.table_names:
                 table = self.create_table(table_name, model_class)
@@ -469,7 +478,7 @@ class ModelManager(object):
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
 
-    def _add_fkeys(self, model_name, fkeys):#model, model_name, ref_model_name, fkey_name):
+    def _add_fkeys(self, model_name, fkeys):
         """ Adds a foreign from model to the target table's ID.
         """
         op = Operations(MigrationContext.configure(self.engine.connect()))
@@ -489,7 +498,7 @@ class ModelManager(object):
 
     def create_constraints(self, name, model_class):
 
-        di_name = 'di_{}'.format(name)
+        di_name = '{}{}'.format(di_table_prefix, name)
         model = self.models[di_name]
         model_fkeys = self.sa_inspector.get_foreign_keys(di_name)
         fkeys_to_add = []
@@ -501,8 +510,10 @@ class ModelManager(object):
 
                 ref_model_name = di_table_prefix + model_name_from_class_name(column_info.model)
                 fkey = ref_model_name + '_id'
-                setattr(model, fkey,
-                        Column(Integer, ForeignKey('{}.id'.format(ref_model_name), ondelete='CASCADE'), nullable=False))
+
+                if not getattr(model, fkey, None):
+                    setattr(model, fkey,
+                            Column(Integer, ForeignKey('{}.id'.format(ref_model_name), ondelete='CASCADE'), nullable=False))
 
                 if not self._has_fkey(model, model_fkeys, ref_model_name, fkey):
                     fkeys_to_add.append((model, model_fkeys, ref_model_name, fkey))
@@ -520,7 +531,14 @@ class ModelManager(object):
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
 
     def register(self, model_classes):
+
+        # Always use the freshest information available
+        self.set_up_inspector()
+
         self.register_tables(model_classes)
         self.register_constraints(model_classes)
+
+        # Again, because something could have changed
+        self.set_up_inspector()
 
 # ################################################################################################################################

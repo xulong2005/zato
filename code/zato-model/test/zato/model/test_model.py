@@ -96,6 +96,22 @@ class Customer(Model):
 
 # ################################################################################################################################
 
+models = [
+    Facility,
+    Site,
+    City,
+    State,
+    Country,
+    Region,
+    User,
+    Reader,
+    Application,
+    Customer,
+    Location
+]
+
+# ################################################################################################################################
+
 class TestModels(TestCase):
 
     def setUp(self):
@@ -108,27 +124,14 @@ class TestModels(TestCase):
         self.db_url = 'sqlite:///{}'.format(db_path)
         Base.metadata.create_all(create_engine(self.db_url))
 
+        self.mgr = ModelManager(self.db_url)
+
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
 
-    def test_register_models(self):
+    def test_register_models_twice(self):
 
-        mgr = ModelManager(self.db_url)
-
-
-        models = [
-            Facility,
-            Site,
-            City,
-            State,
-            Country,
-            Region,
-            User,
-            Reader,
-            Application,
-            Customer,
-            Location
-        ]
-
-        mgr.register(models)
+        # All models are registered twice yet there should be no errors here, the latter run should be a no-op
+        self.mgr.register(models)
+        self.mgr.register(models)
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ 
