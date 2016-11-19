@@ -197,8 +197,8 @@ class Generator(object):
             item.docs.summary = info.docstring.summary
             item.docs.description = info.docstring.description
             item.docs.full = info.docstring.full
-            item.invokes = info.invokes
-            item.invoked_by = info.invoked_by
+            item.invokes = sorted(info.invokes)
+            item.invoked_by = sorted(info.invoked_by)
 
             out.append(item.toDict())
 

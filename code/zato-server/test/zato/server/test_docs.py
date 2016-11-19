@@ -17,8 +17,9 @@ from unittest import TestCase
 from bunch import bunchify
 
 # Zato
-from zato.common.test import rand_int, rand_string
+from zato.common.test import rand_string
 from zato.server.docs import Generator
+from zato.server.docs._invokes_list import InvokesList, InvokesList2, InvokesList3
 from zato.server.docs._invokes_string import InvokesString, InvokesString2, InvokesString3
 
 logger = getLogger(__name__)
@@ -87,24 +88,24 @@ class DocsTestCase(TestCase):
 
 # ################################################################################################################################
 
-    def test_invokes_string(self):
-        gen = Generator(get_service_store_services(InvokesString, InvokesString2, InvokesString3))
+    def test_invokes_list(self):
+        gen = Generator(get_service_store_services(InvokesList, InvokesList2, InvokesList3))
         info = gen.get_info(rand_string())
 
-        invokes_string1 = get_dict_from_list('name', '_test.invokes-string', info)
-        invokes_string2 = get_dict_from_list('name', '_test.invokes-string2', info)
-        invokes_string3 = get_dict_from_list('name', '_test.invokes-string3', info)
+        invokes_list1 = get_dict_from_list('name', '_test.invokes-list', info)
+        invokes_list2 = get_dict_from_list('name', '_test.invokes-list2', info)
+        invokes_list3 = get_dict_from_list('name', '_test.invokes-list3', info)
 
-        self.assertEquals(invokes_string1.name, '_test.invokes-string')
-        self.assertListEqual(invokes_string1.invokes, ['_test.invokes-string2'])
-        self.assertListEqual(invokes_string1.invoked_by, [])
+        self.assertEquals(invokes_list1.name, '_test.invokes-list')
+        self.assertListEqual(invokes_list1.invokes, ['_test.invokes-list2', '_test.invokes-list3'])
+        self.assertListEqual(invokes_list1.invoked_by, [])
 
-        self.assertEquals(invokes_string2.name, '_test.invokes-string2')
-        self.assertListEqual(invokes_string2.invokes, ['_test.invokes-string3'])
-        self.assertListEqual(invokes_string2.invoked_by, ['_test.invokes-string', '_test.invokes-string3'])
+        self.assertEquals(invokes_list2.name, '_test.invokes-list2')
+        self.assertListEqual(invokes_list2.invokes, ['_test.invokes-list3'])
+        self.assertListEqual(invokes_list2.invoked_by, ['_test.invokes-list', '_test.invokes-list3'])
 
-        self.assertEquals(invokes_string3.name, '_test.invokes-string3')
-        self.assertListEqual(invokes_string3.invokes, ['_test.invokes-string2'])
-        self.assertListEqual(invokes_string3.invoked_by, ['_test.invokes-string2'])
+        self.assertEquals(invokes_list3.name, '_test.invokes-list3')
+        self.assertListEqual(invokes_list3.invokes, ['_test.invokes-list2'])
+        self.assertListEqual(invokes_list3.invoked_by, ['_test.invokes-list', '_test.invokes-list2'])
 
 # ################################################################################################################################
