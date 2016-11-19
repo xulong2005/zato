@@ -17,7 +17,13 @@ from bunch import Bunch, bunchify
 # docformatter
 from docformatter import format_docstring, split_summary_and_description as split_docstring
 
-_sio_attrs = ('input_required', 'output_required', 'input_optional', 'output_optional', 'request_elem', 'response_elem')
+# Zato
+from zato.common import API_SPEC, SIMPLE_IO
+from zato.server.service.reqresp.sio import SIO_TYPE_MAP, is_bool, is_int
+
+# ################################################################################################################################
+
+_sio_attrs = ('input_required', 'output_required', 'input_optional', 'output_optional')
 _service_attrs = ('namespace', 'all')
 
 # ################################################################################################################################
@@ -39,13 +45,21 @@ class Docstring(object):
 # ################################################################################################################################
 
 class SimpleIO(object):
-    def __init__(self):
-        self.input_required = []
-        self.output_required = []
-        self.input_optional = []
-        self.output_optional = []
+    def __init__(self, api_spec_info):
+        self.input_required = api_spec_info.param_list.input_required
+        self.output_required = api_spec_info.param_list.output_required
+        self.input_optional = api_spec_info.param_list.input_optional
+        self.output_optional = api_spec_info.param_list.output_optional
         self.request_elem = ''
         self.response_elem = ''
+        self.spec_name = api_spec_info.name
+
+    def to_bunch(self):
+        out = Bunch()
+        for name in _sio_attrs + ('request_elem', 'response_elem', 'spec_name'):
+            out[name] = getattr(self, name)
+
+        return out
 
 # ################################################################################################################################
 
@@ -56,7 +70,7 @@ class ServiceInfo(object):
         self.name = name
         self.service_class = service_class
         self.config = Config()
-        self.simple_io = SimpleIO()
+        self.simple_io = {}
         self.docstring = Docstring()
         self.invokes = []
         self.invoked_by = []
@@ -66,13 +80,14 @@ class ServiceInfo(object):
 
     def parse(self):
         self.set_config()
-        self.set_simple_io()
+        #self.set_simple_io()
         self.set_summary_desc()
 
 # ################################################################################################################################
 
     def _add_services_from_invokes(self):
-        """
+        """ Populates the list of services that this services invokes.
+
         class MyService(Service):
           invokes = 'foo'
 
@@ -89,43 +104,49 @@ class ServiceInfo(object):
 
 # ################################################################################################################################
 
-    def set_config(self):
-        self._add_services_from_invokes()
+    def _add_simple_io(self):
+        sio = getattr(self.service_class, 'SimpleIO', None)
 
-        '''
-        service_config = getattr(self.service_class, 'Config', None)
-        module_config = getattr(getmodule(self.service_class), 'Config', None)
+        if sio:
+            for api_spec_info in SIO_TYPE_MAP:
 
-        if service_config:
-            _service = getattr(service_config, 'Service')
-            if _service:
-                print()
-                for name in dir(_service):
+                _api_spec_info = Bunch()
+                _api_spec_info.name = api_spec_info.name
+                _api_spec_info.param_list = Bunch()
 
-                    if name.startswith('__'):
-                        continue
+                for param_list_name in _sio_attrs:
+                    _param_list = []
+                    param_list = getattr(sio, param_list_name, [])
 
-                    if name in _service_attrs:
-                        continue
+                    for param in param_list:
+                        param_name = param if isinstance(param, basestring) else param.name
+                        _param_info = Bunch()
+                        _param_info.name = param_name
 
-                    service = getattr(_service, name)
-                    print(33, name, service)
+                        if is_bool(param, param_name, SIMPLE_IO.BOOL_PARAMETERS.SUFFIXES):
+                            type_info = api_spec_info.BOOLEAN
 
-        #print(33, service_config)
-        #print(44, module_config)
-        '''
+                        elif is_int(param_name, SIMPLE_IO.INT_PARAMETERS.VALUES, SIMPLE_IO.INT_PARAMETERS.SUFFIXES):
+                            type_info = api_spec_info.INTEGER
+
+                        else:
+                            try:
+                                type_info = api_spec_info.map[param.__class__]
+                            except KeyError:
+                                type_info = api_spec_info.DEFAULT
+    
+                        _param_info.type, _param_info.subtype = type_info
+                        _param_list.append(_param_info)
+
+                    _api_spec_info.param_list[param_list_name] = _param_list
+
+                self.simple_io[_api_spec_info.name] = SimpleIO(_api_spec_info).to_bunch()
 
 # ################################################################################################################################
 
-    def set_simple_io(self):
-
-        simple_io = getattr(self.service_class, 'SimpleIO', None)
-
-        if simple_io:
-            for attr in _sio_attrs:
-                value = getattr(simple_io, attr, None)
-                if value:
-                    setattr(self.simple_io, attr, value)
+    def set_config(self):
+        self._add_services_from_invokes()
+        self._add_simple_io()
 
 # ################################################################################################################################
 
@@ -186,8 +207,8 @@ class Generator(object):
         """ Returns a list of dicts containing metadata about services in the scope required to generate docs and API clients.
         """
         self.parse(ignore_prefix)
-        out = []
 
+        out = []
         for name in sorted(self.services):
             info = self.services[name]
             item = Bunch()
@@ -199,6 +220,7 @@ class Generator(object):
             item.docs.full = info.docstring.full
             item.invokes = sorted(info.invokes)
             item.invoked_by = sorted(info.invoked_by)
+            item.simple_io = info.simple_io
 
             out.append(item.toDict())
 

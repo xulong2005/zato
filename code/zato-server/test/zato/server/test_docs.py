@@ -23,6 +23,7 @@ from zato.server.docs._docstring import Docstring, Docstring2, Docstring3
 from zato.server.docs._name import Name, Name2, Name3
 from zato.server.docs._invokes_list import InvokesList, InvokesList2, InvokesList3
 from zato.server.docs._invokes_string import InvokesString, InvokesString2, InvokesString3
+from zato.server.docs._simple_io import String, String2, String3
 
 logger = getLogger(__name__)
 
@@ -49,7 +50,7 @@ class DocsTestCase(TestCase):
 
 # ################################################################################################################################
 
-    def test_name(self):
+    def xtest_name(self):
         gen = Generator(get_service_store_services(Name, Name2, Name3))
         info = gen.get_info(rand_string())
 
@@ -63,7 +64,7 @@ class DocsTestCase(TestCase):
 
 # ################################################################################################################################
 
-    def test_docstring(self):
+    def xtest_docstring(self):
         gen = Generator(get_service_store_services(Docstring, Docstring2, Docstring3))
         info = gen.get_info(rand_string())
 
@@ -88,7 +89,7 @@ class DocsTestCase(TestCase):
 
 # ################################################################################################################################
 
-    def test_invokes_string(self):
+    def xtest_invokes_string(self):
         gen = Generator(get_service_store_services(InvokesString, InvokesString2, InvokesString3))
         info = gen.get_info(rand_string())
 
@@ -110,7 +111,7 @@ class DocsTestCase(TestCase):
 
 # ################################################################################################################################
 
-    def test_invokes_list(self):
+    def xtest_invokes_list(self):
         gen = Generator(get_service_store_services(InvokesList, InvokesList2, InvokesList3))
         info = gen.get_info(rand_string())
 
@@ -129,5 +130,15 @@ class DocsTestCase(TestCase):
         self.assertEquals(invokes_list3.name, '_test.invokes-list3')
         self.assertListEqual(invokes_list3.invokes, ['_test.invokes-list2'])
         self.assertListEqual(invokes_list3.invoked_by, ['_test.invokes-list', '_test.invokes-list2'])
+
+# ################################################################################################################################
+
+    def test_sio_string(self):
+        gen = Generator(get_service_store_services(String, String2, String3))
+        info = gen.get_info(rand_string())
+
+        string1 = get_dict_from_list('name', '_test.string', info)
+        string2 = get_dict_from_list('name', '_test.string2', info)
+        string3 = get_dict_from_list('name', '_test.string3', info)
 
 # ################################################################################################################################
