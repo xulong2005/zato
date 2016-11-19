@@ -20,6 +20,8 @@ from zato.server.service import Service
 # ################################################################################################################################
 
 class Docstring(object):
+    """ Details of a given service's docstring.
+    """
     def __init__(self):
         self.summary = ''
         self.description = ''
@@ -34,6 +36,8 @@ class ServiceInfo(object):
         self.name = name
         self.service_class = service_class
         self.docstring = Docstring()
+        self.invokes = []
+        self.invoked_by = []
         self.parse()
 
 # ################################################################################################################################
