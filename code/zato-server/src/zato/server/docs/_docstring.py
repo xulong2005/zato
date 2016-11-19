@@ -15,20 +15,28 @@ from zato.server.service import Service
 
 # ################################################################################################################################
 
-class InvokesString(Service):
-    name = '_test.invokes-string'
-    invokes = '_test.invokes-string2'
+class Docstring(Service):
+    """ Docstring Summary
+    """
+    name = '_test.docstring'
 
 # ################################################################################################################################
 
-class InvokesString2(Service):
-    name = '_test.invokes-string2'
-    invokes = '_test.invokes-string3'
+class Docstring2(Service):
+    """ Docstring2 Summary
+    Docstring2 Description
+    """
+    name = '_test.docstring2'
 
 # ################################################################################################################################
 
-class InvokesString3(Service):
-    name = '_test.invokes-string3'
-    invokes = '_test.invokes-string2'
+class Docstring3(Service):
+    """ Docstring3 Summary
+
+    Docstring3 Description
+
+    Docstring3 Description2
+    """
+    name = '_test.docstring3'
 
 # ################################################################################################################################

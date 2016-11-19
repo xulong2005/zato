@@ -19,12 +19,12 @@ from bunch import bunchify
 # Zato
 from zato.common.test import rand_string
 from zato.server.docs import Generator
+from zato.server.docs._docstring import Docstring, Docstring2, Docstring3
+from zato.server.docs._name import Name, Name2, Name3
 from zato.server.docs._invokes_list import InvokesList, InvokesList2, InvokesList3
 from zato.server.docs._invokes_string import InvokesString, InvokesString2, InvokesString3
 
 logger = getLogger(__name__)
-
-from zato.server.service import Service
 
 # ################################################################################################################################
 
@@ -50,20 +50,45 @@ class DocsTestCase(TestCase):
 # ################################################################################################################################
 
     def test_name(self):
-        gen = Generator(get_service_store_services(InvokesString, InvokesString2, InvokesString3))
+        gen = Generator(get_service_store_services(Name, Name2, Name3))
         info = gen.get_info(rand_string())
 
-        invokes_string1 = get_dict_from_list('name', '_test.invokes-string', info)
-        invokes_string2 = get_dict_from_list('name', '_test.invokes-string2', info)
-        invokes_string3 = get_dict_from_list('name', '_test.invokes-string3', info)
+        name1 = get_dict_from_list('name', '_test.name', info)
+        name2 = get_dict_from_list('name', '_test.name2', info)
+        name3 = get_dict_from_list('name', '_test.name3', info)
 
-        self.assertEquals(invokes_string1.name, '_test.invokes-string')
-        self.assertEquals(invokes_string2.name, '_test.invokes-string2')
-        self.assertEquals(invokes_string3.name, '_test.invokes-string3')
+        self.assertEquals(name1.name, '_test.name')
+        self.assertEquals(name2.name, '_test.name2')
+        self.assertEquals(name3.name, '_test.name3')
 
 # ################################################################################################################################
 
     def test_docstring(self):
+        gen = Generator(get_service_store_services(Docstring, Docstring2, Docstring3))
+        info = gen.get_info(rand_string())
+
+        docstring1 = get_dict_from_list('name', '_test.docstring', info)
+        docstring2 = get_dict_from_list('name', '_test.docstring2', info)
+        docstring3 = get_dict_from_list('name', '_test.docstring3', info)
+
+        self.assertEquals(docstring1.name, '_test.docstring')
+        self.assertEquals(docstring1.docs.summary, 'Docstring Summary')
+        self.assertEquals(docstring1.docs.description, '')
+        self.assertEquals(docstring1.docs.full, 'Docstring Summary')
+
+        self.assertEquals(docstring2.name, '_test.docstring2')
+        self.assertEquals(docstring2.docs.summary, 'Docstring2 Summary')
+        self.assertEquals(docstring2.docs.description, 'Docstring2 Description')
+        self.assertEquals(docstring2.docs.full, 'Docstring2 Summary.\n\nDocstring2 Description')
+
+        self.assertEquals(docstring3.name, '_test.docstring3')
+        self.assertEquals(docstring3.docs.summary, 'Docstring3 Summary')
+        self.assertEquals(docstring3.docs.description, 'Docstring3 Description\n\nDocstring3 Description2')
+        self.assertEquals(docstring3.docs.full, 'Docstring3 Summary.\n\nDocstring3 Description\n\nDocstring3 Description2')
+
+# ################################################################################################################################
+
+    def test_invokes_string(self):
         gen = Generator(get_service_store_services(InvokesString, InvokesString2, InvokesString3))
         info = gen.get_info(rand_string())
 
@@ -72,19 +97,16 @@ class DocsTestCase(TestCase):
         invokes_string3 = get_dict_from_list('name', '_test.invokes-string3', info)
 
         self.assertEquals(invokes_string1.name, '_test.invokes-string')
-        self.assertEquals(invokes_string1.docs.summary, 'InvokesString Summary')
-        self.assertEquals(invokes_string1.docs.description, '')
-        self.assertEquals(invokes_string1.docs.full, 'InvokesString Summary')
+        self.assertListEqual(invokes_string1.invokes, ['_test.invokes-string2'])
+        self.assertListEqual(invokes_string1.invoked_by, [])
 
         self.assertEquals(invokes_string2.name, '_test.invokes-string2')
-        self.assertEquals(invokes_string2.docs.summary, 'InvokesString2 Summary')
-        self.assertEquals(invokes_string2.docs.description, 'InvokesString2 Description')
-        self.assertEquals(invokes_string2.docs.full, 'InvokesString2 Summary.\n\nInvokesString2 Description')
+        self.assertListEqual(invokes_string2.invokes, ['_test.invokes-string3'])
+        self.assertListEqual(invokes_string2.invoked_by, ['_test.invokes-string', '_test.invokes-string3'])
 
         self.assertEquals(invokes_string3.name, '_test.invokes-string3')
-        self.assertEquals(invokes_string3.docs.summary, 'InvokesString3 Summary')
-        self.assertEquals(invokes_string3.docs.description, 'InvokesString3 Description\n\nInvokesString3 Description2')
-        self.assertEquals(invokes_string3.docs.full, 'InvokesString3 Summary.\n\nInvokesString3 Description\n\nInvokesString3 Description2')
+        self.assertListEqual(invokes_string3.invokes, ['_test.invokes-string2'])
+        self.assertListEqual(invokes_string3.invoked_by, ['_test.invokes-string2'])
 
 # ################################################################################################################################
 
