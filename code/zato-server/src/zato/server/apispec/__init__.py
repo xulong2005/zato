@@ -50,8 +50,8 @@ class SimpleIO(object):
         self.output_required = api_spec_info.param_list.output_required
         self.input_optional = api_spec_info.param_list.input_optional
         self.output_optional = api_spec_info.param_list.output_optional
-        self.request_elem = ''
-        self.response_elem = ''
+        self.request_elem = api_spec_info.request_elem
+        self.response_elem = api_spec_info.response_elem
         self.spec_name = api_spec_info.name
 
     def to_bunch(self):
@@ -113,6 +113,8 @@ class ServiceInfo(object):
                 _api_spec_info = Bunch()
                 _api_spec_info.name = api_spec_info.name
                 _api_spec_info.param_list = Bunch()
+                _api_spec_info.request_elem = getattr(sio, 'request_elem', None)
+                _api_spec_info.response_elem = getattr(sio, 'response_elem', None)
 
                 for param_list_name in _sio_attrs:
                     _param_list = []

@@ -150,8 +150,8 @@ class APISpecTestCase(TestCase):
         sio_oreq = self._sort_sio(sio.output_required)
 
         self.assertEquals(sio.spec_name, API_SPEC.OPEN_API_V2)
-        self.assertEquals(sio.request_elem, '')
-        self.assertEquals(sio.response_elem, '')
+        self.assertEquals(sio.request_elem, None)
+        self.assertEquals(sio.response_elem, None)
 
         self.assertListEqual(sio_ireq, [
             [('subtype', None), ('type', 'string'), ('name', 'a')],
@@ -180,8 +180,8 @@ class APISpecTestCase(TestCase):
         sio_oreq = self._sort_sio(sio.output_required)
 
         self.assertEquals(sio.spec_name, 'zato')
-        self.assertEquals(sio.request_elem, '')
-        self.assertEquals(sio.response_elem, '')
+        self.assertEquals(sio.request_elem, None)
+        self.assertEquals(sio.response_elem, None)
 
         self.assertListEqual(sio_ireq, [
             [('subtype', 'string'), ('type', 'string'), ('name', 'a')],
@@ -211,8 +211,8 @@ class APISpecTestCase(TestCase):
         sio_oopt = self._sort_sio(sio.output_optional)
 
         self.assertEquals(sio.spec_name, API_SPEC.OPEN_API_V2)
-        self.assertEquals(sio.request_elem, '')
-        self.assertEquals(sio.response_elem, '')
+        self.assertEquals(sio.request_elem, None)
+        self.assertEquals(sio.response_elem, None)
 
         self.assertListEqual(sio_ireq, [
             [('subtype', None), ('type', 'string'), ('name', 'a2')],
@@ -247,8 +247,8 @@ class APISpecTestCase(TestCase):
         sio_oopt = self._sort_sio(sio.output_optional)
 
         self.assertEquals(sio.spec_name, 'zato')
-        self.assertEquals(sio.request_elem, '')
-        self.assertEquals(sio.response_elem, '')
+        self.assertEquals(sio.request_elem, None)
+        self.assertEquals(sio.response_elem, None)
 
         self.assertListEqual(sio_ireq, [
             [('subtype', 'string'), ('type', 'string'), ('name', 'a2')],
@@ -283,8 +283,8 @@ class APISpecTestCase(TestCase):
         sio_oopt = self._sort_sio(sio.output_optional)
 
         self.assertEquals(sio.spec_name, API_SPEC.OPEN_API_V2)
-        self.assertEquals(sio.request_elem, '')
-        self.assertEquals(sio.response_elem, '')
+        self.assertEquals(sio.request_elem, None)
+        self.assertEquals(sio.response_elem, None)
 
         self.assertListEqual(sio_iopt, [
             [('subtype', None), ('type', 'string'), ('name', 'a2a')],
@@ -319,8 +319,8 @@ class APISpecTestCase(TestCase):
         sio_oopt = self._sort_sio(sio.output_optional)
 
         self.assertEquals(sio.spec_name, 'zato')
-        self.assertEquals(sio.request_elem, '')
-        self.assertEquals(sio.response_elem, '')
+        self.assertEquals(sio.request_elem, None)
+        self.assertEquals(sio.response_elem, None)
 
         self.assertListEqual(sio_iopt, [
             [('subtype', 'string'), ('type', 'string'), ('name', 'a2a')],
@@ -357,8 +357,8 @@ class APISpecTestCase(TestCase):
         sio_oopt = self._sort_sio(sio.output_optional)
 
         self.assertEquals(sio.spec_name, API_SPEC.OPEN_API_V2)
-        self.assertEquals(sio.request_elem, '')
-        self.assertEquals(sio.response_elem, '')
+        self.assertEquals(sio.request_elem, None)
+        self.assertEquals(sio.response_elem, None)
 
         self.assertEquals(sio_ireq[0], [('subtype', 'int32'), ('type', 'integer'), ('name', 'a_count')])
         self.assertEquals(sio_ireq[1], [('subtype', 'int32'), ('type', 'integer'), ('name', 'a_id')])
@@ -411,8 +411,8 @@ class APISpecTestCase(TestCase):
         sio_oopt = self._sort_sio(sio.output_optional)
 
         self.assertEquals(sio.spec_name, 'zato')
-        self.assertEquals(sio.request_elem, '')
-        self.assertEquals(sio.response_elem, '')
+        self.assertEquals(sio.request_elem, None)
+        self.assertEquals(sio.response_elem, None)
 
         self.assertEquals(sio_ireq[0], [('subtype', 'integer'), ('type', 'integer'), ('name', 'a_count')])
         self.assertEquals(sio_ireq[1], [('subtype', 'integer'), ('type', 'integer'), ('name', 'a_id')])
@@ -465,8 +465,8 @@ class APISpecTestCase(TestCase):
         sio_oopt = self._sort_sio(sio.output_optional)
 
         self.assertEquals(sio.spec_name, API_SPEC.OPEN_API_V2)
-        self.assertEquals(sio.request_elem, '')
-        self.assertEquals(sio.response_elem, '')
+        self.assertEquals(sio.request_elem, None)
+        self.assertEquals(sio.response_elem, None)
 
         self.assertListEqual(sio_ireq, [
             [('subtype', None),        ('type', 'boolean'), ('name', 'b')],
@@ -551,8 +551,8 @@ class APISpecTestCase(TestCase):
         sio_oopt = self._sort_sio(sio.output_optional)
 
         self.assertEquals(sio.spec_name, 'zato')
-        self.assertEquals(sio.request_elem, '')
-        self.assertEquals(sio.response_elem, '')
+        self.assertEquals(sio.request_elem, None)
+        self.assertEquals(sio.response_elem, None)
 
         self.assertListEqual(sio_ireq, [
             [('subtype', 'boolean'),       ('type', 'boolean'), ('name', 'b')],
@@ -621,5 +621,17 @@ class APISpecTestCase(TestCase):
             [('subtype', 'string'),        ('type', 'string'),  ('name', 'mmmm')],
             [('subtype', 'date-time-utc'), ('type', 'string'),  ('name', 'nnnn')]
         ])
+
+# ################################################################################################################################
+
+    def test_request_response_open_api_v2(self):
+        gen = Generator(get_service_store_services(RequestResponse))
+        info = gen.get_info(rand_string())
+        req = get_dict_from_list('name', '_test.request-response', info)
+        sio = req.simple_io[API_SPEC.OPEN_API_V2]
+
+        self.assertEquals(sio.spec_name, API_SPEC.OPEN_API_V2)
+        self.assertEquals(sio.request_elem, 'my_request_elem')
+        self.assertEquals(sio.response_elem, 'my_response_elem')
 
 # ################################################################################################################################
