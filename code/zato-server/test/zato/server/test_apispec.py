@@ -538,14 +538,88 @@ class APISpecTestCase(TestCase):
 
 # ################################################################################################################################
 
-    def test_request_response_open_api_v2(self):
-        gen = Generator(get_service_store_services(RequestResponse))
+    def test_force_type_open_api_v2(self):
+        gen = Generator(get_service_store_services(ForceTypeService))
         info = gen.get_info(rand_string())
-        req = get_dict_from_list('name', '_test.request-response', info)
-        sio = req.simple_io[API_SPEC.OPEN_API_V2]
+        req = get_dict_from_list('name', '_test.force-type', info)
 
-        self.assertEquals(sio.spec_name, API_SPEC.OPEN_API_V2)
-        self.assertEquals(sio.request_elem, 'my_request_elem')
-        self.assertEquals(sio.response_elem, 'my_response_elem')
+        sio = req.simple_io['zato']
+
+        sio_ireq = self._sort_sio(sio.input_required)
+        sio_iopt = self._sort_sio(sio.input_optional)
+        sio_oreq = self._sort_sio(sio.output_required)
+        sio_oopt = self._sort_sio(sio.output_optional)
+
+        self.assertEquals(sio.spec_name, 'zato')
+        self.assertEquals(sio.request_elem, '')
+        self.assertEquals(sio.response_elem, '')
+
+        self.assertListEqual(sio_ireq, [
+            [('subtype', 'boolean'),       ('type', 'boolean'), ('name', 'b')],
+            [('subtype', 'boolean'),       ('type', 'boolean'), ('name', 'c')],
+            [('subtype', 'string'),        ('type', 'string'),  ('name', 'd')],
+            [('subtype', 'dict'),          ('type', 'dict'),    ('name', 'e')],
+            [('subtype', 'float'),         ('type', 'number'),  ('name', 'f')],
+            [('subtype', 'integer'),       ('type', 'integer'), ('name', 'g')],
+            [('subtype', 'integer'),       ('type', 'integer'), ('name', 'h')],
+            [('subtype', 'list'),          ('type', 'list'),    ('name', 'i')],
+            [('subtype', 'string'),        ('type', 'string'),  ('name', 'is_a')],
+            [('subtype', 'list-of-dicts'), ('type', 'list'),    ('name', 'j')],
+            [('subtype', 'opaque'),        ('type', 'opaque'),  ('name', 'k')],
+            [('subtype', 'opaque'),        ('type', 'opaque'),  ('name', 'l')],
+            [('subtype', 'string'),        ('type', 'string'),  ('name', 'm')],
+            [('subtype', 'date-time-utc'), ('type', 'string'),  ('name', 'n')]
+        ])
+
+        self.assertListEqual(sio_iopt, [
+            [('subtype', 'boolean'),       ('type', 'boolean'), ('name', 'bb')],
+            [('subtype', 'boolean'),       ('type', 'boolean'), ('name', 'cc')],
+            [('subtype', 'string'),        ('type', 'string'),  ('name', 'dd')],
+            [('subtype', 'dict'),          ('type', 'dict'),    ('name', 'ee')],
+            [('subtype', 'float'),         ('type', 'number'),  ('name', 'ff')],
+            [('subtype', 'integer'),       ('type', 'integer'), ('name', 'gg')],
+            [('subtype', 'integer'),       ('type', 'integer'), ('name', 'hh')],
+            [('subtype', 'list'),          ('type', 'list'),    ('name', 'ii')],
+            [('subtype', 'string'),        ('type', 'string'),  ('name', 'is_aa')],
+            [('subtype', 'list-of-dicts'), ('type', 'list'),    ('name', 'jj')],
+            [('subtype', 'opaque'),        ('type', 'opaque'),  ('name', 'kk')],
+            [('subtype', 'opaque'),        ('type', 'opaque'),  ('name', 'll')],
+            [('subtype', 'string'),        ('type', 'string'),  ('name', 'mm')],
+            [('subtype', 'date-time-utc'), ('type', 'string'),  ('name', 'nn')]
+        ])
+
+        self.assertListEqual(sio_oreq, [
+            [('subtype', 'boolean'),       ('type', 'boolean'), ('name', 'bbb')],
+            [('subtype', 'boolean'),       ('type', 'boolean'), ('name', 'ccc')],
+            [('subtype', 'string'),        ('type', 'string'),  ('name', 'ddd')],
+            [('subtype', 'dict'),          ('type', 'dict'),    ('name', 'eee')],
+            [('subtype', 'float'),         ('type', 'number'),  ('name', 'fff')],
+            [('subtype', 'integer'),       ('type', 'integer'), ('name', 'ggg')],
+            [('subtype', 'integer'),       ('type', 'integer'), ('name', 'hhh')],
+            [('subtype', 'list'),          ('type', 'list'),    ('name', 'iii')],
+            [('subtype', 'string'),        ('type', 'string'),  ('name', 'is_aaa')],
+            [('subtype', 'list-of-dicts'), ('type', 'list'),    ('name', 'jjj')],
+            [('subtype', 'opaque'),        ('type', 'opaque'),  ('name', 'kkk')],
+            [('subtype', 'opaque'),        ('type', 'opaque'),  ('name', 'lll')],
+            [('subtype', 'string'),        ('type', 'string'),  ('name', 'mmm')],
+            [('subtype', 'date-time-utc'), ('type', 'string'),  ('name', 'nnn')]
+        ])
+
+        self.assertListEqual(sio_oopt, [
+            [('subtype', 'boolean'),       ('type', 'boolean'), ('name', 'bbbb')],
+            [('subtype', 'boolean'),       ('type', 'boolean'), ('name', 'cccc')],
+            [('subtype', 'string'),        ('type', 'string'),  ('name', 'dddd')],
+            [('subtype', 'dict'),          ('type', 'dict'),    ('name', 'eeee')],
+            [('subtype', 'float'),         ('type', 'number'),  ('name', 'ffff')],
+            [('subtype', 'integer'),       ('type', 'integer'), ('name', 'gggg')],
+            [('subtype', 'integer'),       ('type', 'integer'), ('name', 'hhhh')],
+            [('subtype', 'list'),          ('type', 'list'),    ('name', 'iiii')],
+            [('subtype', 'string'),        ('type', 'string'),  ('name', 'is_aaaa')],
+            [('subtype', 'list-of-dicts'), ('type', 'list'),    ('name', 'jjjj')],
+            [('subtype', 'opaque'),        ('type', 'opaque'),  ('name', 'kkkk')],
+            [('subtype', 'opaque'),        ('type', 'opaque'),  ('name', 'llll')],
+            [('subtype', 'string'),        ('type', 'string'),  ('name', 'mmmm')],
+            [('subtype', 'date-time-utc'), ('type', 'string'),  ('name', 'nnnn')]
+        ])
 
 # ################################################################################################################################
