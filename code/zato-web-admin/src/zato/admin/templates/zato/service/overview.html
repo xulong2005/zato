@@ -110,14 +110,14 @@
 
                             <td style="width:65%">
 
-                                {% if service.docs_full %}
+                                {% if service.docs_full_md %}
                                 <table style="width:100%;" id="docs-table">
                                     <tr>
                                         <td class='inline_header'>Documentation</td>
                                     </tr>
                                     <tr>
                                         <td>
-                                            {{ service.docs_full|safe }}
+                                            {{ service.docs_full_md|safe }}
                                         </td>
                                     </tr>
                                 </table>

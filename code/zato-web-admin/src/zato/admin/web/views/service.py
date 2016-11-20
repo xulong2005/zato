@@ -29,9 +29,6 @@ from django.template.response import TemplateResponse
 # lxml
 from lxml import etree
 
-# markdown
-from markdown import markdown
-
 # Paste
 from paste.util.converters import asbool
 
@@ -246,10 +243,11 @@ def overview(req, service_name):
                         url += '&highlight={}'.format(item.id)
                         service.scheduler_jobs.append(ExposedThrough(item.id, item.name, url))
 
-            response = req.zato.client.invoke('zato.apispec.get-api-spec', {'filter':service.name})
+            response = req.zato.client.invoke('zato.apispec.get-api-spec', {'query':service.name})
             if response.has_data:
                 service_data = response.data[0]
-                service.docs_full = markdown(service_data.docs.full)
+                service.docs_full = service_data.docs.full
+                service.docs_full_md = service_data.docs.full_md
                 service.docs_summary = service_data.docs.summary
                 service.docs_description = service_data.docs.description
                 service.invokes = service_data.invokes

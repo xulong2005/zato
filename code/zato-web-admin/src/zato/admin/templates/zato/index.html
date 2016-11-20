@@ -58,6 +58,15 @@
                 <li><span class="like-a">Services &darr;</span>
                     <ul>
                         <li><a href="{% url "service" %}?cluster={{ cluster_id|default:'' }}">List services</a></li>
+                        <ul>
+                            <li>
+                                <span class="like-a">Documentation &rarr;</span>
+                                <ul>
+                                    <li><a href="{% url "docs-index" %}?cluster={{ cluster_id|default:'' }}">Web-admin</a></li>
+                                    <li><a href="{% url "docs-index" %}?cluster={{ cluster_id|default:'' }}">Public</a></li>
+                                </ul>
+                            </li>
+                        </ul>
                     </ul>
                 </li>
 

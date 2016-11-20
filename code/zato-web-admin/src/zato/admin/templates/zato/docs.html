@@ -1,0 +1,31 @@
+{% extends "zato/index.html" %}
+
+{% block html_title %}Documentation{% endblock %}
+
+{% block "extra_js" %}
+    <script type="text/javascript" src="/static/jquery/jquery.cookie.js"></script>
+    <script type="text/javascript" src="/static/js/common.js"></script>
+    <script type="text/javascript" src="/static/js/docs.js"></script>
+
+    <script type="text/javascript">
+        $.fn.zato.docs.show_table('{{ response_inner|safe }}');
+    </script>
+
+{% endblock %}
+
+{% block "content" %}
+<h2 class="zato">Scheduler jobs</h2>
+
+{% if not zato_clusters %}
+    {% include "zato/no-clusters.html" %}
+{% else %}
+
+{% include "zato/search-form.html" with page_prompt="Show documentation"%}
+
+    {% if cluster_id %}
+        <input type="hidden" id="cluster_id" value="{{ cluster_id }}" />
+    {% endif %}
+
+{% endif %}
+
+{% endblock %}

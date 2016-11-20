@@ -14,6 +14,9 @@ from bunch import Bunch, bunchify
 # docformatter
 from docformatter import format_docstring
 
+# markdown
+from markdown import markdown
+
 # Zato
 from zato.common import SIMPLE_IO
 from zato.server.service.reqresp.sio import AsIs, SIO_TYPE_MAP, is_bool, is_int
@@ -195,9 +198,9 @@ class ServiceInfo(object):
 # ################################################################################################################################
 
 class Generator(object):
-    def __init__(self, service_store_services, filter=None):
+    def __init__(self, service_store_services, query=None):
         self.service_store_services = service_store_services
-        self.filter = filter
+        self.query = query
         self.services = {}
 
         # Service name -> list of services this service invokes
@@ -211,10 +214,21 @@ class Generator(object):
         """
         self.parse(ignore_prefix)
 
+        if self.query:
+            query_items = [elem.strip() for elem in self.query.strip().split()]
+        else:
+            query_items = []
+
         out = []
         for name in sorted(self.services):
+            proceed = True
 
-            if self.filter and name != self.filter:
+            if query_items:
+                for item in query_items:
+                    if item not in name:
+                        proceed = False
+
+            if not proceed:
                 continue
 
             info = self.services[name]
@@ -225,6 +239,7 @@ class Generator(object):
             item.docs.summary = info.docstring.summary
             item.docs.description = info.docstring.description
             item.docs.full = info.docstring.full
+            item.docs.full_md = markdown(info.docstring.full)
             item.invokes = sorted(info.invokes)
             item.invoked_by = sorted(info.invoked_by)
             item.simple_io = info.simple_io
