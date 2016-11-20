@@ -146,20 +146,24 @@ class APISpecTestCase(TestCase):
         string = get_dict_from_list('name', '_test.string', info)
 
         sio = string.simple_io[API_SPEC.OPEN_API_V2]
-        sio_ireq = [sorted(elem.items()) for elem in sio.input_required]
-        sio_oreq = [sorted(elem.items()) for elem in sio.output_required]
+        sio_ireq = self._sort_sio(sio.input_required)
+        sio_oreq = self._sort_sio(sio.output_required)
 
         self.assertEquals(sio.spec_name, API_SPEC.OPEN_API_V2)
         self.assertEquals(sio.request_elem, '')
         self.assertEquals(sio.response_elem, '')
 
-        self.assertEquals(sio_ireq[0], [('name', 'a'), ('subtype', None), ('type', 'string')])
-        self.assertEquals(sio_ireq[1], [('name', 'b'), ('subtype', None), ('type', 'string')])
-        self.assertEquals(sio_ireq[2], [('name', 'c'), ('subtype', None), ('type', 'string')])
+        self.assertEquals(sio_ireq, [
+            [('subtype', None), ('type', 'string'), ('name', 'a')],
+            [('subtype', None), ('type', 'string'), ('name', 'b')],
+            [('subtype', None), ('type', 'string'), ('name', 'c')]
+        ])
 
-        self.assertEquals(sio_oreq[0], [('name', 'aa'), ('subtype', None), ('type', 'string')])
-        self.assertEquals(sio_oreq[1], [('name', 'bb'), ('subtype', None), ('type', 'string')])
-        self.assertEquals(sio_oreq[2], [('name', 'cc'), ('subtype', None), ('type', 'string')])
+        self.assertEquals(sio_oreq, [
+            [('subtype', None), ('type', 'string'), ('name', 'aa')],
+            [('subtype', None), ('type', 'string'), ('name', 'bb')],
+            [('subtype', None), ('type', 'string'), ('name', 'cc')]
+        ])
 
         self.assertListEqual(sio.input_optional, [])
         self.assertListEqual(sio.output_optional, [])
@@ -172,20 +176,24 @@ class APISpecTestCase(TestCase):
         string = get_dict_from_list('name', '_test.string', info)
 
         sio = string.simple_io['zato']
-        sio_ireq = [sorted(elem.items()) for elem in sio.input_required]
-        sio_oreq = [sorted(elem.items()) for elem in sio.output_required]
+        sio_ireq = self._sort_sio(sio.input_required)
+        sio_oreq = self._sort_sio(sio.output_required)
 
         self.assertEquals(sio.spec_name, 'zato')
         self.assertEquals(sio.request_elem, '')
         self.assertEquals(sio.response_elem, '')
 
-        self.assertEquals(sio_ireq[0], [('name', 'a'), ('subtype', 'string'), ('type', 'string')])
-        self.assertEquals(sio_ireq[1], [('name', 'b'), ('subtype', 'string'), ('type', 'string')])
-        self.assertEquals(sio_ireq[2], [('name', 'c'), ('subtype', 'string'), ('type', 'string')])
+        self.assertEquals(sio_ireq, [
+            [('subtype', 'string'), ('type', 'string'), ('name', 'a')],
+            [('subtype', 'string'), ('type', 'string'), ('name', 'b')],
+            [('subtype', 'string'), ('type', 'string'), ('name', 'c')]
+        ])
 
-        self.assertEquals(sio_oreq[0], [('name', 'aa'), ('subtype', 'string'), ('type', 'string')])
-        self.assertEquals(sio_oreq[1], [('name', 'bb'), ('subtype', 'string'), ('type', 'string')])
-        self.assertEquals(sio_oreq[2], [('name', 'cc'), ('subtype', 'string'), ('type', 'string')])
+        self.assertEquals(sio_oreq, [
+            [('subtype', 'string'), ('type', 'string'), ('name', 'aa')],
+            [('subtype', 'string'), ('type', 'string'), ('name', 'bb')],
+            [('subtype', 'string'), ('type', 'string'), ('name', 'cc')]
+        ])
 
         self.assertListEqual(sio.input_optional, [])
         self.assertListEqual(sio.output_optional, [])
@@ -198,25 +206,31 @@ class APISpecTestCase(TestCase):
         string = get_dict_from_list('name', '_test.string2', info)
 
         sio = string.simple_io[API_SPEC.OPEN_API_V2]
-        sio_ireq = [sorted(elem.items()) for elem in sio.input_required]
-        sio_iopt = [sorted(elem.items()) for elem in sio.input_optional]
-        sio_oopt = [sorted(elem.items()) for elem in sio.output_optional]
+        sio_ireq = self._sort_sio(sio.input_required)
+        sio_iopt = self._sort_sio(sio.input_optional)
+        sio_oopt = self._sort_sio(sio.output_optional)
 
         self.assertEquals(sio.spec_name, API_SPEC.OPEN_API_V2)
         self.assertEquals(sio.request_elem, '')
         self.assertEquals(sio.response_elem, '')
 
-        self.assertEquals(sio_ireq[0], [('name', 'a2'), ('subtype', None), ('type', 'string')])
-        self.assertEquals(sio_ireq[1], [('name', 'b2'), ('subtype', None), ('type', 'string')])
-        self.assertEquals(sio_ireq[2], [('name', 'c2'), ('subtype', None), ('type', 'string')])
+        self.assertEquals(sio_ireq, [
+            [('subtype', None), ('type', 'string'), ('name', 'a2')],
+            [('subtype', None), ('type', 'string'), ('name', 'b2')],
+            [('subtype', None), ('type', 'string'), ('name', 'c2')]
+        ])
 
-        self.assertEquals(sio_iopt[0], [('name', 'a2a'), ('subtype', None), ('type', 'string')])
-        self.assertEquals(sio_iopt[1], [('name', 'b2b'), ('subtype', None), ('type', 'string')])
-        self.assertEquals(sio_iopt[2], [('name', 'c2c'), ('subtype', None), ('type', 'string')])
+        self.assertEquals(sio_iopt, [
+            [('subtype', None), ('type', 'string'), ('name', 'a2a')],
+            [('subtype', None), ('type', 'string'), ('name', 'b2b')],
+            [('subtype', None), ('type', 'string'), ('name', 'c2c')]
+        ])
 
-        self.assertEquals(sio_oopt[0], [('name', 'aa'), ('subtype', None), ('type', 'string')])
-        self.assertEquals(sio_oopt[1], [('name', 'bb'), ('subtype', None), ('type', 'string')])
-        self.assertEquals(sio_oopt[2], [('name', 'cc'), ('subtype', None), ('type', 'string')])
+        self.assertEquals(sio_oopt, [
+            [('subtype', None), ('type', 'string'), ('name', 'aa')],
+            [('subtype', None), ('type', 'string'), ('name', 'bb')],
+            [('subtype', None), ('type', 'string'), ('name', 'cc')]
+        ])
 
         self.assertListEqual(sio.output_required, [])
 
@@ -228,25 +242,31 @@ class APISpecTestCase(TestCase):
         string = get_dict_from_list('name', '_test.string2', info)
 
         sio = string.simple_io['zato']
-        sio_ireq = [sorted(elem.items()) for elem in sio.input_required]
-        sio_iopt = [sorted(elem.items()) for elem in sio.input_optional]
-        sio_oopt = [sorted(elem.items()) for elem in sio.output_optional]
+        sio_ireq = self._sort_sio(sio.input_required)
+        sio_iopt = self._sort_sio(sio.input_optional)
+        sio_oopt = self._sort_sio(sio.output_optional)
 
         self.assertEquals(sio.spec_name, 'zato')
         self.assertEquals(sio.request_elem, '')
         self.assertEquals(sio.response_elem, '')
 
-        self.assertEquals(sio_ireq[0], [('name', 'a2'), ('subtype', 'string'), ('type', 'string')])
-        self.assertEquals(sio_ireq[1], [('name', 'b2'), ('subtype', 'string'), ('type', 'string')])
-        self.assertEquals(sio_ireq[2], [('name', 'c2'), ('subtype', 'string'), ('type', 'string')])
+        self.assertEquals(sio_ireq, [
+            [('subtype', 'string'), ('type', 'string'), ('name', 'a2')],
+            [('subtype', 'string'), ('type', 'string'), ('name', 'b2')],
+            [('subtype', 'string'), ('type', 'string'), ('name', 'c2')]
+        ])
 
-        self.assertEquals(sio_iopt[0], [('name', 'a2a'), ('subtype', 'string'), ('type', 'string')])
-        self.assertEquals(sio_iopt[1], [('name', 'b2b'), ('subtype', 'string'), ('type', 'string')])
-        self.assertEquals(sio_iopt[2], [('name', 'c2c'), ('subtype', 'string'), ('type', 'string')])
+        self.assertEquals(sio_iopt, [
+            [('subtype', 'string'), ('type', 'string'), ('name', 'a2a')],
+            [('subtype', 'string'), ('type', 'string'), ('name', 'b2b')],
+            [('subtype', 'string'), ('type', 'string'), ('name', 'c2c')]
+        ])
 
-        self.assertEquals(sio_oopt[0], [('name', 'aa'), ('subtype', 'string'), ('type', 'string')])
-        self.assertEquals(sio_oopt[1], [('name', 'bb'), ('subtype', 'string'), ('type', 'string')])
-        self.assertEquals(sio_oopt[2], [('name', 'cc'), ('subtype', 'string'), ('type', 'string')])
+        self.assertEquals(sio_oopt, [
+            [('subtype', 'string'), ('type', 'string'), ('name', 'aa')],
+            [('subtype', 'string'), ('type', 'string'), ('name', 'bb')],
+            [('subtype', 'string'), ('type', 'string'), ('name', 'cc')]
+        ])
 
         self.assertListEqual(sio.output_required, [])
 
@@ -258,25 +278,31 @@ class APISpecTestCase(TestCase):
         string = get_dict_from_list('name', '_test.string3', info)
 
         sio = string.simple_io[API_SPEC.OPEN_API_V2]
-        sio_iopt = [sorted(elem.items()) for elem in sio.input_optional]
-        sio_oreq = [sorted(elem.items()) for elem in sio.output_required]
-        sio_oopt = [sorted(elem.items()) for elem in sio.output_optional]
+        sio_iopt = self._sort_sio(sio.input_optional)
+        sio_oreq = self._sort_sio(sio.output_required)
+        sio_oopt = self._sort_sio(sio.output_optional)
 
         self.assertEquals(sio.spec_name, API_SPEC.OPEN_API_V2)
         self.assertEquals(sio.request_elem, '')
         self.assertEquals(sio.response_elem, '')
 
-        self.assertEquals(sio_iopt[0], [('name', 'a2a'), ('subtype', None), ('type', 'string')])
-        self.assertEquals(sio_iopt[1], [('name', 'b2b'), ('subtype', None), ('type', 'string')])
-        self.assertEquals(sio_iopt[2], [('name', 'c2c'), ('subtype', None), ('type', 'string')])
+        self.assertEquals(sio_iopt, [
+            [('subtype', None), ('type', 'string'), ('name', 'a2a')],
+            [('subtype', None), ('type', 'string'), ('name', 'b2b')],
+            [('subtype', None), ('type', 'string'), ('name', 'c2c')]
+        ])
 
-        self.assertEquals(sio_oreq[0], [('name', 'aa'), ('subtype', None), ('type', 'string')])
-        self.assertEquals(sio_oreq[1], [('name', 'bb'), ('subtype', None), ('type', 'string')])
-        self.assertEquals(sio_oreq[2], [('name', 'cc'), ('subtype', None), ('type', 'string')])
+        self.assertEquals(sio_oreq, [
+            [('subtype', None), ('type', 'string'), ('name', 'aa')],
+            [('subtype', None), ('type', 'string'), ('name', 'bb')],
+            [('subtype', None), ('type', 'string'), ('name', 'cc')]
+        ])
 
-        self.assertEquals(sio_oopt[0], [('name', 'aaa'), ('subtype', None), ('type', 'string')])
-        self.assertEquals(sio_oopt[1], [('name', 'bbb'), ('subtype', None), ('type', 'string')])
-        self.assertEquals(sio_oopt[2], [('name', 'ccc'), ('subtype', None), ('type', 'string')])
+        self.assertEquals(sio_oopt, [
+            [('subtype', None), ('type', 'string'), ('name', 'aaa')],
+            [('subtype', None), ('type', 'string'), ('name', 'bbb')],
+            [('subtype', None), ('type', 'string'), ('name', 'ccc')]
+        ])
 
         self.assertListEqual(sio.input_required, [])
 
@@ -288,25 +314,31 @@ class APISpecTestCase(TestCase):
         string = get_dict_from_list('name', '_test.string3', info)
 
         sio = string.simple_io['zato']
-        sio_iopt = [sorted(elem.items()) for elem in sio.input_optional]
-        sio_oreq = [sorted(elem.items()) for elem in sio.output_required]
-        sio_oopt = [sorted(elem.items()) for elem in sio.output_optional]
+        sio_iopt = self._sort_sio(sio.input_optional)
+        sio_oreq = self._sort_sio(sio.output_required)
+        sio_oopt = self._sort_sio(sio.output_optional)
 
         self.assertEquals(sio.spec_name, 'zato')
         self.assertEquals(sio.request_elem, '')
         self.assertEquals(sio.response_elem, '')
 
-        self.assertEquals(sio_iopt[0], [('name', 'a2a'), ('subtype', 'string'), ('type', 'string')])
-        self.assertEquals(sio_iopt[1], [('name', 'b2b'), ('subtype', 'string'), ('type', 'string')])
-        self.assertEquals(sio_iopt[2], [('name', 'c2c'), ('subtype', 'string'), ('type', 'string')])
+        self.assertEquals(sio_iopt, [
+            [('subtype', 'string'), ('type', 'string'), ('name', 'a2a')],
+            [('subtype', 'string'), ('type', 'string'), ('name', 'b2b')],
+            [('subtype', 'string'), ('type', 'string'), ('name', 'c2c')]
+        ])
 
-        self.assertEquals(sio_oreq[0], [('name', 'aa'), ('subtype', 'string'), ('type', 'string')])
-        self.assertEquals(sio_oreq[1], [('name', 'bb'), ('subtype', 'string'), ('type', 'string')])
-        self.assertEquals(sio_oreq[2], [('name', 'cc'), ('subtype', 'string'), ('type', 'string')])
+        self.assertEquals(sio_oreq, [
+            [('subtype', 'string'), ('type', 'string'), ('name', 'aa')],
+            [('subtype', 'string'), ('type', 'string'), ('name', 'bb')],
+            [('subtype', 'string'), ('type', 'string'), ('name', 'cc')]
+        ])
 
-        self.assertEquals(sio_oopt[0], [('name', 'aaa'), ('subtype', 'string'), ('type', 'string')])
-        self.assertEquals(sio_oopt[1], [('name', 'bbb'), ('subtype', 'string'), ('type', 'string')])
-        self.assertEquals(sio_oopt[2], [('name', 'ccc'), ('subtype', 'string'), ('type', 'string')])
+        self.assertEquals(sio_oopt, [
+            [('subtype', 'string'), ('type', 'string'), ('name', 'aaa')],
+            [('subtype', 'string'), ('type', 'string'), ('name', 'bbb')],
+            [('subtype', 'string'), ('type', 'string'), ('name', 'ccc')]
+        ])
 
         self.assertListEqual(sio.input_required, [])
 
