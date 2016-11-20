@@ -73,3 +73,12 @@ class ForceTypeService(Service):
             Integer('hhhh'), List('iiii'), ListOfDicts('jjjj'), Nested('kkkk'), Opaque('llll'), Unicode('mmmm'), UTC('nnnn'))
 
 # ################################################################################################################################
+
+class RequestResponse(Service):
+    name = '_test.request-response'
+
+    class SimpleIO:
+        request_elem = 'my_request_elem'
+        response_elem = 'my_response_elem'
+
+# ################################################################################################################################

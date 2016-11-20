@@ -25,7 +25,7 @@ from zato.server.apispec._docstring import Docstring, Docstring2, Docstring3
 from zato.server.apispec._name import Name, Name2, Name3
 from zato.server.apispec._invokes_list import InvokesList, InvokesList2, InvokesList3
 from zato.server.apispec._invokes_string import InvokesString, InvokesString2, InvokesString3
-from zato.server.apispec._simple_io import BoolInt, ForceTypeService, String, String2, String3
+from zato.server.apispec._simple_io import BoolInt, ForceTypeService, RequestResponse, String, String2, String3
 
 logger = getLogger(__name__)
 
@@ -143,9 +143,9 @@ class APISpecTestCase(TestCase):
     def test_sio_string1_open_api_v2(self):
         gen = Generator(get_service_store_services(String))
         info = gen.get_info(rand_string())
-        string = get_dict_from_list('name', '_test.string', info)
+        req = get_dict_from_list('name', '_test.string', info)
 
-        sio = string.simple_io[API_SPEC.OPEN_API_V2]
+        sio = req.simple_io[API_SPEC.OPEN_API_V2]
         sio_ireq = self._sort_sio(sio.input_required)
         sio_oreq = self._sort_sio(sio.output_required)
 
@@ -173,9 +173,9 @@ class APISpecTestCase(TestCase):
     def test_sio_string1_zato(self):
         gen = Generator(get_service_store_services(String))
         info = gen.get_info(rand_string())
-        string = get_dict_from_list('name', '_test.string', info)
+        req = get_dict_from_list('name', '_test.string', info)
 
-        sio = string.simple_io['zato']
+        sio = req.simple_io['zato']
         sio_ireq = self._sort_sio(sio.input_required)
         sio_oreq = self._sort_sio(sio.output_required)
 
@@ -203,9 +203,9 @@ class APISpecTestCase(TestCase):
     def test_sio_string2_open_api_v2(self):
         gen = Generator(get_service_store_services(String2))
         info = gen.get_info(rand_string())
-        string = get_dict_from_list('name', '_test.string2', info)
+        req = get_dict_from_list('name', '_test.string2', info)
 
-        sio = string.simple_io[API_SPEC.OPEN_API_V2]
+        sio = req.simple_io[API_SPEC.OPEN_API_V2]
         sio_ireq = self._sort_sio(sio.input_required)
         sio_iopt = self._sort_sio(sio.input_optional)
         sio_oopt = self._sort_sio(sio.output_optional)
@@ -239,9 +239,9 @@ class APISpecTestCase(TestCase):
     def test_sio_string2_zato(self):
         gen = Generator(get_service_store_services(String2))
         info = gen.get_info(rand_string())
-        string = get_dict_from_list('name', '_test.string2', info)
+        req = get_dict_from_list('name', '_test.string2', info)
 
-        sio = string.simple_io['zato']
+        sio = req.simple_io['zato']
         sio_ireq = self._sort_sio(sio.input_required)
         sio_iopt = self._sort_sio(sio.input_optional)
         sio_oopt = self._sort_sio(sio.output_optional)
@@ -275,9 +275,9 @@ class APISpecTestCase(TestCase):
     def test_sio_string3_open_api_v2(self):
         gen = Generator(get_service_store_services(String3))
         info = gen.get_info(rand_string())
-        string = get_dict_from_list('name', '_test.string3', info)
+        req = get_dict_from_list('name', '_test.string3', info)
 
-        sio = string.simple_io[API_SPEC.OPEN_API_V2]
+        sio = req.simple_io[API_SPEC.OPEN_API_V2]
         sio_iopt = self._sort_sio(sio.input_optional)
         sio_oreq = self._sort_sio(sio.output_required)
         sio_oopt = self._sort_sio(sio.output_optional)
@@ -311,9 +311,9 @@ class APISpecTestCase(TestCase):
     def test_sio_string3_zato(self):
         gen = Generator(get_service_store_services(String3))
         info = gen.get_info(rand_string())
-        string = get_dict_from_list('name', '_test.string3', info)
+        req = get_dict_from_list('name', '_test.string3', info)
 
-        sio = string.simple_io['zato']
+        sio = req.simple_io['zato']
         sio_iopt = self._sort_sio(sio.input_optional)
         sio_oreq = self._sort_sio(sio.output_required)
         sio_oopt = self._sort_sio(sio.output_optional)
@@ -347,9 +347,9 @@ class APISpecTestCase(TestCase):
     def test_sio_bool_int_open_api_v2(self):
         gen = Generator(get_service_store_services(BoolInt))
         info = gen.get_info(rand_string())
-        string = get_dict_from_list('name', '_test.bool-int', info)
+        req = get_dict_from_list('name', '_test.bool-int', info)
 
-        sio = string.simple_io[API_SPEC.OPEN_API_V2]
+        sio = req.simple_io[API_SPEC.OPEN_API_V2]
 
         sio_ireq = self._sort_sio(sio.input_required)
         sio_iopt = self._sort_sio(sio.input_optional)
@@ -401,9 +401,9 @@ class APISpecTestCase(TestCase):
     def test_sio_bool_zato(self):
         gen = Generator(get_service_store_services(BoolInt))
         info = gen.get_info(rand_string())
-        string = get_dict_from_list('name', '_test.bool-int', info)
+        req = get_dict_from_list('name', '_test.bool-int', info)
 
-        sio = string.simple_io['zato']
+        sio = req.simple_io['zato']
 
         sio_ireq = self._sort_sio(sio.input_required)
         sio_iopt = self._sort_sio(sio.input_optional)
@@ -455,9 +455,9 @@ class APISpecTestCase(TestCase):
     def test_force_type_open_api_v2(self):
         gen = Generator(get_service_store_services(ForceTypeService))
         info = gen.get_info(rand_string())
-        string = get_dict_from_list('name', '_test.force-type', info)
+        req = get_dict_from_list('name', '_test.force-type', info)
 
-        sio = string.simple_io[API_SPEC.OPEN_API_V2]
+        sio = req.simple_io[API_SPEC.OPEN_API_V2]
 
         sio_ireq = self._sort_sio(sio.input_required)
         sio_iopt = self._sort_sio(sio.input_optional)
@@ -535,5 +535,17 @@ class APISpecTestCase(TestCase):
             [('subtype', None),        ('type', 'string'),  ('name', 'mmmm')],
             [('subtype', 'date-time'), ('type', 'string'),  ('name', 'nnnn')]
         ])
+
+# ################################################################################################################################
+
+    def test_request_response_open_api_v2(self):
+        gen = Generator(get_service_store_services(RequestResponse))
+        info = gen.get_info(rand_string())
+        req = get_dict_from_list('name', '_test.request-response', info)
+        sio = req.simple_io[API_SPEC.OPEN_API_V2]
+
+        self.assertEquals(sio.spec_name, API_SPEC.OPEN_API_V2)
+        self.assertEquals(sio.request_elem, 'my_request_elem')
+        self.assertEquals(sio.response_elem, 'my_response_elem')
 
 # ################################################################################################################################
