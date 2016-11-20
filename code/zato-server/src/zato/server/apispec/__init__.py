@@ -19,7 +19,7 @@ from docformatter import format_docstring, split_summary_and_description as spli
 
 # Zato
 from zato.common import API_SPEC, SIMPLE_IO
-from zato.server.service.reqresp.sio import SIO_TYPE_MAP, is_bool, is_int
+from zato.server.service.reqresp.sio import AsIs, SIO_TYPE_MAP, is_bool, is_int
 
 # ################################################################################################################################
 
@@ -123,7 +123,10 @@ class ServiceInfo(object):
                         _param_info = Bunch()
                         _param_info.name = param_name
 
-                        if is_bool(param, param_name, SIMPLE_IO.BOOL_PARAMETERS.SUFFIXES):
+                        if isinstance(param, AsIs):
+                            type_info = api_spec_info.DEFAULT
+
+                        elif is_bool(param, param_name, SIMPLE_IO.BOOL_PARAMETERS.SUFFIXES):
                             type_info = api_spec_info.BOOLEAN
 
                         elif is_int(param_name, SIMPLE_IO.INT_PARAMETERS.VALUES, SIMPLE_IO.INT_PARAMETERS.SUFFIXES):
