@@ -195,8 +195,9 @@ class ServiceInfo(object):
 # ################################################################################################################################
 
 class Generator(object):
-    def __init__(self, service_store_services):
+    def __init__(self, service_store_services, filter=None):
         self.service_store_services = service_store_services
+        self.filter = filter
         self.services = {}
 
         # Service name -> list of services this service invokes
@@ -212,6 +213,10 @@ class Generator(object):
 
         out = []
         for name in sorted(self.services):
+
+            if self.filter and name != self.filter:
+                continue
+
             info = self.services[name]
             item = Bunch()
 

@@ -28,6 +28,9 @@ msg_browser_defaults = WEB_SOCKET.DEFAULT.LIVE_MSG_BROWSER
 
 zato_services = {
 
+    # API Spec
+    'zato.apispec.get-api-spec':'zato.server.service.internal.apispec.GetAPISpec',
+
     # Channels - AMQP
     'zato.channel.amqp.create':'zato.server.service.internal.channel.amqp.Create',
     'zato.channel.amqp.delete':'zato.server.service.internal.channel.amqp.Delete',
