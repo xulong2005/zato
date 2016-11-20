@@ -365,8 +365,7 @@ class Service(object):
 
             try:
 
-                has_live_msg_browser = self.server.component_enabled.live_msg_browser
-
+                #has_live_msg_browser = self.server.component_enabled.live_msg_browser
                 #if has_live_msg_browser and 'qqq' in service.get_name():
                 #    service._notify_msg_browser('before hooks')
 

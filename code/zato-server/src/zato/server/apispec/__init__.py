@@ -8,17 +8,14 @@ Licensed under LGPLv3, see LICENSE.txt for terms and conditions.
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-# stdlib
-from inspect import getmodule
-
 # Bunch
 from bunch import Bunch, bunchify
 
 # docformatter
-from docformatter import format_docstring, split_summary_and_description as split_docstring
+from docformatter import format_docstring
 
 # Zato
-from zato.common import API_SPEC, SIMPLE_IO
+from zato.common import SIMPLE_IO
 from zato.server.service.reqresp.sio import AsIs, SIO_TYPE_MAP, is_bool, is_int
 
 # ################################################################################################################################

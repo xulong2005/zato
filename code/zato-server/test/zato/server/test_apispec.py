@@ -10,12 +10,10 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 # stdlib
 from logging import getLogger
-from operator import itemgetter as iget
-from pprint import pprint
 from unittest import TestCase
 
 # Bunch
-from bunch import Bunch, bunchify
+from bunch import bunchify
 
 # Zato
 from zato.common import API_SPEC
@@ -538,7 +536,7 @@ class APISpecTestCase(TestCase):
 
 # ################################################################################################################################
 
-    def test_force_type_open_api_v2(self):
+    def test_force_type_zato(self):
         gen = Generator(get_service_store_services(ForceTypeService))
         info = gen.get_info(rand_string())
         req = get_dict_from_list('name', '_test.force-type', info)
