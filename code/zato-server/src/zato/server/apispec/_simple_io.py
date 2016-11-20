@@ -43,3 +43,14 @@ class String3(Service):
         output_optional = ('aaa', 'bbb', 'ccc')
 
 # ################################################################################################################################
+
+class BoolInt(Service):
+    name = '_test.bool-int'
+
+    class SimpleIO:
+        input_required = ('id', 'a_id', 'a_count', 'a_size', 'a_timeout', 'is_a', 'needs_a', 'should_a')
+        input_optional = ('id', 'b_id', 'b_count', 'b_size', 'b_timeout', 'is_b', 'needs_b', 'should_b')
+        output_required = ('id', 'c_id', 'c_count', 'c_size', 'c_timeout', 'is_c', 'needs_c', 'should_c')
+        output_optional = ('id', 'd_id', 'd_count', 'd_size', 'd_timeout', 'is_d', 'needs_d', 'should_d')
+
+# ################################################################################################################################

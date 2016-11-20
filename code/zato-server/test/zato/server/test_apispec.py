@@ -10,6 +10,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 # stdlib
 from logging import getLogger
+from operator import itemgetter as iget
 from pprint import pprint
 from unittest import TestCase
 
@@ -24,7 +25,7 @@ from zato.server.apispec._docstring import Docstring, Docstring2, Docstring3
 from zato.server.apispec._name import Name, Name2, Name3
 from zato.server.apispec._invokes_list import InvokesList, InvokesList2, InvokesList3
 from zato.server.apispec._invokes_string import InvokesString, InvokesString2, InvokesString3
-from zato.server.apispec._simple_io import String, String2, String3
+from zato.server.apispec._simple_io import BoolInt, String, String2, String3
 
 logger = getLogger(__name__)
 
@@ -48,6 +49,11 @@ def get_dict_from_list(key, value, list_, as_bunch=True):
 # ################################################################################################################################
 
 class APISpecTestCase(TestCase):
+
+# ################################################################################################################################
+
+    def _sort_sio(self, elems):
+        return [elem.items() for elem in sorted(elems, key=lambda k:k['name'])]
 
 # ################################################################################################################################
 
@@ -303,5 +309,113 @@ class APISpecTestCase(TestCase):
         self.assertEquals(sio_oopt[2], [('name', 'ccc'), ('subtype', 'string'), ('type', 'string')])
 
         self.assertListEqual(sio.input_required, [])
+
+# ################################################################################################################################
+
+    def test_sio_bool_int_open_api_v2(self):
+        gen = Generator(get_service_store_services(BoolInt))
+        info = gen.get_info(rand_string())
+        string = get_dict_from_list('name', '_test.bool-int', info)
+
+        sio = string.simple_io[API_SPEC.OPEN_API_V2]
+
+        sio_ireq = self._sort_sio(sio.input_required)
+        sio_iopt = self._sort_sio(sio.input_optional)
+        sio_oreq = self._sort_sio(sio.output_required)
+        sio_oopt = self._sort_sio(sio.output_optional)
+
+        self.assertEquals(sio.spec_name, API_SPEC.OPEN_API_V2)
+        self.assertEquals(sio.request_elem, '')
+        self.assertEquals(sio.response_elem, '')
+
+        self.assertEquals(sio_ireq[0], [('subtype', 'int32'), ('type', 'integer'), ('name', 'a_count')])
+        self.assertEquals(sio_ireq[1], [('subtype', 'int32'), ('type', 'integer'), ('name', 'a_id')])
+        self.assertEquals(sio_ireq[2], [('subtype', 'int32'), ('type', 'integer'), ('name', 'a_size')])
+        self.assertEquals(sio_ireq[3], [('subtype', 'int32'), ('type', 'integer'), ('name', 'a_timeout')])
+        self.assertEquals(sio_ireq[4], [('subtype', 'int32'), ('type', 'integer'), ('name', 'id')])
+        self.assertEquals(sio_ireq[5], [('subtype', None), ('type', 'boolean'), ('name', 'is_a')])
+        self.assertEquals(sio_ireq[6], [('subtype', None), ('type', 'boolean'), ('name', 'needs_a')])
+        self.assertEquals(sio_ireq[7], [('subtype', None), ('type', 'boolean'), ('name', 'should_a')])
+
+        self.assertEquals(sio_iopt[0], [('subtype', 'int32'), ('type', 'integer'), ('name', 'b_count')])
+        self.assertEquals(sio_iopt[1], [('subtype', 'int32'), ('type', 'integer'), ('name', 'b_id')])
+        self.assertEquals(sio_iopt[2], [('subtype', 'int32'), ('type', 'integer'), ('name', 'b_size')])
+        self.assertEquals(sio_iopt[3], [('subtype', 'int32'), ('type', 'integer'), ('name', 'b_timeout')])
+        self.assertEquals(sio_iopt[4], [('subtype', 'int32'), ('type', 'integer'), ('name', 'id')])
+        self.assertEquals(sio_iopt[5], [('subtype', None), ('type', 'boolean'), ('name', 'is_b')])
+        self.assertEquals(sio_iopt[6], [('subtype', None), ('type', 'boolean'), ('name', 'needs_b')])
+        self.assertEquals(sio_iopt[7], [('subtype', None), ('type', 'boolean'), ('name', 'should_b')])
+
+        self.assertEquals(sio_oreq[0], [('subtype', 'int32'), ('type', 'integer'), ('name', 'c_count')])
+        self.assertEquals(sio_oreq[1], [('subtype', 'int32'), ('type', 'integer'), ('name', 'c_id')])
+        self.assertEquals(sio_oreq[2], [('subtype', 'int32'), ('type', 'integer'), ('name', 'c_size')])
+        self.assertEquals(sio_oreq[3], [('subtype', 'int32'), ('type', 'integer'), ('name', 'c_timeout')])
+        self.assertEquals(sio_oreq[4], [('subtype', 'int32'), ('type', 'integer'), ('name', 'id')])
+        self.assertEquals(sio_oreq[5], [('subtype', None), ('type', 'boolean'), ('name', 'is_c')])
+        self.assertEquals(sio_oreq[6], [('subtype', None), ('type', 'boolean'), ('name', 'needs_c')])
+        self.assertEquals(sio_oreq[7], [('subtype', None), ('type', 'boolean'), ('name', 'should_c')])
+
+        self.assertEquals(sio_oopt[0], [('subtype', 'int32'), ('type', 'integer'), ('name', 'd_count')])
+        self.assertEquals(sio_oopt[1], [('subtype', 'int32'), ('type', 'integer'), ('name', 'd_id')])
+        self.assertEquals(sio_oopt[2], [('subtype', 'int32'), ('type', 'integer'), ('name', 'd_size')])
+        self.assertEquals(sio_oopt[3], [('subtype', 'int32'), ('type', 'integer'), ('name', 'd_timeout')])
+        self.assertEquals(sio_oopt[4], [('subtype', 'int32'), ('type', 'integer'), ('name', 'id')])
+        self.assertEquals(sio_oopt[5], [('subtype', None), ('type', 'boolean'), ('name', 'is_d')])
+        self.assertEquals(sio_oopt[6], [('subtype', None), ('type', 'boolean'), ('name', 'needs_d')])
+        self.assertEquals(sio_oopt[7], [('subtype', None), ('type', 'boolean'), ('name', 'should_d')])
+
+# ################################################################################################################################
+
+    def test_sio_bool_zato(self):
+        gen = Generator(get_service_store_services(BoolInt))
+        info = gen.get_info(rand_string())
+        string = get_dict_from_list('name', '_test.bool-int', info)
+
+        sio = string.simple_io['zato']
+
+        sio_ireq = self._sort_sio(sio.input_required)
+        sio_iopt = self._sort_sio(sio.input_optional)
+        sio_oreq = self._sort_sio(sio.output_required)
+        sio_oopt = self._sort_sio(sio.output_optional)
+
+        self.assertEquals(sio.spec_name, 'zato')
+        self.assertEquals(sio.request_elem, '')
+        self.assertEquals(sio.response_elem, '')
+
+        self.assertEquals(sio_ireq[0], [('subtype', 'integer'), ('type', 'integer'), ('name', 'a_count')])
+        self.assertEquals(sio_ireq[1], [('subtype', 'integer'), ('type', 'integer'), ('name', 'a_id')])
+        self.assertEquals(sio_ireq[2], [('subtype', 'integer'), ('type', 'integer'), ('name', 'a_size')])
+        self.assertEquals(sio_ireq[3], [('subtype', 'integer'), ('type', 'integer'), ('name', 'a_timeout')])
+        self.assertEquals(sio_ireq[4], [('subtype', 'integer'), ('type', 'integer'), ('name', 'id')])
+        self.assertEquals(sio_ireq[5], [('subtype', 'boolean'), ('type', 'boolean'), ('name', 'is_a')])
+        self.assertEquals(sio_ireq[6], [('subtype', 'boolean'), ('type', 'boolean'), ('name', 'needs_a')])
+        self.assertEquals(sio_ireq[7], [('subtype', 'boolean'), ('type', 'boolean'), ('name', 'should_a')])
+
+        self.assertEquals(sio_iopt[0], [('subtype', 'integer'), ('type', 'integer'), ('name', 'b_count')])
+        self.assertEquals(sio_iopt[1], [('subtype', 'integer'), ('type', 'integer'), ('name', 'b_id')])
+        self.assertEquals(sio_iopt[2], [('subtype', 'integer'), ('type', 'integer'), ('name', 'b_size')])
+        self.assertEquals(sio_iopt[3], [('subtype', 'integer'), ('type', 'integer'), ('name', 'b_timeout')])
+        self.assertEquals(sio_iopt[4], [('subtype', 'integer'), ('type', 'integer'), ('name', 'id')])
+        self.assertEquals(sio_iopt[5], [('subtype', 'boolean'), ('type', 'boolean'), ('name', 'is_b')])
+        self.assertEquals(sio_iopt[6], [('subtype', 'boolean'), ('type', 'boolean'), ('name', 'needs_b')])
+        self.assertEquals(sio_iopt[7], [('subtype', 'boolean'), ('type', 'boolean'), ('name', 'should_b')])
+
+        self.assertEquals(sio_oreq[0], [('subtype', 'integer'), ('type', 'integer'), ('name', 'c_count')])
+        self.assertEquals(sio_oreq[1], [('subtype', 'integer'), ('type', 'integer'), ('name', 'c_id')])
+        self.assertEquals(sio_oreq[2], [('subtype', 'integer'), ('type', 'integer'), ('name', 'c_size')])
+        self.assertEquals(sio_oreq[3], [('subtype', 'integer'), ('type', 'integer'), ('name', 'c_timeout')])
+        self.assertEquals(sio_oreq[4], [('subtype', 'integer'), ('type', 'integer'), ('name', 'id')])
+        self.assertEquals(sio_oreq[5], [('subtype', 'boolean'), ('type', 'boolean'), ('name', 'is_c')])
+        self.assertEquals(sio_oreq[6], [('subtype', 'boolean'), ('type', 'boolean'), ('name', 'needs_c')])
+        self.assertEquals(sio_oreq[7], [('subtype', 'boolean'), ('type', 'boolean'), ('name', 'should_c')])
+
+        self.assertEquals(sio_oopt[0], [('subtype', 'integer'), ('type', 'integer'), ('name', 'd_count')])
+        self.assertEquals(sio_oopt[1], [('subtype', 'integer'), ('type', 'integer'), ('name', 'd_id')])
+        self.assertEquals(sio_oopt[2], [('subtype', 'integer'), ('type', 'integer'), ('name', 'd_size')])
+        self.assertEquals(sio_oopt[3], [('subtype', 'integer'), ('type', 'integer'), ('name', 'd_timeout')])
+        self.assertEquals(sio_oopt[4], [('subtype', 'integer'), ('type', 'integer'), ('name', 'id')])
+        self.assertEquals(sio_oopt[5], [('subtype', 'boolean'), ('type', 'boolean'), ('name', 'is_d')])
+        self.assertEquals(sio_oopt[6], [('subtype', 'boolean'), ('type', 'boolean'), ('name', 'needs_d')])
+        self.assertEquals(sio_oopt[7], [('subtype', 'boolean'), ('type', 'boolean'), ('name', 'should_d')])
 
 # ################################################################################################################################
