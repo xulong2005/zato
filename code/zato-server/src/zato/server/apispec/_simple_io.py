@@ -20,6 +20,7 @@ class String(Service):
 
     class SimpleIO:
         input_required = ('a', 'b', 'c')
+        output_required = ('aa', 'bb', 'cc')
 
 # ################################################################################################################################
 
@@ -29,6 +30,7 @@ class String2(Service):
     class SimpleIO:
         input_required = ('a2', 'b2', 'c2')
         input_optional = ('a2a', 'b2b', 'c2c')
+        output_optional = ('aa', 'bb', 'cc')
 
 # ################################################################################################################################
 
@@ -37,5 +39,7 @@ class String3(Service):
 
     class SimpleIO:
         input_optional = ('a2a', 'b2b', 'c2c')
+        output_required = ('aa', 'bb', 'cc')
+        output_optional = ('aaa', 'bbb', 'ccc')
 
 # ################################################################################################################################
