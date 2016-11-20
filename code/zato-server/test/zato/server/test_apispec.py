@@ -365,36 +365,36 @@ class APISpecTestCase(TestCase):
         self.assertEquals(sio_ireq[2], [('subtype', 'int32'), ('type', 'integer'), ('name', 'a_size')])
         self.assertEquals(sio_ireq[3], [('subtype', 'int32'), ('type', 'integer'), ('name', 'a_timeout')])
         self.assertEquals(sio_ireq[4], [('subtype', 'int32'), ('type', 'integer'), ('name', 'id')])
-        self.assertEquals(sio_ireq[5], [('subtype', None), ('type', 'boolean'), ('name', 'is_a')])
-        self.assertEquals(sio_ireq[6], [('subtype', None), ('type', 'boolean'), ('name', 'needs_a')])
-        self.assertEquals(sio_ireq[7], [('subtype', None), ('type', 'boolean'), ('name', 'should_a')])
+        self.assertEquals(sio_ireq[5], [('subtype', None),    ('type', 'boolean'), ('name', 'is_a')])
+        self.assertEquals(sio_ireq[6], [('subtype', None),    ('type', 'boolean'), ('name', 'needs_a')])
+        self.assertEquals(sio_ireq[7], [('subtype', None),    ('type', 'boolean'), ('name', 'should_a')])
 
         self.assertEquals(sio_iopt[0], [('subtype', 'int32'), ('type', 'integer'), ('name', 'b_count')])
         self.assertEquals(sio_iopt[1], [('subtype', 'int32'), ('type', 'integer'), ('name', 'b_id')])
         self.assertEquals(sio_iopt[2], [('subtype', 'int32'), ('type', 'integer'), ('name', 'b_size')])
         self.assertEquals(sio_iopt[3], [('subtype', 'int32'), ('type', 'integer'), ('name', 'b_timeout')])
         self.assertEquals(sio_iopt[4], [('subtype', 'int32'), ('type', 'integer'), ('name', 'id')])
-        self.assertEquals(sio_iopt[5], [('subtype', None), ('type', 'boolean'), ('name', 'is_b')])
-        self.assertEquals(sio_iopt[6], [('subtype', None), ('type', 'boolean'), ('name', 'needs_b')])
-        self.assertEquals(sio_iopt[7], [('subtype', None), ('type', 'boolean'), ('name', 'should_b')])
+        self.assertEquals(sio_iopt[5], [('subtype', None),    ('type', 'boolean'), ('name', 'is_b')])
+        self.assertEquals(sio_iopt[6], [('subtype', None),    ('type', 'boolean'), ('name', 'needs_b')])
+        self.assertEquals(sio_iopt[7], [('subtype', None),    ('type', 'boolean'), ('name', 'should_b')])
 
         self.assertEquals(sio_oreq[0], [('subtype', 'int32'), ('type', 'integer'), ('name', 'c_count')])
         self.assertEquals(sio_oreq[1], [('subtype', 'int32'), ('type', 'integer'), ('name', 'c_id')])
         self.assertEquals(sio_oreq[2], [('subtype', 'int32'), ('type', 'integer'), ('name', 'c_size')])
         self.assertEquals(sio_oreq[3], [('subtype', 'int32'), ('type', 'integer'), ('name', 'c_timeout')])
         self.assertEquals(sio_oreq[4], [('subtype', 'int32'), ('type', 'integer'), ('name', 'id')])
-        self.assertEquals(sio_oreq[5], [('subtype', None), ('type', 'boolean'), ('name', 'is_c')])
-        self.assertEquals(sio_oreq[6], [('subtype', None), ('type', 'boolean'), ('name', 'needs_c')])
-        self.assertEquals(sio_oreq[7], [('subtype', None), ('type', 'boolean'), ('name', 'should_c')])
+        self.assertEquals(sio_oreq[5], [('subtype', None),    ('type', 'boolean'), ('name', 'is_c')])
+        self.assertEquals(sio_oreq[6], [('subtype', None),    ('type', 'boolean'), ('name', 'needs_c')])
+        self.assertEquals(sio_oreq[7], [('subtype', None),    ('type', 'boolean'), ('name', 'should_c')])
 
         self.assertEquals(sio_oopt[0], [('subtype', 'int32'), ('type', 'integer'), ('name', 'd_count')])
         self.assertEquals(sio_oopt[1], [('subtype', 'int32'), ('type', 'integer'), ('name', 'd_id')])
         self.assertEquals(sio_oopt[2], [('subtype', 'int32'), ('type', 'integer'), ('name', 'd_size')])
         self.assertEquals(sio_oopt[3], [('subtype', 'int32'), ('type', 'integer'), ('name', 'd_timeout')])
         self.assertEquals(sio_oopt[4], [('subtype', 'int32'), ('type', 'integer'), ('name', 'id')])
-        self.assertEquals(sio_oopt[5], [('subtype', None), ('type', 'boolean'), ('name', 'is_d')])
-        self.assertEquals(sio_oopt[6], [('subtype', None), ('type', 'boolean'), ('name', 'needs_d')])
-        self.assertEquals(sio_oopt[7], [('subtype', None), ('type', 'boolean'), ('name', 'should_d')])
+        self.assertEquals(sio_oopt[5], [('subtype', None),    ('type', 'boolean'), ('name', 'is_d')])
+        self.assertEquals(sio_oopt[6], [('subtype', None),    ('type', 'boolean'), ('name', 'needs_d')])
+        self.assertEquals(sio_oopt[7], [('subtype', None),    ('type', 'boolean'), ('name', 'should_d')])
 
 # ################################################################################################################################
 
@@ -469,71 +469,71 @@ class APISpecTestCase(TestCase):
         self.assertEquals(sio.response_elem, '')
 
         self.assertListEqual(sio_ireq, [
-            [('subtype', None), ('type', 'boolean'), ('name', 'b')],
-            [('subtype', None), ('type', 'boolean'), ('name', 'c')],
-            [('subtype', None), ('type', 'string'), ('name', 'd')],
-            [('subtype', None), ('type', None), ('name', 'e')],
-            [('subtype', 'float'), ('type', 'number'), ('name', 'f')],
-            [('subtype', 'int32'), ('type', 'integer'), ('name', 'g')],
-            [('subtype', 'int32'), ('type', 'integer'), ('name', 'h')],
-            [('subtype', None), ('type', None), ('name', 'i')],
-            [('subtype', None), ('type', 'string'), ('name', 'is_a')],
-            [('subtype', None), ('type', None), ('name', 'j')],
-            [('subtype', None), ('type', None), ('name', 'k')],
-            [('subtype', None), ('type', None), ('name', 'l')],
-            [('subtype', None), ('type', 'string'), ('name', 'm')],
-            [('subtype', 'date-time'), ('type', 'string'), ('name', 'n')]
+            [('subtype', None),        ('type', 'boolean'), ('name', 'b')],
+            [('subtype', None),        ('type', 'boolean'), ('name', 'c')],
+            [('subtype', None),        ('type', 'string'),  ('name', 'd')],
+            [('subtype', None),        ('type', None),      ('name', 'e')],
+            [('subtype', 'float'),     ('type', 'number'),  ('name', 'f')],
+            [('subtype', 'int32'),     ('type', 'integer'), ('name', 'g')],
+            [('subtype', 'int32'),     ('type', 'integer'), ('name', 'h')],
+            [('subtype', None),        ('type', None),      ('name', 'i')],
+            [('subtype', None),        ('type', 'string'),  ('name', 'is_a')],
+            [('subtype', None),        ('type', None),      ('name', 'j')],
+            [('subtype', None),        ('type', None),      ('name', 'k')],
+            [('subtype', None),        ('type', None),      ('name', 'l')],
+            [('subtype', None),        ('type', 'string'),  ('name', 'm')],
+            [('subtype', 'date-time'), ('type', 'string'),  ('name', 'n')]
         ])
 
         self.assertListEqual(sio_iopt, [
-            [('subtype', None), ('type', 'boolean'), ('name', 'bb')],
-            [('subtype', None), ('type', 'boolean'), ('name', 'cc')],
-            [('subtype', None), ('type', 'string'), ('name', 'dd')],
-            [('subtype', None), ('type', None), ('name', 'ee')],
-            [('subtype', 'float'), ('type', 'number'), ('name', 'ff')],
-            [('subtype', 'int32'), ('type', 'integer'), ('name', 'gg')],
-            [('subtype', 'int32'), ('type', 'integer'), ('name', 'hh')],
-            [('subtype', None), ('type', None), ('name', 'ii')],
-            [('subtype', None), ('type', 'string'), ('name', 'is_aa')],
-            [('subtype', None), ('type', None), ('name', 'jj')],
-            [('subtype', None), ('type', None), ('name', 'kk')],
-            [('subtype', None), ('type', None), ('name', 'll')],
-            [('subtype', None), ('type', 'string'), ('name', 'mm')],
-            [('subtype', 'date-time'), ('type', 'string'), ('name', 'nn')]
+            [('subtype', None),        ('type', 'boolean'), ('name', 'bb')],
+            [('subtype', None),        ('type', 'boolean'), ('name', 'cc')],
+            [('subtype', None),        ('type', 'string'),  ('name', 'dd')],
+            [('subtype', None),        ('type', None),      ('name', 'ee')],
+            [('subtype', 'float'),     ('type', 'number'),  ('name', 'ff')],
+            [('subtype', 'int32'),     ('type', 'integer'), ('name', 'gg')],
+            [('subtype', 'int32'),     ('type', 'integer'), ('name', 'hh')],
+            [('subtype', None),        ('type', None),      ('name', 'ii')],
+            [('subtype', None),        ('type', 'string'),  ('name', 'is_aa')],
+            [('subtype', None),        ('type', None),      ('name', 'jj')],
+            [('subtype', None),        ('type', None),      ('name', 'kk')],
+            [('subtype', None),        ('type', None),      ('name', 'll')],
+            [('subtype', None),        ('type', 'string'),  ('name', 'mm')],
+            [('subtype', 'date-time'), ('type', 'string'),  ('name', 'nn')]
         ])
 
         self.assertListEqual(sio_oreq, [
-            [('subtype', None), ('type', 'boolean'), ('name', 'bbb')],
-            [('subtype', None), ('type', 'boolean'), ('name', 'ccc')],
-            [('subtype', None), ('type', 'string'), ('name', 'ddd')],
-            [('subtype', None), ('type', None), ('name', 'eee')],
-            [('subtype', 'float'), ('type', 'number'), ('name', 'fff')],
-            [('subtype', 'int32'), ('type', 'integer'), ('name', 'ggg')],
-            [('subtype', 'int32'), ('type', 'integer'), ('name', 'hhh')],
-            [('subtype', None), ('type', None), ('name', 'iii')],
-            [('subtype', None), ('type', 'string'), ('name', 'is_aaa')],
-            [('subtype', None), ('type', None), ('name', 'jjj')],
-            [('subtype', None), ('type', None), ('name', 'kkk')],
-            [('subtype', None), ('type', None), ('name', 'lll')],
-            [('subtype', None), ('type', 'string'), ('name', 'mmm')],
-            [('subtype', 'date-time'), ('type', 'string'), ('name', 'nnn')]
+            [('subtype', None),        ('type', 'boolean'), ('name', 'bbb')],
+            [('subtype', None),        ('type', 'boolean'), ('name', 'ccc')],
+            [('subtype', None),        ('type', 'string'),  ('name', 'ddd')],
+            [('subtype', None),        ('type', None),      ('name', 'eee')],
+            [('subtype', 'float'),     ('type', 'number'),  ('name', 'fff')],
+            [('subtype', 'int32'),     ('type', 'integer'), ('name', 'ggg')],
+            [('subtype', 'int32'),     ('type', 'integer'), ('name', 'hhh')],
+            [('subtype', None),        ('type', None),      ('name', 'iii')],
+            [('subtype', None),        ('type', 'string'),  ('name', 'is_aaa')],
+            [('subtype', None),        ('type', None),      ('name', 'jjj')],
+            [('subtype', None),        ('type', None),      ('name', 'kkk')],
+            [('subtype', None),        ('type', None),      ('name', 'lll')],
+            [('subtype', None),        ('type', 'string'),  ('name', 'mmm')],
+            [('subtype', 'date-time'), ('type', 'string'),  ('name', 'nnn')]
         ])
 
         self.assertListEqual(sio_oopt, [
-            [('subtype', None), ('type', 'boolean'), ('name', 'bbbb')],
-            [('subtype', None), ('type', 'boolean'), ('name', 'cccc')],
-            [('subtype', None), ('type', 'string'), ('name', 'dddd')],
-            [('subtype', None), ('type', None), ('name', 'eeee')],
-            [('subtype', 'float'), ('type', 'number'), ('name', 'ffff')],
-            [('subtype', 'int32'), ('type', 'integer'), ('name', 'gggg')],
-            [('subtype', 'int32'), ('type', 'integer'), ('name', 'hhhh')],
-            [('subtype', None), ('type', None), ('name', 'iiii')],
-            [('subtype', None), ('type', 'string'), ('name', 'is_aaaa')],
-            [('subtype', None), ('type', None), ('name', 'jjjj')],
-            [('subtype', None), ('type', None), ('name', 'kkkk')],
-            [('subtype', None), ('type', None), ('name', 'llll')],
-            [('subtype', None), ('type', 'string'), ('name', 'mmmm')],
-            [('subtype', 'date-time'), ('type', 'string'), ('name', 'nnnn')]
+            [('subtype', None),        ('type', 'boolean'), ('name', 'bbbb')],
+            [('subtype', None),        ('type', 'boolean'), ('name', 'cccc')],
+            [('subtype', None),        ('type', 'string'),  ('name', 'dddd')],
+            [('subtype', None),        ('type', None),      ('name', 'eeee')],
+            [('subtype', 'float'),     ('type', 'number'),  ('name', 'ffff')],
+            [('subtype', 'int32'),     ('type', 'integer'), ('name', 'gggg')],
+            [('subtype', 'int32'),     ('type', 'integer'), ('name', 'hhhh')],
+            [('subtype', None),        ('type', None),      ('name', 'iiii')],
+            [('subtype', None),        ('type', 'string'),  ('name', 'is_aaaa')],
+            [('subtype', None),        ('type', None),      ('name', 'jjjj')],
+            [('subtype', None),        ('type', None),      ('name', 'kkkk')],
+            [('subtype', None),        ('type', None),      ('name', 'llll')],
+            [('subtype', None),        ('type', 'string'),  ('name', 'mmmm')],
+            [('subtype', 'date-time'), ('type', 'string'),  ('name', 'nnnn')]
         ])
 
 # ################################################################################################################################
