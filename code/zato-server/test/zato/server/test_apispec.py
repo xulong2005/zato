@@ -25,7 +25,7 @@ from zato.server.apispec._docstring import Docstring, Docstring2, Docstring3
 from zato.server.apispec._name import Name, Name2, Name3
 from zato.server.apispec._invokes_list import InvokesList, InvokesList2, InvokesList3
 from zato.server.apispec._invokes_string import InvokesString, InvokesString2, InvokesString3
-from zato.server.apispec._simple_io import BoolInt, String, String2, String3
+from zato.server.apispec._simple_io import BoolInt, ForceTypeService, String, String2, String3
 
 logger = getLogger(__name__)
 
@@ -153,13 +153,13 @@ class APISpecTestCase(TestCase):
         self.assertEquals(sio.request_elem, '')
         self.assertEquals(sio.response_elem, '')
 
-        self.assertEquals(sio_ireq, [
+        self.assertListEqual(sio_ireq, [
             [('subtype', None), ('type', 'string'), ('name', 'a')],
             [('subtype', None), ('type', 'string'), ('name', 'b')],
             [('subtype', None), ('type', 'string'), ('name', 'c')]
         ])
 
-        self.assertEquals(sio_oreq, [
+        self.assertListEqual(sio_oreq, [
             [('subtype', None), ('type', 'string'), ('name', 'aa')],
             [('subtype', None), ('type', 'string'), ('name', 'bb')],
             [('subtype', None), ('type', 'string'), ('name', 'cc')]
@@ -183,13 +183,13 @@ class APISpecTestCase(TestCase):
         self.assertEquals(sio.request_elem, '')
         self.assertEquals(sio.response_elem, '')
 
-        self.assertEquals(sio_ireq, [
+        self.assertListEqual(sio_ireq, [
             [('subtype', 'string'), ('type', 'string'), ('name', 'a')],
             [('subtype', 'string'), ('type', 'string'), ('name', 'b')],
             [('subtype', 'string'), ('type', 'string'), ('name', 'c')]
         ])
 
-        self.assertEquals(sio_oreq, [
+        self.assertListEqual(sio_oreq, [
             [('subtype', 'string'), ('type', 'string'), ('name', 'aa')],
             [('subtype', 'string'), ('type', 'string'), ('name', 'bb')],
             [('subtype', 'string'), ('type', 'string'), ('name', 'cc')]
@@ -214,19 +214,19 @@ class APISpecTestCase(TestCase):
         self.assertEquals(sio.request_elem, '')
         self.assertEquals(sio.response_elem, '')
 
-        self.assertEquals(sio_ireq, [
+        self.assertListEqual(sio_ireq, [
             [('subtype', None), ('type', 'string'), ('name', 'a2')],
             [('subtype', None), ('type', 'string'), ('name', 'b2')],
             [('subtype', None), ('type', 'string'), ('name', 'c2')]
         ])
 
-        self.assertEquals(sio_iopt, [
+        self.assertListEqual(sio_iopt, [
             [('subtype', None), ('type', 'string'), ('name', 'a2a')],
             [('subtype', None), ('type', 'string'), ('name', 'b2b')],
             [('subtype', None), ('type', 'string'), ('name', 'c2c')]
         ])
 
-        self.assertEquals(sio_oopt, [
+        self.assertListEqual(sio_oopt, [
             [('subtype', None), ('type', 'string'), ('name', 'aa')],
             [('subtype', None), ('type', 'string'), ('name', 'bb')],
             [('subtype', None), ('type', 'string'), ('name', 'cc')]
@@ -250,19 +250,19 @@ class APISpecTestCase(TestCase):
         self.assertEquals(sio.request_elem, '')
         self.assertEquals(sio.response_elem, '')
 
-        self.assertEquals(sio_ireq, [
+        self.assertListEqual(sio_ireq, [
             [('subtype', 'string'), ('type', 'string'), ('name', 'a2')],
             [('subtype', 'string'), ('type', 'string'), ('name', 'b2')],
             [('subtype', 'string'), ('type', 'string'), ('name', 'c2')]
         ])
 
-        self.assertEquals(sio_iopt, [
+        self.assertListEqual(sio_iopt, [
             [('subtype', 'string'), ('type', 'string'), ('name', 'a2a')],
             [('subtype', 'string'), ('type', 'string'), ('name', 'b2b')],
             [('subtype', 'string'), ('type', 'string'), ('name', 'c2c')]
         ])
 
-        self.assertEquals(sio_oopt, [
+        self.assertListEqual(sio_oopt, [
             [('subtype', 'string'), ('type', 'string'), ('name', 'aa')],
             [('subtype', 'string'), ('type', 'string'), ('name', 'bb')],
             [('subtype', 'string'), ('type', 'string'), ('name', 'cc')]
@@ -286,19 +286,19 @@ class APISpecTestCase(TestCase):
         self.assertEquals(sio.request_elem, '')
         self.assertEquals(sio.response_elem, '')
 
-        self.assertEquals(sio_iopt, [
+        self.assertListEqual(sio_iopt, [
             [('subtype', None), ('type', 'string'), ('name', 'a2a')],
             [('subtype', None), ('type', 'string'), ('name', 'b2b')],
             [('subtype', None), ('type', 'string'), ('name', 'c2c')]
         ])
 
-        self.assertEquals(sio_oreq, [
+        self.assertListEqual(sio_oreq, [
             [('subtype', None), ('type', 'string'), ('name', 'aa')],
             [('subtype', None), ('type', 'string'), ('name', 'bb')],
             [('subtype', None), ('type', 'string'), ('name', 'cc')]
         ])
 
-        self.assertEquals(sio_oopt, [
+        self.assertListEqual(sio_oopt, [
             [('subtype', None), ('type', 'string'), ('name', 'aaa')],
             [('subtype', None), ('type', 'string'), ('name', 'bbb')],
             [('subtype', None), ('type', 'string'), ('name', 'ccc')]
@@ -322,19 +322,19 @@ class APISpecTestCase(TestCase):
         self.assertEquals(sio.request_elem, '')
         self.assertEquals(sio.response_elem, '')
 
-        self.assertEquals(sio_iopt, [
+        self.assertListEqual(sio_iopt, [
             [('subtype', 'string'), ('type', 'string'), ('name', 'a2a')],
             [('subtype', 'string'), ('type', 'string'), ('name', 'b2b')],
             [('subtype', 'string'), ('type', 'string'), ('name', 'c2c')]
         ])
 
-        self.assertEquals(sio_oreq, [
+        self.assertListEqual(sio_oreq, [
             [('subtype', 'string'), ('type', 'string'), ('name', 'aa')],
             [('subtype', 'string'), ('type', 'string'), ('name', 'bb')],
             [('subtype', 'string'), ('type', 'string'), ('name', 'cc')]
         ])
 
-        self.assertEquals(sio_oopt, [
+        self.assertListEqual(sio_oopt, [
             [('subtype', 'string'), ('type', 'string'), ('name', 'aaa')],
             [('subtype', 'string'), ('type', 'string'), ('name', 'bbb')],
             [('subtype', 'string'), ('type', 'string'), ('name', 'ccc')]
