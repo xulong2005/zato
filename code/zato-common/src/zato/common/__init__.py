@@ -851,7 +851,7 @@ VAULT.WEB_SOCKET = {
     }
 }
 
-class API_SPEC:
+class APISPEC:
     OPEN_API_V2 = 'openapi-v2'
 
 # Need to use such a constant because we can sometimes be interested in setting

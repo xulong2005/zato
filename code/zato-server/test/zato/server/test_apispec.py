@@ -16,13 +16,15 @@ from unittest import TestCase
 from bunch import bunchify
 
 # Zato
-from zato.common import API_SPEC
+from zato.common import APISPEC
 from zato.common.test import rand_string
 from zato.server.apispec import Generator
 from zato.server.apispec._docstring import Docstring, Docstring2, Docstring3
 from zato.server.apispec._name import Name, Name2, Name3
 from zato.server.apispec._invokes_list import InvokesList, InvokesList2, InvokesList3
 from zato.server.apispec._invokes_string import InvokesString, InvokesString2, InvokesString3
+from zato.server.apispec._ns1 import Namespace1, Namespace2, Namespace3
+from zato.server.apispec._ns2 import Namespace11, Namespace22, Namespace33
 from zato.server.apispec._simple_io import BoolInt, ForceTypeService, RequestResponse, String, String2, String3
 
 logger = getLogger(__name__)
@@ -37,12 +39,12 @@ def get_service_store_services(*service_classes):
 
 # ################################################################################################################################
 
-def get_dict_from_list(key, value, list_, as_bunch=True):
-    for dict_ in list_:
+def get_services_from_info(key, value, data, as_bunch=True):
+    for dict_ in data['services']:
         if dict_.get(key) == value:
             return bunchify(dict_) if as_bunch else dict_
     else:
-        raise ValueError('No such key/value {}/{} in {}'.format(key, value, list_))
+        raise ValueError('No such key/value {}/{} in {}'.format(key, value, data))
 
 # ################################################################################################################################
 
@@ -59,9 +61,9 @@ class APISpecTestCase(TestCase):
         gen = Generator(get_service_store_services(Name, Name2, Name3))
         info = gen.get_info(rand_string())
 
-        name1 = get_dict_from_list('name', '_test.name', info)
-        name2 = get_dict_from_list('name', '_test.name2', info)
-        name3 = get_dict_from_list('name', '_test.name3', info)
+        name1 = get_services_from_info('name', '_test.name', info)
+        name2 = get_services_from_info('name', '_test.name2', info)
+        name3 = get_services_from_info('name', '_test.name3', info)
 
         self.assertEquals(name1.name, '_test.name')
         self.assertEquals(name2.name, '_test.name2')
@@ -73,9 +75,9 @@ class APISpecTestCase(TestCase):
         gen = Generator(get_service_store_services(Docstring, Docstring2, Docstring3))
         info = gen.get_info(rand_string())
 
-        docstring1 = get_dict_from_list('name', '_test.docstring', info)
-        docstring2 = get_dict_from_list('name', '_test.docstring2', info)
-        docstring3 = get_dict_from_list('name', '_test.docstring3', info)
+        docstring1 = get_services_from_info('name', '_test.docstring', info)
+        docstring2 = get_services_from_info('name', '_test.docstring2', info)
+        docstring3 = get_services_from_info('name', '_test.docstring3', info)
 
         self.assertEquals(docstring1.name, '_test.docstring')
         self.assertEquals(docstring1.docs.summary, 'Docstring Summary')
@@ -98,9 +100,9 @@ class APISpecTestCase(TestCase):
         gen = Generator(get_service_store_services(InvokesString, InvokesString2, InvokesString3))
         info = gen.get_info(rand_string())
 
-        invokes_string1 = get_dict_from_list('name', '_test.invokes-string', info)
-        invokes_string2 = get_dict_from_list('name', '_test.invokes-string2', info)
-        invokes_string3 = get_dict_from_list('name', '_test.invokes-string3', info)
+        invokes_string1 = get_services_from_info('name', '_test.invokes-string', info)
+        invokes_string2 = get_services_from_info('name', '_test.invokes-string2', info)
+        invokes_string3 = get_services_from_info('name', '_test.invokes-string3', info)
 
         self.assertEquals(invokes_string1.name, '_test.invokes-string')
         self.assertListEqual(invokes_string1.invokes, ['_test.invokes-string2'])
@@ -120,9 +122,9 @@ class APISpecTestCase(TestCase):
         gen = Generator(get_service_store_services(InvokesList, InvokesList2, InvokesList3))
         info = gen.get_info(rand_string())
 
-        invokes_list1 = get_dict_from_list('name', '_test.invokes-list', info)
-        invokes_list2 = get_dict_from_list('name', '_test.invokes-list2', info)
-        invokes_list3 = get_dict_from_list('name', '_test.invokes-list3', info)
+        invokes_list1 = get_services_from_info('name', '_test.invokes-list', info)
+        invokes_list2 = get_services_from_info('name', '_test.invokes-list2', info)
+        invokes_list3 = get_services_from_info('name', '_test.invokes-list3', info)
 
         self.assertEquals(invokes_list1.name, '_test.invokes-list')
         self.assertListEqual(invokes_list1.invokes, ['_test.invokes-list2', '_test.invokes-list3'])
@@ -141,13 +143,13 @@ class APISpecTestCase(TestCase):
     def test_sio_string1_open_api_v2(self):
         gen = Generator(get_service_store_services(String))
         info = gen.get_info(rand_string())
-        req = get_dict_from_list('name', '_test.string', info)
+        req = get_services_from_info('name', '_test.string', info)
 
-        sio = req.simple_io[API_SPEC.OPEN_API_V2]
+        sio = req.simple_io[APISPEC.OPEN_API_V2]
         sio_ireq = self._sort_sio(sio.input_required)
         sio_oreq = self._sort_sio(sio.output_required)
 
-        self.assertEquals(sio.spec_name, API_SPEC.OPEN_API_V2)
+        self.assertEquals(sio.spec_name, APISPEC.OPEN_API_V2)
         self.assertEquals(sio.request_elem, None)
         self.assertEquals(sio.response_elem, None)
 
@@ -171,7 +173,7 @@ class APISpecTestCase(TestCase):
     def test_sio_string1_zato(self):
         gen = Generator(get_service_store_services(String))
         info = gen.get_info(rand_string())
-        req = get_dict_from_list('name', '_test.string', info)
+        req = get_services_from_info('name', '_test.string', info)
 
         sio = req.simple_io['zato']
         sio_ireq = self._sort_sio(sio.input_required)
@@ -201,14 +203,14 @@ class APISpecTestCase(TestCase):
     def test_sio_string2_open_api_v2(self):
         gen = Generator(get_service_store_services(String2))
         info = gen.get_info(rand_string())
-        req = get_dict_from_list('name', '_test.string2', info)
+        req = get_services_from_info('name', '_test.string2', info)
 
-        sio = req.simple_io[API_SPEC.OPEN_API_V2]
+        sio = req.simple_io[APISPEC.OPEN_API_V2]
         sio_ireq = self._sort_sio(sio.input_required)
         sio_iopt = self._sort_sio(sio.input_optional)
         sio_oopt = self._sort_sio(sio.output_optional)
 
-        self.assertEquals(sio.spec_name, API_SPEC.OPEN_API_V2)
+        self.assertEquals(sio.spec_name, APISPEC.OPEN_API_V2)
         self.assertEquals(sio.request_elem, None)
         self.assertEquals(sio.response_elem, None)
 
@@ -237,7 +239,7 @@ class APISpecTestCase(TestCase):
     def test_sio_string2_zato(self):
         gen = Generator(get_service_store_services(String2))
         info = gen.get_info(rand_string())
-        req = get_dict_from_list('name', '_test.string2', info)
+        req = get_services_from_info('name', '_test.string2', info)
 
         sio = req.simple_io['zato']
         sio_ireq = self._sort_sio(sio.input_required)
@@ -273,14 +275,14 @@ class APISpecTestCase(TestCase):
     def test_sio_string3_open_api_v2(self):
         gen = Generator(get_service_store_services(String3))
         info = gen.get_info(rand_string())
-        req = get_dict_from_list('name', '_test.string3', info)
+        req = get_services_from_info('name', '_test.string3', info)
 
-        sio = req.simple_io[API_SPEC.OPEN_API_V2]
+        sio = req.simple_io[APISPEC.OPEN_API_V2]
         sio_iopt = self._sort_sio(sio.input_optional)
         sio_oreq = self._sort_sio(sio.output_required)
         sio_oopt = self._sort_sio(sio.output_optional)
 
-        self.assertEquals(sio.spec_name, API_SPEC.OPEN_API_V2)
+        self.assertEquals(sio.spec_name, APISPEC.OPEN_API_V2)
         self.assertEquals(sio.request_elem, None)
         self.assertEquals(sio.response_elem, None)
 
@@ -309,7 +311,7 @@ class APISpecTestCase(TestCase):
     def test_sio_string3_zato(self):
         gen = Generator(get_service_store_services(String3))
         info = gen.get_info(rand_string())
-        req = get_dict_from_list('name', '_test.string3', info)
+        req = get_services_from_info('name', '_test.string3', info)
 
         sio = req.simple_io['zato']
         sio_iopt = self._sort_sio(sio.input_optional)
@@ -345,16 +347,16 @@ class APISpecTestCase(TestCase):
     def test_sio_bool_int_open_api_v2(self):
         gen = Generator(get_service_store_services(BoolInt))
         info = gen.get_info(rand_string())
-        req = get_dict_from_list('name', '_test.bool-int', info)
+        req = get_services_from_info('name', '_test.bool-int', info)
 
-        sio = req.simple_io[API_SPEC.OPEN_API_V2]
+        sio = req.simple_io[APISPEC.OPEN_API_V2]
 
         sio_ireq = self._sort_sio(sio.input_required)
         sio_iopt = self._sort_sio(sio.input_optional)
         sio_oreq = self._sort_sio(sio.output_required)
         sio_oopt = self._sort_sio(sio.output_optional)
 
-        self.assertEquals(sio.spec_name, API_SPEC.OPEN_API_V2)
+        self.assertEquals(sio.spec_name, APISPEC.OPEN_API_V2)
         self.assertEquals(sio.request_elem, None)
         self.assertEquals(sio.response_elem, None)
 
@@ -399,7 +401,7 @@ class APISpecTestCase(TestCase):
     def test_sio_bool_zato(self):
         gen = Generator(get_service_store_services(BoolInt))
         info = gen.get_info(rand_string())
-        req = get_dict_from_list('name', '_test.bool-int', info)
+        req = get_services_from_info('name', '_test.bool-int', info)
 
         sio = req.simple_io['zato']
 
@@ -453,16 +455,16 @@ class APISpecTestCase(TestCase):
     def test_force_type_open_api_v2(self):
         gen = Generator(get_service_store_services(ForceTypeService))
         info = gen.get_info(rand_string())
-        req = get_dict_from_list('name', '_test.force-type', info)
+        req = get_services_from_info('name', '_test.force-type', info)
 
-        sio = req.simple_io[API_SPEC.OPEN_API_V2]
+        sio = req.simple_io[APISPEC.OPEN_API_V2]
 
         sio_ireq = self._sort_sio(sio.input_required)
         sio_iopt = self._sort_sio(sio.input_optional)
         sio_oreq = self._sort_sio(sio.output_required)
         sio_oopt = self._sort_sio(sio.output_optional)
 
-        self.assertEquals(sio.spec_name, API_SPEC.OPEN_API_V2)
+        self.assertEquals(sio.spec_name, APISPEC.OPEN_API_V2)
         self.assertEquals(sio.request_elem, None)
         self.assertEquals(sio.response_elem, None)
 
@@ -539,7 +541,7 @@ class APISpecTestCase(TestCase):
     def test_force_type_zato(self):
         gen = Generator(get_service_store_services(ForceTypeService))
         info = gen.get_info(rand_string())
-        req = get_dict_from_list('name', '_test.force-type', info)
+        req = get_services_from_info('name', '_test.force-type', info)
 
         sio = req.simple_io['zato']
 
@@ -625,11 +627,48 @@ class APISpecTestCase(TestCase):
     def test_request_response_open_api_v2(self):
         gen = Generator(get_service_store_services(RequestResponse))
         info = gen.get_info(rand_string())
-        req = get_dict_from_list('name', '_test.request-response', info)
-        sio = req.simple_io[API_SPEC.OPEN_API_V2]
+        req = get_services_from_info('name', '_test.request-response', info)
+        sio = req.simple_io[APISPEC.OPEN_API_V2]
 
-        self.assertEquals(sio.spec_name, API_SPEC.OPEN_API_V2)
+        self.assertEquals(sio.spec_name, APISPEC.OPEN_API_V2)
         self.assertEquals(sio.request_elem, 'my_request_elem')
         self.assertEquals(sio.response_elem, 'my_response_elem')
+
+# ################################################################################################################################
+
+    def test_namespace(self):
+        gen = Generator(get_service_store_services(Namespace1, Namespace2, Namespace3, Namespace11, Namespace22, Namespace33))
+        info = gen.get_info(rand_string())
+
+        sns1 = get_services_from_info('name', '_test.namespace1', info)
+        sns2 = get_services_from_info('name', '_test.namespace2', info)
+        sns3 = get_services_from_info('name', '_test.namespace3', info)
+        sns11 = get_services_from_info('name', '_test.namespace11', info)
+        sns22 = get_services_from_info('name', '_test.namespace22', info)
+        sns33 = get_services_from_info('name', '_test.namespace33', info)
+
+        namespaces = bunchify(info['namespaces'])
+        myns = namespaces['myns']
+        my_other_ns = namespaces['my-other-ns']
+        my_other_ns_abc = namespaces['my-other-ns-abc']
+
+        self.assertEquals(myns.name, 'myns')
+        self.assertEquals(myns.docs, """This is my namespace.\nAs with regular docstrings it can contain multi-line documentation.\n\n* Documentation will be parsed as Markdown\n* Bullet lists *and* other non-obtrusive markup can be used\n""")
+        self.assertEquals(myns.docs_md, """<p>This is my namespace.\nAs with regular docstrings it can contain multi-line documentation.</p>\n<ul>\n<li>Documentation will be parsed as Markdown</li>\n<li>Bullet lists <em>and</em> other non-obtrusive markup can be used</li>\n</ul>""")
+
+        self.assertEquals(my_other_ns.name, 'my-other-ns')
+        self.assertEquals(my_other_ns.docs, '')
+        self.assertEquals(my_other_ns.docs_md, '')
+
+        self.assertEquals(my_other_ns_abc.name, 'my-other-ns-abc')
+        self.assertEquals(my_other_ns_abc.docs, '')
+        self.assertEquals(my_other_ns_abc.docs_md, '')
+
+        self.assertEquals(sns1.namespace_name, 'myns')
+        self.assertEquals(sns2.namespace_name, 'my-other-ns')
+        self.assertEquals(sns3.namespace_name, 'myns')
+        self.assertEquals(sns11.namespace_name, 'myns')
+        self.assertEquals(sns22.namespace_name, 'myns')
+        self.assertEquals(sns33.namespace_name, 'my-other-ns-abc')
 
 # ################################################################################################################################

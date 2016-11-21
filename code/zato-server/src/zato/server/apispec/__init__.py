@@ -8,6 +8,9 @@ Licensed under LGPLv3, see LICENSE.txt for terms and conditions.
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+# stdlib
+from inspect import getmodule
+
 # Bunch
 from bunch import Bunch, bunchify
 
@@ -24,7 +27,6 @@ from zato.server.service.reqresp.sio import AsIs, SIO_TYPE_MAP, is_bool, is_int
 # ################################################################################################################################
 
 _sio_attrs = ('input_required', 'output_required', 'input_optional', 'output_optional')
-_service_attrs = ('namespace', 'all')
 
 # ################################################################################################################################
 
@@ -41,6 +43,13 @@ class Docstring(object):
         self.summary = ''
         self.description = ''
         self.full = ''
+
+# ################################################################################################################################
+
+class Namespace(object):
+    def __init__(self):
+        self.name = None
+        self.docs = ''
 
 # ################################################################################################################################
 
@@ -72,6 +81,7 @@ class ServiceInfo(object):
         self.config = Config()
         self.simple_io = {}
         self.docstring = Docstring()
+        self.namespace = Namespace()
         self.invokes = []
         self.invoked_by = []
         self.parse()
@@ -104,9 +114,22 @@ class ServiceInfo(object):
 
 # ################################################################################################################################
 
-    def _add_simple_io(self):
-        sio = getattr(self.service_class, 'SimpleIO', None)
+    def _add_ns_sio(self):
+        """ Adds metadata about the service's namespace and SimpleIO definition.
+        """
+        # Namespace can be declared as a service-level attribute of a module-level one. Former takes precedence.
+        service_ns = getattr(self.service_class, 'namespace', None)
+        mod = getmodule(self.service_class)
+        mod_ns = getattr(mod, 'namespace', None)
 
+        self.namespace.name = service_ns if service_ns else mod_ns
+
+        # Set namespace's documentation but only if it was declared top-level and is equal to our own
+        if self.namespace.name and self.namespace.name == mod_ns:
+            self.namespace.docs = getattr(mod, 'namespace_docs', '')
+
+        # SimpleIO
+        sio = getattr(self.service_class, 'SimpleIO', None)
         if sio:
             for api_spec_info in SIO_TYPE_MAP:
 
@@ -151,7 +174,7 @@ class ServiceInfo(object):
 
     def set_config(self):
         self._add_services_from_invokes()
-        self._add_simple_io()
+        self._add_ns_sio()
 
 # ################################################################################################################################
 
@@ -219,7 +242,10 @@ class Generator(object):
         else:
             query_items = []
 
-        out = []
+        out = {
+            'services': [],
+            'namespaces': {},
+        }
         for name in sorted(self.services):
             proceed = True
 
@@ -235,16 +261,26 @@ class Generator(object):
             item = Bunch()
 
             item.name = info.name
+            item.invokes = sorted(info.invokes)
+            item.invoked_by = sorted(info.invoked_by)
+            item.simple_io = info.simple_io
+
             item.docs = Bunch()
             item.docs.summary = info.docstring.summary
             item.docs.description = info.docstring.description
             item.docs.full = info.docstring.full
             item.docs.full_md = markdown(info.docstring.full)
-            item.invokes = sorted(info.invokes)
-            item.invoked_by = sorted(info.invoked_by)
-            item.simple_io = info.simple_io
+            item.namespace_name = info.namespace.name
 
-            out.append(item.toDict())
+            if info.namespace.name:
+                ns = out['namespaces'].setdefault(info.namespace.name, {'docs':'', 'docs_md':''})
+                ns['name'] = info.namespace.name
+
+                if info.namespace.docs:
+                    ns['docs'] = info.namespace.docs
+                    ns['docs_md'] = markdown(info.namespace.docs)
+
+            out['services'].append(item.toDict())
 
         return out
 

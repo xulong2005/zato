@@ -24,7 +24,7 @@ from lxml.objectify import Element
 from paste.util.converters import asbool
 
 # Zato
-from zato.common import API_SPEC, DATA_FORMAT, NO_DEFAULT_VALUE, PARAMS_PRIORITY, ParsingException, path, ZatoException, \
+from zato.common import APISPEC, DATA_FORMAT, NO_DEFAULT_VALUE, PARAMS_PRIORITY, ParsingException, path, ZatoException, \
      ZATO_NONE, ZATO_SEC_USE_RBAC
 
 logger = logging.getLogger(__name__)
@@ -468,7 +468,7 @@ class SIO_TYPE_MAP:
 
     class OPEN_API_V2:
 
-        name = API_SPEC.OPEN_API_V2
+        name = APISPEC.OPEN_API_V2
         STRING = ('string', None)
         DEFAULT = STRING
         INTEGER = ('integer', 'int32')
