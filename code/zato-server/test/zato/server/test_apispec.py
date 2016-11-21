@@ -25,6 +25,7 @@ from zato.server.apispec._invokes_list import InvokesList, InvokesList2, Invokes
 from zato.server.apispec._invokes_string import InvokesString, InvokesString2, InvokesString3
 from zato.server.apispec._ns1 import Namespace1, Namespace2, Namespace3
 from zato.server.apispec._ns2 import Namespace11, Namespace22, Namespace33
+from zato.server.apispec._ns3 import NoNamespace
 from zato.server.apispec._simple_io import BoolInt, ForceTypeService, RequestResponse, String, String2, String3
 
 logger = getLogger(__name__)
@@ -637,7 +638,8 @@ class APISpecTestCase(TestCase):
 # ################################################################################################################################
 
     def test_namespace(self):
-        gen = Generator(get_service_store_services(Namespace1, Namespace2, Namespace3, Namespace11, Namespace22, Namespace33))
+        gen = Generator(get_service_store_services(
+            Namespace1, Namespace2, Namespace3, Namespace11, Namespace22, Namespace33, NoNamespace))
         info = gen.get_info(rand_string())
 
         sns1 = get_services_from_info('name', '_test.namespace1', info)
@@ -646,6 +648,7 @@ class APISpecTestCase(TestCase):
         sns11 = get_services_from_info('name', '_test.namespace11', info)
         sns22 = get_services_from_info('name', '_test.namespace22', info)
         sns33 = get_services_from_info('name', '_test.namespace33', info)
+        snons = get_services_from_info('name', '_test.no-namespace', info)
 
         namespaces = bunchify(info['namespaces'])
         myns = namespaces['myns']
@@ -670,5 +673,6 @@ class APISpecTestCase(TestCase):
         self.assertEquals(sns11.namespace_name, 'myns')
         self.assertEquals(sns22.namespace_name, 'myns')
         self.assertEquals(sns33.namespace_name, 'my-other-ns-abc')
+        self.assertEquals(snons.namespace_name, APISPEC.NAMESPACE_NULL)
 
 # ################################################################################################################################

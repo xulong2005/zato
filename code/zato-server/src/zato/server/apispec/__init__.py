@@ -9,6 +9,7 @@ Licensed under LGPLv3, see LICENSE.txt for terms and conditions.
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 # stdlib
+from copy import deepcopy
 from inspect import getmodule
 
 # Bunch
@@ -21,7 +22,7 @@ from docformatter import format_docstring
 from markdown import markdown
 
 # Zato
-from zato.common import SIMPLE_IO
+from zato.common import APISPEC, SIMPLE_IO
 from zato.server.service.reqresp.sio import AsIs, SIO_TYPE_MAP, is_bool, is_int
 
 # ################################################################################################################################
@@ -48,7 +49,7 @@ class Docstring(object):
 
 class Namespace(object):
     def __init__(self):
-        self.name = None
+        self.name = APISPEC.NAMESPACE_NULL
         self.docs = ''
 
 # ################################################################################################################################
@@ -118,9 +119,9 @@ class ServiceInfo(object):
         """ Adds metadata about the service's namespace and SimpleIO definition.
         """
         # Namespace can be declared as a service-level attribute of a module-level one. Former takes precedence.
-        service_ns = getattr(self.service_class, 'namespace', None)
+        service_ns = getattr(self.service_class, 'namespace', APISPEC.NAMESPACE_NULL)
         mod = getmodule(self.service_class)
-        mod_ns = getattr(mod, 'namespace', None)
+        mod_ns = getattr(mod, 'namespace', APISPEC.NAMESPACE_NULL)
 
         self.namespace.name = service_ns if service_ns else mod_ns
 
@@ -244,8 +245,10 @@ class Generator(object):
 
         out = {
             'services': [],
-            'namespaces': {},
+            'namespaces': {'':{'name':APISPEC.NAMESPACE_NULL, 'docs':'', 'docs_md':'', 'services':[]}},
         }
+
+        # Add services
         for name in sorted(self.services):
             proceed = True
 
@@ -272,15 +275,23 @@ class Generator(object):
             item.docs.full_md = markdown(info.docstring.full)
             item.namespace_name = info.namespace.name
 
+            # Add namespaces
             if info.namespace.name:
                 ns = out['namespaces'].setdefault(info.namespace.name, {'docs':'', 'docs_md':''})
                 ns['name'] = info.namespace.name
+                ns['services'] = []
 
                 if info.namespace.docs:
                     ns['docs'] = info.namespace.docs
                     ns['docs_md'] = markdown(info.namespace.docs)
 
             out['services'].append(item.toDict())
+
+        # For each namespace, add copy of its services
+        for ns_name, ns_info in out['namespaces'].iteritems():
+            for service in out['services']:
+                if service['namespace_name'] == ns_name:
+                    out['namespaces'][ns_name]['services'].append(deepcopy(service))
 
         return out
 

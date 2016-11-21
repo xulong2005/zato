@@ -358,11 +358,6 @@ class Index(_BaseView):
             else:
                 logger.info('can_invoke_admin_service returned False, not invoking an admin service:[%s]', self.service_name)
 
-            if response:
-                print(response.data)
-            else:
-                print(response)
-
             return_data['req'] = self.req
             return_data['items'] = self.items
             return_data['item'] = self.item
@@ -377,6 +372,8 @@ class Index(_BaseView):
             view_specific = self.handle()
             if view_specific:
                 return_data.update(view_specific)
+
+            return_data = self.handle_return_data(return_data)
 
             return TemplateResponse(req, self.template, return_data)
 
