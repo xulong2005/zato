@@ -6,27 +6,89 @@
 
     <style type="text/css">
 
+        /* ///////////////////////////////////
+        // Namespaces
+        // //////////////////////////////// */
+
+        .td-ns {
+            background-color: #e1e3e5;
+            border: 1px solid #adb3b9;
+            border-radius: 3px;
+            box-shadow: 0 1px 0 rgba(12, 13, 14, 0.2), 0 0 0 2px #fff inset;
+            font-size: 12px;
+            line-height: 1.4;
+            margin: 0 0.1em;
+            margin-bottom: 3px;
+            text-shadow: 0 1px 0 #fff;
+            white-space: nowrap;
+            vertical-align:bottom !important;
+        }
+
         .ns-name {
             float:left;
-            border:1px solid maroon;
+            font-weight:600
+        }
+
+        .ns-name span.docs {
+            font-weight:500;
+            color: #555;
         }
 
         .ns-options {
             float:right;
-            border:1px solid navy;
+            padding:none !important
         }
+
+        /* ///////////////////////////////////
+        // Services
+        // //////////////////////////////// */
+
+        .td-service {
+            border-top:1px dashed #c3c3c3;
+        }
+
+        .service-name > .service-desc{
+            color:#555
+        }
+
+        .service-name > .service-desc {
+            display:inline !important;
+        }
+
+        .service-name {
+            float:left;
+            padding-left:3px;
+        }
+
+        .service-options {
+            float:right;
+        }
+
+        .service-details {
+            clear:left;
+            padding-top:3px;
+            color: #555;
+        }
+
+        .service-details .invokes-invoked-sio {
+            float:left;
+        }
+
+        .service-details .sample {
+            float:right;
+        }
+
+        /* ///////////////////////////////////
+        // Containers
+        // //////////////////////////////// */
 
         #main-div {
-            border:5px solid red;
-        }
-
-        #main-table {
-            border:1px solid blue;
+            text-align:center;
         }
 
         #spec-table {
-            border:5px solid green;
             width:100%;
+            text-align:center;
         }
 
     </style>
@@ -51,7 +113,7 @@
         <input type="hidden" id="cluster_id" value="{{ cluster_id }}" />
     {% endif %}
 
-        <div id="docs-data" style="display:none">{{ response_inner|safe }}</div>
+        <div id="docs-data" style="display:none">{{ response_inner }}</div>
 
         <div id="markup">
             <table id="data-table" style="border:none">

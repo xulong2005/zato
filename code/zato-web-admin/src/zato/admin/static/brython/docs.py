@@ -19,13 +19,22 @@ _anon_ns = 'zato_anonymous'
 
 # ################################################################################################################################
 
-ns_tr_html_template = """
-<tr id="ns-tr-{name}" class="ns-tr">
-  <td id="ns-td-{name}" class="ns-td">
-    <div id="ns-name-{name}" class="ns-name">{ns_name_human}</div>
-    <div id="ns-options-{name}" class="ns-options">22</div>
-  </td>
-</tr>
+tr_ns_html_contents_template = """
+<td id="td-ns-{name}" class="td-ns">
+  <div id="ns-name-{name}" class="ns-name">{ns_name_human} <span class="docs">{ns_docs_md}</span></div>
+  <div id="ns-options-{name}" class="ns-options"><a href="#">Toggle services</a> | <a href="#">Toggle all details</a></div>
+</td>
+"""
+
+tr_service_html_contents_template = """
+<td id="td-service-{name}" class="td-service">
+  <div id="service-name-{name}" class="service-name">{service_no}. {name} <span class="service-desc" id="service-desc-{name}"></span></div>
+  <div id="service-options-{name}" class="service-options"><a href="#">Toggle details</a></div>
+  <div class="service-details">
+    <div class="invokes-invoked-sio">
+    <div class="sample"></div>
+  </div>
+</td>
 """
 
 # ################################################################################################################################
@@ -35,49 +44,56 @@ class APISpec(object):
     """
     def __init__(self, data):
         self.data = data
-        self.spec_table = None
+        self.spec_table = table(id='spec-table')
 
-    def get_ns_tr_html(self, ns_name, ns_name_human):
-        return ns_tr_html_template.format(name=ns_name, ns_name_human=ns_name_human)
+    def get_tr_ns_html(self, ns_name, ns_name_human, ns_docs_md=''):
+        return tr_ns_html_contents_template.format(name=ns_name, ns_name_human=ns_name_human, ns_docs_md=ns_docs_md)
+
+    def get_tr_service_html(self, service_no, service):
+        print(service)
+        name = service['name']
+        return tr_service_html_contents_template.format(name=name, service_no=service_no)
 
     def run(self):
-        # Create the main table whose individual rows are namespaces of services.
-        self.spec_table = table(id='spec-table')
+        """ Creates a table with all the namespaces and services.
+        """
+        default_ns_name_human = '<span class="form_hint" style="font-size:100%;font-style:italic">(Services without a namespace)</span>'
+
+        # Maps names of services to their summaries and descriptions
+        service_docs = {}
 
         for values in self.data['namespaces'].values():
 
+            # Config
             services = values['services']
             ns_docs_md = values['docs_md']
             ns_name = values['name'] or _anon_ns
 
-            ns_tr = tr()
-            ns_tr.html = self.get_ns_tr_html(ns_name, (ns_name if ns_name != _anon_ns else '(Services without a namespace)'))
+            # Create a new row for each namespace
+            tr_ns = tr(id='tr-ns-{}'.format(ns_name), class_name='tr-ns')
+            tr_ns.html = self.get_tr_ns_html(
+                ns_name, (ns_name if ns_name != _anon_ns else default_ns_name_human), ns_docs_md)
 
-            self.spec_table <= ns_tr
+            # Append namespaces to the main table
+            self.spec_table <= tr_ns
 
-            '''
-            ns_tr = tr(id='ns-tr-{}'.format(ns_name), class_name='ns-tr')
-            ns_td = td(id='ns-td-{}'.format(ns_name), class_name='ns-td')
+            # Append a row for each service in a given namespace
+            for idx, service in enumerate(services):
+                tr_service = tr(id='tr-service-{}'.format(service['name']), class_name='tr-service')
+                tr_service.html = self.get_tr_service_html(idx+1, service)
+                self.spec_table <= tr_service
+                service_docs[service['name']] = {
+                    'summary': service['docs']['summary_html'],
+                    'desc': service['docs']['description_html'],
+                }
 
-            ns_div_name = div(id='ns-div-name-{}'.format(ns_name), class_name='ns-div-name')
-            ns_div_options = div(id='ns-div-options-{}'.format(ns_name), class_name='ns-div-options')
-
-            ns_div_name <= (ns_name if ns_name != _anon_ns else '(Services without a namespace)')
-            ns_div_options.html = '<a href="zzz">aaa</a>'
-
-            ns_td <= ns_div_name
-            ns_td <= ns_div_options
-            ns_tr <= ns_td
-            '''
-
+        # We can append the table with contents to the main div
         doc['main-div'] <= self.spec_table
 
-        '''
-            for service in services:
-                print(service)
-                '''
-
-        #print(self.data)
+        # Now we can set up documentation
+        for name, docs in service_docs.items():
+            doc['service-desc-{}'.format(name)].html = docs['summary']
+            print(name, docs)
 
 # ################################################################################################################################
 

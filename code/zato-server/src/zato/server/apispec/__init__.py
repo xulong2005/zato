@@ -215,9 +215,17 @@ class ServiceInfo(object):
             if summary and full_docstring[-1] == '.' and full_docstring[-1] != summary[-1]:
                 full_docstring = full_docstring[:-1]
 
-        self.docstring.summary = summary.strip()
+        summary = summary.strip()
+        full_docstring = full_docstring.strip()
+
+        # If we don't have any summary but there is a docstring at all then it must be a single-line one
+        # and it becomes our summary.
+        if full_docstring and not summary:
+            summary = full_docstring
+
+        self.docstring.summary = summary
         self.docstring.description = description
-        self.docstring.full = full_docstring.rstrip()
+        self.docstring.full = full_docstring
 
 # ################################################################################################################################
 
@@ -232,6 +240,9 @@ class Generator(object):
 
         # Service name -> list of services this service is invoked by
         self.invoked_by = {}
+
+    def to_html(self, value):
+        return markdown(value).lstrip('<p>').rstrip('</p>')
 
     def get_info(self, ignore_prefix='zato'):
         """ Returns a list of dicts containing metadata about services in the scope required to generate docs and API clients.
@@ -270,9 +281,11 @@ class Generator(object):
 
             item.docs = Bunch()
             item.docs.summary = info.docstring.summary
+            item.docs.summary_html = self.to_html(info.docstring.summary)
             item.docs.description = info.docstring.description
+            item.docs.description_html = self.to_html(info.docstring.description)
             item.docs.full = info.docstring.full
-            item.docs.full_md = markdown(info.docstring.full)
+            item.docs.full_html = self.to_html(info.docstring.full)
             item.namespace_name = info.namespace.name
 
             # Add namespaces
