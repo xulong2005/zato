@@ -223,6 +223,10 @@ class ServiceInfo(object):
         if full_docstring and not summary:
             summary = full_docstring
 
+        # If we don't have description but we have summary then summary becomes description
+        if summary and not description:
+            description = summary
+
         self.docstring.summary = summary
         self.docstring.description = description
         self.docstring.full = full_docstring

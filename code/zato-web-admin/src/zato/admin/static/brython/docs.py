@@ -40,6 +40,8 @@ tr_service_html_contents_template = """
       |
       <a href="#" id="service-header-samples-{name}">Samples</a>
     </span>
+  <div id="service-details-current-{name}" class="current-details">
+  </div>
   </div>
 </td>
 """
@@ -93,7 +95,7 @@ class APISpec(object):
                 self.spec_table <= tr_service
                 service_docs[service['name']] = {
                     'summary': service['docs']['summary_html'],
-                    'desc': service['docs']['description_html'],
+                    'full': service['docs']['full_html'],
                 }
 
         # We can append the table with contents to the main div
@@ -102,6 +104,7 @@ class APISpec(object):
         # Now we can set up documentation
         for name, docs in service_docs.items():
             doc['service-desc-{}'.format(name)].html = docs['summary']
+            doc['service-details-current-{}'.format(name)].html = docs['full']
             print(name, docs)
 
 # ################################################################################################################################
