@@ -31,8 +31,15 @@ tr_service_html_contents_template = """
   <div id="service-name-{name}" class="service-name">{service_no}. {name} <span class="service-desc" id="service-desc-{name}"></span></div>
   <div id="service-options-{name}" class="service-options"><a href="#">Toggle details</a></div>
   <div class="service-details">
-    <div class="invokes-invoked-sio">
-    <div class="sample"></div>
+    <span class="header">
+      <a href="#" id="service-header-docs-{name}">Docs</a>
+      |
+      <a href="#" id="service-header-deps-{name}">Dependencies</a>
+      |
+      <a href="#" id="service-header-model-{name}">Model</a>
+      |
+      <a href="#" id="service-header-samples-{name}">Samples</a>
+    </span>
   </div>
 </td>
 """
@@ -70,7 +77,8 @@ class APISpec(object):
             ns_name = values['name'] or _anon_ns
 
             # Create a new row for each namespace
-            tr_ns = tr(id='tr-ns-{}'.format(ns_name), class_name='tr-ns')
+            tr_ns = tr(id='tr-ns-{}'.format(ns_name))
+            tr_ns.class_name='tr-ns'
             tr_ns.html = self.get_tr_ns_html(
                 ns_name, (ns_name if ns_name != _anon_ns else default_ns_name_human), ns_docs_md)
 
@@ -79,7 +87,8 @@ class APISpec(object):
 
             # Append a row for each service in a given namespace
             for idx, service in enumerate(services):
-                tr_service = tr(id='tr-service-{}'.format(service['name']), class_name='tr-service')
+                tr_service = tr(id='tr-service-{}'.format(service['name']))
+                tr_service.class_name='tr-service'
                 tr_service.html = self.get_tr_service_html(idx+1, service)
                 self.spec_table <= tr_service
                 service_docs[service['name']] = {
