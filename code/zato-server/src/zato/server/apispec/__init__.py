@@ -148,6 +148,7 @@ class ServiceInfo(object):
                         param_name = param if isinstance(param, basestring) else param.name
                         _param_info = Bunch()
                         _param_info.name = param_name
+                        _param_info.is_required = 'required' in param_list_name
 
                         if isinstance(param, AsIs):
                             type_info = api_spec_info.DEFAULT
