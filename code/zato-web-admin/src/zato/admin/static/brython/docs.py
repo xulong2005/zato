@@ -94,24 +94,27 @@ deps_template = """
 """
 
 io_template = """
-<table>
+<table class="service-io">
   <thead>
     <tr>
-      <th colspan="2">Input</th>
-      <th colspan="2">Output</th>
+      <th colspan="3" class="input">Input</th>
+      <th colspan="3">Output</th>
     </tr>
   </thead>
   <tbody id="io-tbody-{name}">
+    {rows}
   </tbody>
 </table>
 """
 
 io_row_template = """
-    <tr>
-      <td class="io-name">{input_name}</td>
+    <tr class="{tr_class}">
+      <td class="io-name-input">{input_name}</td>
       <td class="io-data-type">{input_data_type}</td>
+      <td class="io-is-required req-opt">{input_is_required}</td>
       <td class="io-name">{output_name}</td>
       <td class="io-data-type">{output_data_type}</td>
+      <td class="io-is-required req-opt">{output_is_required}</td>
     </tr>
 """
 
@@ -148,12 +151,32 @@ class APISpec(object):
         _input = io['input_required'] + io['input_optional']
         _output = io['output_required'] + io['output_optional']
 
-        for elems in zip_longest(_input, _output):
-            _input_elem, _output_elem = elems
-            print(_input_elem, _output_elem)
-        print()
+        rows = []
 
-        return io_template.format(name=name)
+        _io = list(zip_longest(_input, _output))
+        len_io = len(_io)
+        for idx, elems in enumerate(_io, 1):
+            _input_elem, _output_elem = elems
+
+            if not _input_elem:
+                input_name, input_data_type, input_is_required = '---', '---', '---'
+            else:
+                input_name = _input_elem['name']
+                input_data_type = _input_elem['subtype']
+                input_is_required = 'required' if _input_elem['is_required'] else 'optional'
+
+            if not _output_elem:
+                output_name, output_data_type, output_is_required = '---', '---', '---'
+            else:
+                output_name = _output_elem['name']
+                output_data_type = _output_elem['subtype']
+                output_is_required = 'required' if _output_elem['is_required'] else 'optional'
+
+            rows.append(io_row_template.format(tr_class='tr-io-last' if idx == len_io else '',
+                input_name=input_name, input_data_type=input_data_type, input_is_required=input_is_required,
+                output_name=output_name, output_data_type=output_data_type, output_is_required=output_is_required))
+
+        return io_template.format(name=name, rows='\n'.join(rows))
 
     def get_tr_service_html(self, service_no, service):
         name = service['name']
