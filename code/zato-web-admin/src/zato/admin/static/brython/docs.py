@@ -66,7 +66,7 @@ tr_ns_html_contents_template = """
 <td id="td-ns-{name}" class="td-ns">
   <div id="ns-name-{name}" class="ns-name">{ns_name_human} <span class="docs">{ns_docs_md}</span></div>
   <div id="ns-options-{name}" class="ns-options">
-    <a href="#" id="a-ns-options-toggle-services-{name}" class="visible aa zz">Toggle services</a>
+    <a href="#" id="a-ns-options-toggle-services-{name}">Toggle services</a>
     |
     <a href="#" id="a-ns-options-toggle-all-details-{name}">Toggle all details</a>
   </div>
@@ -136,7 +136,7 @@ class APISpec(object):
 
 # ################################################################################################################################
 
-    def toggle_visible_hidden(self, id, needs_visible, _attrs=('visible', 'hidden')):
+    def toggle_visible_hidden(self, e, id, needs_visible, _attrs=('visible', 'hidden')):
         elem = doc[id]
         current = [_elem.strip() for _elem in elem.class_name.split(' ')]
 
@@ -149,27 +149,46 @@ class APISpec(object):
         current.append('visible' if needs_visible else 'hidden')
         elem.class_name = ' '.join(current)
 
+        if e:
+            e.preventDefault()
+
 # ################################################################################################################################
 
-    def _toggle(self, selector):
-        print(33, selector)
+    def _toggle(self, e, selector, needs_visible=None):
         for elem in doc.get(selector=selector):
-            print(22, elem.id)
-            needs_visible = 'hidden' in elem.class_name
-            self.toggle_visible_hidden(elem.id, 'hidden' in elem.class_name)
+            if needs_visible is None:
+                needs_visible = 'hidden' in elem.class_name
+            self.toggle_visible_hidden(e, elem.id, needs_visible)
 
 # ################################################################################################################################
 
     def toggle_simple(self, selector_prefix, ns_name):
         def _toggle(e):
-            self._toggle('.{}{}'.format(selector_prefix, ns_name))
+            self._toggle(e, '.{}{}'.format(selector_prefix, ns_name))
         return _toggle
 
 # ################################################################################################################################
 
     def toggle_details(self, selector_prefix, ns_name, service_name):
         def _toggle(e):
-            self._toggle('.{}{}-{}'.format(selector_prefix, ns_name, service_name))
+            self._toggle(e, '.{}{}-{}'.format(selector_prefix, ns_name, service_name))
+        return _toggle
+
+# ################################################################################################################################
+
+    def toggle_all_details(self, ns_name):
+        def _toggle(e):
+
+            self._toggle(e, '.tr-service-ns-{}'.format(ns_name), True)
+
+            # Iterate as long as we don't hit upon another header
+            for elem in doc.get(selector='#tr-ns-{} ~ tr'.format(ns_name)):
+                if 'tr-ns' in elem.id:
+                    break
+
+                selector = '.service-details-toggle-{}-{}'.format(ns_name, elem.id.replace('tr-service-', ''))
+                self._toggle(None, selector)
+
         return _toggle
 
 # ################################################################################################################################
@@ -231,7 +250,7 @@ class APISpec(object):
 # ################################################################################################################################
 
     def get_tr_service_html(self, service_no, service):
-        name = service['name'].replace('.', '-')
+        name = self.get_service_name(service['name'])
         ns_name = self.get_ns(service['namespace_name'])
         return tr_service_html_contents_template.format(ns_name=ns_name, name=name, service_no=service_no)
 
@@ -239,6 +258,11 @@ class APISpec(object):
 
     def get_ns(self, ns):
         return ns if ns else _anon_ns
+
+# ################################################################################################################################
+
+    def get_service_name(self, name):
+        return name.replace('.', '-')
 
 # ################################################################################################################################
 
@@ -270,8 +294,7 @@ class APISpec(object):
 
             # Append a row for each service in a given namespace
             for idx, service in enumerate(services):
-                service_name = service['name'].replace('.', '-')
-                print('000', service_name)
+                service_name = self.get_service_name(service['name'])
                 tr_service = tr(id='tr-service-{}'.format(service_name))
                 tr_service.class_name='visible tr-service tr-service-ns-{}'.format(ns_name)
                 tr_service.html = self.get_tr_service_html(idx+1, service)
@@ -298,12 +321,10 @@ class APISpec(object):
         for name, details in service_details.items():
 
             ns_name = details['ns_name']
-            name = name.replace('.', '-')
+            name = self.get_service_name(name)
 
             docs = details['docs']
-            print(111)
             doc['service-desc-{}-{}'.format(ns_name, name)].html = docs['summary']
-            print(222)
             doc['service-details-docs-{}-{}'.format(ns_name, name)].html = docs['full']
 
             deps = details['deps']
@@ -317,8 +338,12 @@ class APISpec(object):
 
         for item in namespaces:
             ns_name = self.get_ns(item['name'])
+
             elem = doc['a-ns-options-toggle-services-{}'.format(ns_name)]
             elem.bind('click', self.toggle_simple('tr-service-ns-', ns_name))
+
+            elem = doc['a-ns-options-toggle-all-details-{}'.format(ns_name)]
+            elem.bind('click', self.toggle_all_details(ns_name))
 
 # ################################################################################################################################
 
