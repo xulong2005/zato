@@ -65,15 +65,19 @@ def zip_longest(*args, **kwds):
 tr_ns_html_contents_template = """
 <td id="td-ns-{name}" class="td-ns">
   <div id="ns-name-{name}" class="ns-name">{ns_name_human} <span class="docs">{ns_docs_md}</span></div>
-  <div id="ns-options-{name}" class="ns-options"><a href="#">Toggle services</a> | <a href="#">Toggle all details</a></div>
+  <div id="ns-options-{name}" class="ns-options">
+    <a href="#" id="a-ns-options-toggle-services-{name}" class="visible aa zz">Toggle services</a>
+    |
+    <a href="#" id="a-ns-options-toggle-all-details-{name}">Toggle all details</a>
+  </div>
 </td>
 """
 
 tr_service_html_contents_template = """
 <td id="td-service-{name}" class="td-service">
-  <div id="service-name-{name}" class="service-name">{service_no}. {name} <span class="service-desc" id="service-desc-{name}"></span></div>
-  <div id="service-options-{name}" class="service-options"><a href="#">Toggle details</a></div>
-  <div class="service-details">
+  <div id="service-name-{name}" class="service-name">{service_no}. {name} <span class="service-desc" id="service-desc-{ns_name}-{name}"></span></div>
+  <div id="service-options-{name}" class="service-options"><a href="#" id="a-toggle-details-{ns_name}-{name}">Toggle details</a></div>
+  <div id="service-details-header-{ns_name}-{name}" class="service-details service-details-toggle-{ns_name}-{name}">
     <span class="header">
       <a href="#" id="service-header-docs-{name}">Docs</a>
       |
@@ -82,9 +86,9 @@ tr_service_html_contents_template = """
       <a href="#" id="service-header-io-{name}">I/O</a>
     </span>
   </div>
-  <div id="service-details-deps-{name}" class="current-details zhidden">Dependencies</div>
-  <div id="service-details-io-{name}" class="current-details zhidden">I/O</div>
-  <div id="service-details-docs-{name}" class="current-details visible"/>
+  <div id="service-details-deps-{ns_name}-{name}" class="current-details service-details-toggle-{ns_name}-{name}">Dependencies</div>
+  <div id="service-details-io-{ns_name}-{name}" class="current-details service-details-toggle-{ns_name}-{name}">I/O</div>
+  <div id="service-details-docs-{ns_name}-{name}" class="current-details visible service-details-toggle-{ns_name}-{name}"/>
 </td>
 """
 
@@ -130,8 +134,50 @@ class APISpec(object):
         self.spec_table = table(id='spec-table')
         self.cluster_id = doc['cluster_id'].value
 
+# ################################################################################################################################
+
+    def toggle_visible_hidden(self, id, needs_visible, _attrs=('visible', 'hidden')):
+        elem = doc[id]
+        current = [_elem.strip() for _elem in elem.class_name.split(' ')]
+
+        for name in _attrs:
+            try:
+                current.remove(name)
+            except ValueError:
+                pass
+
+        current.append('visible' if needs_visible else 'hidden')
+        elem.class_name = ' '.join(current)
+
+# ################################################################################################################################
+
+    def _toggle(self, selector):
+        print(33, selector)
+        for elem in doc.get(selector=selector):
+            print(22, elem.id)
+            needs_visible = 'hidden' in elem.class_name
+            self.toggle_visible_hidden(elem.id, 'hidden' in elem.class_name)
+
+# ################################################################################################################################
+
+    def toggle_simple(self, selector_prefix, ns_name):
+        def _toggle(e):
+            self._toggle('.{}{}'.format(selector_prefix, ns_name))
+        return _toggle
+
+# ################################################################################################################################
+
+    def toggle_details(self, selector_prefix, ns_name, service_name):
+        def _toggle(e):
+            self._toggle('.{}{}-{}'.format(selector_prefix, ns_name, service_name))
+        return _toggle
+
+# ################################################################################################################################
+
     def get_tr_ns_html(self, ns_name, ns_name_human, ns_docs_md=''):
         return tr_ns_html_contents_template.format(name=ns_name, ns_name_human=ns_name_human, ns_docs_md=ns_docs_md)
+
+# ################################################################################################################################
 
     def _get_deps(self, deps):
         out = []
@@ -141,8 +187,12 @@ class APISpec(object):
 
         return ', '.join(out) or none_html
 
+# ################################################################################################################################
+
     def get_deps_html(self, invokes, invoked_by):
         return deps_template.format(invokes=self._get_deps(invokes), invoked_by=self._get_deps(invoked_by))
+
+# ################################################################################################################################
 
     def get_io_html(self, name, io):
         if not io:
@@ -178,9 +228,19 @@ class APISpec(object):
 
         return io_template.format(name=name, rows='\n'.join(rows))
 
+# ################################################################################################################################
+
     def get_tr_service_html(self, service_no, service):
-        name = service['name']
-        return tr_service_html_contents_template.format(name=name, service_no=service_no)
+        name = service['name'].replace('.', '-')
+        ns_name = self.get_ns(service['namespace_name'])
+        return tr_service_html_contents_template.format(ns_name=ns_name, name=name, service_no=service_no)
+
+# ################################################################################################################################
+
+    def get_ns(self, ns):
+        return ns if ns else _anon_ns
+
+# ################################################################################################################################
 
     def run(self):
         """ Creates a table with all the namespaces and services.
@@ -190,12 +250,14 @@ class APISpec(object):
         # Maps names of services to their summaries and descriptions
         service_details = {}
 
-        for values in self.data['namespaces'].values():
+        # All namespaces
+        namespaces = self.data['namespaces'].values()
+        for values in namespaces:
 
             # Config
             services = values['services']
             ns_docs_md = values['docs_md']
-            ns_name = values['name'] or _anon_ns
+            ns_name = self.get_ns(values['name'])
 
             # Create a new row for each namespace
             tr_ns = tr(id='tr-ns-{}'.format(ns_name))
@@ -208,22 +270,23 @@ class APISpec(object):
 
             # Append a row for each service in a given namespace
             for idx, service in enumerate(services):
-                tr_service = tr(id='tr-service-{}'.format(service['name']))
-                tr_service.class_name='tr-service'
+                service_name = service['name'].replace('.', '-')
+                print('000', service_name)
+                tr_service = tr(id='tr-service-{}'.format(service_name))
+                tr_service.class_name='visible tr-service tr-service-ns-{}'.format(ns_name)
                 tr_service.html = self.get_tr_service_html(idx+1, service)
                 self.spec_table <= tr_service
-                service_details[service['name']] = {
+                service_details[service_name] = {
 
+                    'ns_name': ns_name,
                     'docs': {
                         'summary': service['docs']['summary_html'],
                         'full': service['docs']['full_html'],
                     },
-
                     'deps': {
                         'invokes': service['invokes'],
                         'invoked_by': service['invoked_by']
                     },
-
                     'io': service['simple_io'].get('zato', {})
 
                 }
@@ -234,15 +297,28 @@ class APISpec(object):
         # Now we can set up details by their div IDs
         for name, details in service_details.items():
 
+            ns_name = details['ns_name']
+            name = name.replace('.', '-')
+
             docs = details['docs']
-            doc['service-desc-{}'.format(name)].html = docs['summary']
-            doc['service-details-docs-{}'.format(name)].html = docs['full']
+            print(111)
+            doc['service-desc-{}-{}'.format(ns_name, name)].html = docs['summary']
+            print(222)
+            doc['service-details-docs-{}-{}'.format(ns_name, name)].html = docs['full']
 
             deps = details['deps']
-            doc['service-details-deps-{}'.format(name)].html = self.get_deps_html(deps['invokes'], deps['invoked_by'])
+            doc['service-details-deps-{}-{}'.format(ns_name, name)].html = self.get_deps_html(deps['invokes'], deps['invoked_by'])
 
             io = details['io']
-            doc['service-details-io-{}'.format(name)].html = self.get_io_html(name, io)
+            doc['service-details-io-{}-{}'.format(ns_name, name)].html = self.get_io_html(name, io)
+
+            elem = doc['a-toggle-details-{}-{}'.format(ns_name, name)]
+            elem.bind('click', self.toggle_details('service-details-toggle-', details['ns_name'], name))
+
+        for item in namespaces:
+            ns_name = self.get_ns(item['name'])
+            elem = doc['a-ns-options-toggle-services-{}'.format(ns_name)]
+            elem.bind('click', self.toggle_simple('tr-service-ns-', ns_name))
 
 # ################################################################################################################################
 
