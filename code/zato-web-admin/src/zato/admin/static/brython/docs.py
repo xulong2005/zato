@@ -74,21 +74,21 @@ tr_ns_html_contents_template = """
 """
 
 tr_service_html_contents_template = """
-<td id="td-service-{name}" class="td-service">
-  <div id="service-name-{name}" class="service-name">{service_no}. {name} <span class="service-desc" id="service-desc-{ns_name}-{name}"></span></div>
-  <div id="service-options-{name}" class="service-options"><a href="#" id="a-toggle-details-{ns_name}-{name}">Toggle details</a></div>
+<td id="td-service-{ns_name}-{name}" class="td-service">
+  <div id="service-name-{ns_name}-{name}" class="service-name">{service_no}. {name} <span class="service-desc" id="service-desc-{ns_name}-{name}"></span></div>
+  <div id="service-options-{ns_name}-{name}" class="service-options"><a href="#" id="a-toggle-details-{ns_name}-{name}">Toggle details</a></div>
   <div id="service-details-header-{ns_name}-{name}" class="service-details service-details-toggle-{ns_name}-{name}">
     <span class="header">
-      <a href="#" id="service-header-docs-{name}">Docs</a>
+      <a href="#" id="service-header-docs-{ns_name}-{name}">Docs</a>
       |
-      <a href="#" id="service-header-deps-{name}">Dependencies</a>
+      <a href="#" id="service-header-deps-{ns_name}-{name}">Dependencies</a>
       |
-      <a href="#" id="service-header-io-{name}">I/O</a>
+      <a href="#" id="service-header-io-{ns_name}-{name}">I/O</a>
     </span>
   </div>
-  <div id="service-details-deps-{ns_name}-{name}" class="current-details service-details-toggle-{ns_name}-{name}">Dependencies</div>
-  <div id="service-details-io-{ns_name}-{name}" class="current-details service-details-toggle-{ns_name}-{name}">I/O</div>
-  <div id="service-details-docs-{ns_name}-{name}" class="current-details visible service-details-toggle-{ns_name}-{name}"/>
+  <div id="service-details-deps-{ns_name}-{name}" class="hidden current-details service-details-toggle-{ns_name}-{name}">Dependencies</div>
+  <div id="service-details-io-{ns_name}-{name}" class="hidden current-details service-details-toggle-{ns_name}-{name}">I/O</div>
+  <div id="service-details-docs-{ns_name}-{name}" class="visible current-details service-details-toggle-{ns_name}-{name}"/>
 </td>
 """
 
@@ -123,6 +123,7 @@ io_row_template = """
 """
 
 none_html = '<span class="form_hint">(None)</span>'
+header_details = ('deps', 'io', 'docs')
 
 # ################################################################################################################################
 
@@ -190,6 +191,24 @@ class APISpec(object):
                 self._toggle(None, selector)
 
         return _toggle
+
+# ################################################################################################################################
+
+    def switch_detail(self, ns_name, service_name, current):
+        def _switch(e):
+
+            # Switch everything off ..
+            for detail in header_details:
+                id = '#service-details-{}-{}-{}'.format(detail, ns_name, service_name)
+                self._toggle(None, id, False)
+
+            # .. and switch on only the required one.
+            self._toggle(None, '#service-details-{}-{}-{}'.format(current, ns_name, service_name), True)
+
+            # Don't forget about cancelling the default handler
+            e.preventDefault()
+
+        return _switch
 
 # ################################################################################################################################
 
@@ -335,6 +354,10 @@ class APISpec(object):
 
             elem = doc['a-toggle-details-{}-{}'.format(ns_name, name)]
             elem.bind('click', self.toggle_details('service-details-toggle-', details['ns_name'], name))
+
+            for detail in header_details:
+                elem = doc['service-header-{}-{}-{}'.format(detail, ns_name, name)]
+                elem.bind('click', self.switch_detail(ns_name, name, detail))
 
         for item in namespaces:
             ns_name = self.get_ns(item['name'])
