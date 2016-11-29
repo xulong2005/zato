@@ -64,7 +64,7 @@ def zip_longest(*args, **kwds):
 
 tr_ns_html_contents_template = """
 <td id="td-ns-{name}" class="td-ns">
-  <div id="ns-name-{name}" class="ns-name">{ns_name_human} <span class="docs">{ns_docs_md}</span></div>
+  <div id="ns-name-{name}" class="ns-name"><span class="header">{ns_name_human}</span> <span class="docs">{ns_docs_md}</span></div>
   <div id="ns-options-{name}" class="ns-options">
     <a href="#" id="a-ns-options-toggle-services-{name}">Toggle services</a>
     |
@@ -75,7 +75,7 @@ tr_ns_html_contents_template = """
 
 tr_service_html_contents_template = """
 <td id="td-service-{ns_name}-{name}" class="td-service">
-  <div id="service-name-{ns_name}-{name}" class="service-name">{service_no}. {name} <span class="service-desc" id="service-desc-{ns_name}-{name}"></span></div>
+  <div id="service-name-{ns_name}-{name}" class="service-name"><span class="header">{service_no}. {name}</span> <span class="service-desc" id="service-desc-{ns_name}-{name}"></span></div>
   <div id="service-options-{ns_name}-{name}" class="service-options"><a href="#" id="a-toggle-details-{ns_name}-{name}">Toggle details</a></div>
   <div id="service-details-header-{ns_name}-{name}" class="service-details service-details-toggle-{ns_name}-{name}">
     <span class="header">
@@ -155,6 +155,19 @@ class APISpec(object):
 
 # ################################################################################################################################
 
+    def _switch_css_class(self, id, class_name, needs_add=True):
+        elem = doc[id]
+        classes = set(elem.class_name.split(' '))
+
+        if needs_add:
+            classes.add(class_name)
+        else:
+            classes.remove(class_name)
+
+        elem.class_name = ' '.join(classes)
+
+# ################################################################################################################################
+
     def _toggle(self, e, selector, needs_visible=None):
         for elem in doc.get(selector=selector):
             if needs_visible is None:
@@ -177,7 +190,6 @@ class APISpec(object):
             for elem in elems:
                 if 'service-details-header' in elem.id or 'current-item' in elem.class_name:
                     self._toggle(None, '#{}'.format(elem.id))
-            print()
         return _toggle
 
 # ################################################################################################################################
@@ -200,6 +212,14 @@ class APISpec(object):
                         self._toggle(None, '#{}'.format(elem.id))
 
         return _toggle
+
+# ################################################################################################################################
+
+    def highlight(self, id_pattern, *pattern_args, needs_add=True):
+        def _highlight(e):
+            id = id_pattern.format(*pattern_args)
+            self._switch_css_class(id, 'highlight', needs_add)
+        return _highlight
 
 # ################################################################################################################################
 
@@ -312,7 +332,9 @@ class APISpec(object):
     def run(self):
         """ Creates a table with all the namespaces and services.
         """
-        default_ns_name_human = '<span class="form_hint" style="font-size:100%;font-style:italic">(Services without a namespace)</span>'
+        default_ns_name_human = """
+            <span class="form_hint" style="font-size:100%;font-style:italic">(Services without a namespace)</span>
+        """
 
         # Maps names of services to their summaries and descriptions
         service_details = {}
@@ -379,6 +401,9 @@ class APISpec(object):
             elem = doc['a-toggle-details-{}-{}'.format(ns_name, name)]
             elem.bind('click', self.toggle_details('service-details-toggle-', details['ns_name'], name))
 
+            elem.bind('mouseover', self.highlight('service-name-{}-{}', ns_name, name))
+            elem.bind('mouseout', self.highlight('service-name-{}-{}', ns_name, name, needs_add=False))
+
             for detail in header_details:
                 elem = doc['service-header-{}-{}-{}'.format(detail, ns_name, name)]
                 elem.bind('click', self.switch_detail(ns_name, name, detail))
@@ -391,6 +416,9 @@ class APISpec(object):
 
             elem = doc['a-ns-options-toggle-all-details-{}'.format(ns_name)]
             elem.bind('click', self.toggle_all_details(ns_name))
+
+            elem.bind('mouseover', self.highlight('ns-name-{}', ns_name))
+            elem.bind('mouseout', self.highlight('ns-name-{}', ns_name, needs_add=False))
 
 # ################################################################################################################################
 
