@@ -86,9 +86,9 @@ tr_service_html_contents_template = """
       <a href="#" id="service-header-io-{ns_name}-{name}">I/O</a>
     </span>
   </div>
-  <div id="service-details-deps-{ns_name}-{name}" class="hidden current-details service-details-toggle-{ns_name}-{name}">Dependencies</div>
-  <div id="service-details-io-{ns_name}-{name}" class="hidden current-details service-details-toggle-{ns_name}-{name}">I/O</div>
-  <div id="service-details-docs-{ns_name}-{name}" class="visible current-details service-details-toggle-{ns_name}-{name}"/>
+  <div id="service-details-deps-{ns_name}-{name}" class="hidden header-details service-details-toggle-{ns_name}-{name}">Dependencies</div>
+  <div id="service-details-io-{ns_name}-{name}" class="hidden header-details service-details-toggle-{ns_name}-{name}">I/O</div>
+  <div id="service-details-docs-{ns_name}-{name}" class="visible current-item header-details service-details-toggle-{ns_name}-{name}"/>
 </td>
 """
 
@@ -172,7 +172,13 @@ class APISpec(object):
 
     def toggle_details(self, selector_prefix, ns_name, service_name):
         def _toggle(e):
-            self._toggle(e, '.{}{}-{}'.format(selector_prefix, ns_name, service_name))
+            #self._toggle(e, '.{}{}-{}'.format(selector_prefix, ns_name, service_name))
+            selector = '.{}{}-{}'.format(selector_prefix, ns_name, service_name)
+            elems = doc.get(selector=selector)
+            for elem in elems:
+                if 'service-details-header' in elem.id or 'current-item' in elem.class_name:
+                    self._toggle(None, '#{}'.format(elem.id))
+            print()
         return _toggle
 
 # ################################################################################################################################
@@ -188,7 +194,11 @@ class APISpec(object):
                     break
 
                 selector = '.service-details-toggle-{}-{}'.format(ns_name, elem.id.replace('tr-service-', ''))
-                self._toggle(None, selector)
+                elems = doc.get(selector=selector)
+                #for item in elems:
+                #    print(333, item, item.id, item.class_name)
+                #    if 'current-item' not in item.class_name:
+                #        self._toggle(None, '#{}'.format(item.id))#selector)
 
         return _toggle
 
@@ -200,10 +210,27 @@ class APISpec(object):
             # Switch everything off ..
             for detail in header_details:
                 id = '#service-details-{}-{}-{}'.format(detail, ns_name, service_name)
+                elems = doc.get(selector=id)
+
+                for elem in elems:
+
+                    classes = elem.class_name.split(' ')
+
+                    if 'current-item' in classes:
+                        classes.remove('current-item')
+
+                    elem.class_name = ' '.join(classes)
+
                 self._toggle(None, id, False)
 
             # .. and switch on only the required one.
-            self._toggle(None, '#service-details-{}-{}-{}'.format(current, ns_name, service_name), True)
+            current_id = 'service-details-{}-{}-{}'.format(current, ns_name, service_name)
+            _current = doc[current_id]
+            self._toggle(None, '#{}'.format(current_id), True)
+
+            classes = _current.class_name.split(' ')
+            classes.append('current-item')
+            _current.class_name = ' '.join(classes)
 
             # Don't forget about cancelling the default handler
             e.preventDefault()
