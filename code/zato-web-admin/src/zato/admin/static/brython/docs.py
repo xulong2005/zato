@@ -172,7 +172,6 @@ class APISpec(object):
 
     def toggle_details(self, selector_prefix, ns_name, service_name):
         def _toggle(e):
-            #self._toggle(e, '.{}{}-{}'.format(selector_prefix, ns_name, service_name))
             selector = '.{}{}-{}'.format(selector_prefix, ns_name, service_name)
             elems = doc.get(selector=selector)
             for elem in elems:
@@ -195,10 +194,10 @@ class APISpec(object):
 
                 selector = '.service-details-toggle-{}-{}'.format(ns_name, elem.id.replace('tr-service-', ''))
                 elems = doc.get(selector=selector)
-                #for item in elems:
-                #    print(333, item, item.id, item.class_name)
-                #    if 'current-item' not in item.class_name:
-                #        self._toggle(None, '#{}'.format(item.id))#selector)
+
+                for elem in elems:
+                    if 'service-details-header' in elem.id or 'current-item' in elem.class_name:
+                        self._toggle(None, '#{}'.format(elem.id))
 
         return _toggle
 
@@ -215,10 +214,8 @@ class APISpec(object):
                 for elem in elems:
 
                     classes = elem.class_name.split(' ')
-
                     if 'current-item' in classes:
                         classes.remove('current-item')
-
                     elem.class_name = ' '.join(classes)
 
                 self._toggle(None, id, False)
