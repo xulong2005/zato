@@ -340,11 +340,15 @@ class APISpec(object):
         service_details = {}
 
         # All namespaces
-        namespaces = self.data['namespaces'].values()
+        namespaces = list(self.data['namespaces'].values())
         for values in namespaces:
 
             # Config
             services = values['services']
+
+            if not services:
+                continue
+
             ns_docs_md = values['docs_md']
             ns_name = self.get_ns(values['name'])
 
@@ -378,6 +382,12 @@ class APISpec(object):
                     'io': service['simple_io'].get('zato', {})
 
                 }
+
+        # Don't display anything if there are no services in the only namespace
+        if len(namespaces) == 1 and not namespaces[0]['services']:
+            doc['main-div'].html = '<b>No results</b>'
+            doc['main-div'].class_name = 'no-results'
+            return
 
         # We can append the table with contents to the main div
         doc['main-div'] <= self.spec_table
@@ -413,10 +423,11 @@ class APISpec(object):
 
             elem = doc['a-ns-options-toggle-services-{}'.format(ns_name)]
             elem.bind('click', self.toggle_simple('tr-service-ns-', ns_name))
+            elem.bind('mouseover', self.highlight('ns-name-{}', ns_name))
+            elem.bind('mouseout', self.highlight('ns-name-{}', ns_name, needs_add=False))
 
             elem = doc['a-ns-options-toggle-all-details-{}'.format(ns_name)]
             elem.bind('click', self.toggle_all_details(ns_name))
-
             elem.bind('mouseover', self.highlight('ns-name-{}', ns_name))
             elem.bind('mouseout', self.highlight('ns-name-{}', ns_name, needs_add=False))
 
