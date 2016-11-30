@@ -129,6 +129,8 @@ class Service(object):
     regardless whether they're built-in or user-defined ones.
     """
     _filter_by = None
+    _enforce_service_invokes = None
+    invokes = []
     http_method_handlers = {}
 
     def __init__(self, *ignored_args, **ignored_kwargs):
@@ -472,6 +474,12 @@ class Service(object):
         """
         name, target = self.extract_target(name)
         kwargs['target'] = target
+
+        if self._enforce_service_invokes:
+            if name not in self.invokes:
+                msg = 'Could not invoke `{}` which is not in `{}`'.format(name, self.invokes)
+                self.logger.warn(msg)
+                raise ValueError(msg)
 
         return self.invoke_by_impl_name(self.server.service_store.name_to_impl_name[name], *args, **kwargs)
 

@@ -117,6 +117,7 @@ aws_host=
 use_soap_envelope=True
 fifo_response_buffer_size=0.2 # In MB
 jwt_secret={{jwt_secret}}
+enforce_service_invokes=False
 
 [stats]
 expire_after=168 # In hours, 168 = 7 days = 1 week
