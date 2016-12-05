@@ -77,7 +77,7 @@ tr_service_html_contents_template = """
 <td id="td-service-{ns_name}-{name}" class="td-service">
   <div id="service-name-{ns_name}-{name}" class="service-name"><span class="header">{service_no}. {name}</span> <span class="service-desc" id="service-desc-{ns_name}-{name}"></span></div>
   <div id="service-options-{ns_name}-{name}" class="service-options"><a href="#" id="a-toggle-details-{ns_name}-{name}">Toggle details</a></div>
-  <div id="service-details-header-{ns_name}-{name}" class="service-details service-details-toggle-{ns_name}-{name}">
+  <div id="service-details-header-{ns_name}-{name}" class="hidden service-details service-details-toggle-{ns_name}-{name}">
     <span class="header">
       <a href="#" id="service-header-docs-{ns_name}-{name}">Docs</a>
       |
@@ -88,7 +88,7 @@ tr_service_html_contents_template = """
   </div>
   <div id="service-details-deps-{ns_name}-{name}" class="hidden header-details service-details-toggle-{ns_name}-{name}">Dependencies</div>
   <div id="service-details-io-{ns_name}-{name}" class="hidden header-details service-details-toggle-{ns_name}-{name}">I/O</div>
-  <div id="service-details-docs-{ns_name}-{name}" class="visible current-item header-details service-details-toggle-{ns_name}-{name}"/>
+  <div id="service-details-docs-{ns_name}-{name}" class="hidden visible current-item header-details service-details-toggle-{ns_name}-{name}"/>
 </td>
 """
 
@@ -400,7 +400,7 @@ class APISpec(object):
 
             docs = details['docs']
             doc['service-desc-{}-{}'.format(ns_name, name)].html = docs['summary']
-            doc['service-details-docs-{}-{}'.format(ns_name, name)].html = docs['full']
+            doc['service-details-docs-{}-{}'.format(ns_name, name)].html = docs['full'] or none_html
 
             deps = details['deps']
             doc['service-details-deps-{}-{}'.format(ns_name, name)].html = self.get_deps_html(deps['invokes'], deps['invoked_by'])
