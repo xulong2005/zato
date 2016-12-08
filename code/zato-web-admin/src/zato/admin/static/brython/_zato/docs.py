@@ -75,7 +75,7 @@ tr_ns_html_contents_template = """
 
 tr_service_html_contents_template = """
 <td id="td-service-{ns_name}-{name}" class="td-service">
-  <div id="service-name-{ns_name}-{name}" class="service-name"><span class="header">{service_no}. {name}</span> <span class="service-desc" id="service-desc-{ns_name}-{name}"></span></div>
+  <div id="service-name-{ns_name}-{name}" class="service-name"><span class="header">{service_no}. {display_name}</span> <span class="service-desc" id="service-desc-{ns_name}-{name}"></span></div>
   <div id="service-options-{ns_name}-{name}" class="service-options"><a href="#" id="a-toggle-details-{ns_name}-{name}">Toggle details</a></div>
   <div id="service-details-header-{ns_name}-{name}" class="hidden service-details service-details-toggle-{ns_name}-{name}">
     <span class="header">
@@ -313,9 +313,11 @@ class APISpec(object):
 # ################################################################################################################################
 
     def get_tr_service_html(self, service_no, service):
+        display_name = service['name']
         name = self.get_service_name(service['name'])
         ns_name = self.get_ns(service['namespace_name'])
-        return tr_service_html_contents_template.format(ns_name=ns_name, name=name, service_no=service_no)
+        return tr_service_html_contents_template.format(
+            display_name=display_name, name=name, ns_name=ns_name, service_no=service_no)
 
 # ################################################################################################################################
 
