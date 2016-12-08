@@ -475,7 +475,7 @@ class Service(object):
         name, target = self.extract_target(name)
         kwargs['target'] = target
 
-        if self._enforce_service_invokes:
+        if self._enforce_service_invokes and self.invokes:
             if name not in self.invokes:
                 msg = 'Could not invoke `{}` which is not in `{}`'.format(name, self.invokes)
                 self.logger.warn(msg)
