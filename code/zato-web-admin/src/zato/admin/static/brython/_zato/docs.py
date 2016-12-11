@@ -342,7 +342,7 @@ class APISpec(object):
         service_details = {}
 
         # All namespaces
-        namespaces = list(self.data['namespaces'].values())
+        namespaces = list(self.data.get('namespaces', {}).values())
         for values in namespaces:
 
             # Config
