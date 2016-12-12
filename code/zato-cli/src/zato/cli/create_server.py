@@ -218,6 +218,11 @@ ip=10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, eth0
 boot_if_preferred_not_found=False
 allow_loopback=False
 
+[apispec]
+pub_enabled=False
+pub_name=API specification
+pub_css_style="color:#eee; font-weight:bold; font-size:17px; padding-left:2px"
+
 [os_environ]
 sample_key=sample_value
 """.format(**CONTENT_TYPE).encode('utf-8')

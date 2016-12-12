@@ -8,11 +8,15 @@ Licensed under LGPLv3, see LICENSE.txt for terms and conditions.
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+# Paste
+from paste.util.converters import asbool
+
 # Zato
 from zato.common.util import get_brython_js
+from zato.server.connection.http_soap import NotFound
 from zato.server.service import Service
 
-namespace = 'zato-test'
+# ################################################################################################################################
 
 page_template = """<!doctype html>
 <html>
@@ -216,7 +220,7 @@ page_template = """<!doctype html>
         <div id="hd">
             <div id="console-header">&nbsp;<img src="data:image/png;charset=utf-8;base64, iVBORw0KGgoAAAANSUhEUgAAAB4AAAAeCAYAAAA7MK6iAAAAh3pUWHRSYXcgcHJvZmlsZSB0eXBlIGV4aWYAAHjadY7LDQMxCETvVJES+Hkw5UQrr5QOUn6wvJZPeQcYjdAwNL6fm14TYSVv0ZEAF56e+i7ReWHMoixz11w826SUHptMl0D2YD+H/vibZui4wyPQcOHSStdhYlqzHtFM5VkjT4iM3eiPv1v8AEsULHmqW1+DAAAJ6WlUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4KPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iWE1QIENvcmUgNC40LjAtRXhpdjIiPgogPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4KICA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIgogICAgeG1sbnM6ZXhpZj0iaHR0cDovL25zLmFkb2JlLmNvbS9leGlmLzEuMC8iCiAgICB4bWxuczp0aWZmPSJodHRwOi8vbnMuYWRvYmUuY29tL3RpZmYvMS4wLyIKICAgZXhpZjpQaXhlbFhEaW1lbnNpb249IjMwIgogICBleGlmOlBpeGVsWURpbWVuc2lvbj0iMzAiCiAgIHRpZmY6SW1hZ2VXaWR0aD0iMSIKICAgdGlmZjpJbWFnZUhlaWdodD0iMzAiLz4KIDwvcmRmOlJERj4KPC94OnhtcG1ldGE+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAKPD94cGFja2V0IGVuZD0idyI/PoOxCoAAAAAEc0JJVAgICAh8CGSIAAAFl0lEQVRIx72XbYxcVRnHf/87O51ddtvd7m5fTNdunHubpYWyNL7wgdKatraRWEJUTIwaMTq3JGoVbCJCoMiLisE0Rm3sTBNDIgllCcFaG2OwiRJfI8SGZLX2ntkGU0Vxd2kxXbrrzt8P3GmW6Rb4wHK+zNxznvP87nlez4WWUalUCrzdI03TeCH0hhAW1+v1aO5cNAf6EdvPLwQ4juOXbe+4CJym6UpgplarzbwZRbt377768OHDHz158uQNIYTVb5J/PIRwefOhLf+9Ddj7Bm7oA75te2tPT0//smXLFkVRZNvnQwinbI8kSXLfpfZLmrR9T5Zlu5IkcVuapottX1er1aZeB7oT+J7tgWKxWFizZg29vb1NhYuA9cBQCGE78Ok4juutOqIomp6dnR2Q1ANMRsAVkt7xOtAbgYeBQUmF7u5uyuUybW1traKLgGttHwkhDLQuNhoNgC5gedPHi20vTdO0fR7oAPADYKltR1HE4ODghdO2mBLbkjRk+7GxsbGoBbwIWNp0bwSck1QEPtwCLQCPAiubujs6OiiXyxSLRWzPCwciSe+enZ29q8XUK4B+wE3wX2xPAnvSNC3OkR0GrsplLMl9fX0sX74cSU2IL+GhoqTPZFm2pDlh+35AwL8Bomq1OiHpV8AQ8Ik5gl8FOvP/kuTe3t6p9vb2cWDC9lS+Nm8QAyslvT8vINfYvh44JWlibjrtBbYDD6VpGoA/ARtyBQCvAD+V9FCj0fjrq1bV5bb3SPoQ0D7n9M09s8CGLMv+YPthoAjcUS6XGxcKSLVaPQn8OI+6J4Cttm8BngFeknTfgQMHPrZx48a+Uql0L/B1271JktwEfAuYyoGyPQ1kwJeBEeCYpLKko3EcH6Pl7ZoB9RPgg7bPS3oEuBXYXK1Wf75v377ali1bburq6jpnuyipZPtQkiSVEMIvbK8HTkh6wnYV+Jyku/OM+F2SJJtafdHanR7LzVe0/bykHcCGoaGhg9u2bTs0PDyc5n47Amyy/UngKUnTQJvtiqQvAc1c/rXtnUmSnJ+3SeQnXgLcBVRs/0PSEtuThUJhU6lUOteE5uOOfP8NURQVgGO2/y7pO8AgMG77a3Ecb2+FXgSuVqtnJR0E3iVpCLgTmImiaLqzs7M4Pj7eMSfql+YWM7DE9rCkTtv/BO4HhqIoejnLsnXzhX3UOmH7aeB227+1/QowVSgUftbR0VGYmJg4GkLYHEK4XtJ3bc9IqjUajRi4G7hO0lrbz9k+2mg0bikWi38LIWy9JLhSqbw3TdPdwD3AqKRhSTVJz9Xr9Wf7+/sflLTe9lFgxPY7JT0Qx/EfJf1LUt32zbZHgUckrZX0+cHBwf8B3wghVC4KrjRN24DfA6vzVPqPpCfzXC4Af+7u7t65a9eukqQbc8s8LqkAPAkkthdJant1yS9I+kocx4+GEL5p+zZgNEmSDa85se1+oJzX0iOSVlSr1WuAKvACcOWqVauOT09P7wcawIykg7afycvqZZIi22ds/zKKovfZPhRCuBf4Yt4619br9c++BizpSuCy3AI9thfnwfaF/DS3RlE0lsvtBR4Ars2r0YvAqO3vS7oa2AFMSjoC7LHd2Wybtm/PsqxzbsnsAiLbDUmP12q1p+dE+hSwH9g/OjrancuW8pecBs4BZ5MkuXBtqtfrReAKoEOS8xIrYLWkTwE/bIKz3Hwv5V1k3rFu3bozwJk3ulyVy+UzWZY9JenmPEYudC3gzhDCSDOqTwGnbe+v1Wpjb8XNMoqivbbPtnYt2wPAVc0m8V9gH/DgW3WlLZfLpyU9O6drOY+nKdsvaiE/EOr1+scbjcaPJJWaNyDbx4vF4nsWFAyQZdmopLU59LSkD8RxfCJaaLCkEdtnbf9G0uY4jk+8Ld9jWZatCCFsbJ3/P3NnfsE+60ljAAAAAElFTkSuQmC" alt="Zato samurai helmet logo" style="vertical-align:bottom"/>
             <span id="logo"><a href="https://zato.io/docs">Zato</a></span>
-            <span style="color:#eee; font-weight:bold; font-size:17px; padding-left:2px">Brabantia API</span>
+            <span style="color:#eee; font-weight:bold; font-size:17px; padding-left:2px">ZATO_PUB_NAME</span>
             </div>
         </div>
 
@@ -682,17 +686,40 @@ apispec.run()
 
 # ################################################################################################################################
 
-class PublicAPISpec(Service):
+class _Base(Service):
+
+    def validate_input(self):
+        if not asbool(self.server.fs_server_config.apispec.pub_enabled):
+
+            # Note that we are using the same format that regular 404 does
+            raise NotFound(self.cid, '[{}] Unknown URL:[{}] or SOAP action:[]'.format(
+                self.cid, self.wsgi_environ['zato.http.channel_item']['url_path']))
+
+# ################################################################################################################################
+
+class Main(_Base):
     """ Returns public version of API specifications.
     """
     def handle(self):
-        data = '''{"services": [{"invoked_by": [], "simple_io": {}, "name": "apispec-pub.api-spec-brython", "docs": {"full": "Returns Brython's main source code module.", "description": "Returns Brython's main source code module.", "description_html": "Returns Brython's main source code module.", "full_html": "Returns Brython's main source code module.", "summary_html": "Returns Brython's main source code module.", "summary": "Returns Brython's main source code module."}, "invokes": [], "namespace_name": "zato-test"}, {"invoked_by": [], "simple_io": {}, "name": "apispec-pub.api-spec-brython-json-py", "docs": {"full": "Brython's 'json' module.", "description": "Brython's 'json' module.", "description_html": "Brython's 'json' module.", "full_html": "Brython's 'json' module.", "summary_html": "Brython's 'json' module.", "summary": "Brython's 'json' module."}, "invokes": [], "namespace_name": "zato-test"}, {"invoked_by": [], "simple_io": {}, "name": "apispec-pub.api-spec-docs-py", "docs": {"full": "Returns Brython frontend code to display API specifications.", "description": "Returns Brython frontend code to display API specifications.", "description_html": "Returns Brython frontend code to display API specifications.", "full_html": "Returns Brython frontend code to display API specifications.", "summary_html": "Returns Brython frontend code to display API specifications.", "summary": "Returns Brython frontend code to display API specifications."}, "invokes": [], "namespace_name": "zato-test"}, {"invoked_by": [], "simple_io": {}, "name": "apispec-pub.public-api-spec", "docs": {"full": "Returns public version of API specifications.", "description": "Returns public version of API specifications.", "description_html": "Returns public version of API specifications.", "full_html": "Returns public version of API specifications.", "summary_html": "Returns public version of API specifications.", "summary": "Returns public version of API specifications."}, "invokes": [], "namespace_name": "zato-test"}, {"invoked_by": [], "simple_io": {}, "name": "zzz.my-service", "docs": {"full": "", "description": "", "description_html": "", "full_html": "", "summary_html": "", "summary": ""}, "invokes": [], "namespace_name": ""}], "namespaces": {"": {"services": [{"invoked_by": [], "simple_io": {}, "name": "zzz.my-service", "docs": {"full": "", "description": "", "description_html": "", "full_html": "", "summary_html": "", "summary": ""}, "invokes": [], "namespace_name": ""}], "docs": "", "docs_md": "", "name": ""}, "zato-test": {"services": [{"invoked_by": [], "simple_io": {}, "name": "apispec-pub.api-spec-brython", "docs": {"full": "Returns Brython's main source code module.", "description": "Returns Brython's main source code module.", "description_html": "Returns Brython's main source code module.", "full_html": "Returns Brython's main source code module.", "summary_html": "Returns Brython's main source code module.", "summary": "Returns Brython's main source code module."}, "invokes": [], "namespace_name": "zato-test"}, {"invoked_by": [], "simple_io": {}, "name": "apispec-pub.api-spec-brython-json-py", "docs": {"full": "Brython's 'json' module.", "description": "Brython's 'json' module.", "description_html": "Brython's 'json' module.", "full_html": "Brython's 'json' module.", "summary_html": "Brython's 'json' module.", "summary": "Brython's 'json' module."}, "invokes": [], "namespace_name": "zato-test"}, {"invoked_by": [], "simple_io": {}, "name": "apispec-pub.api-spec-docs-py", "docs": {"full": "Returns Brython frontend code to display API specifications.", "description": "Returns Brython frontend code to display API specifications.", "description_html": "Returns Brython frontend code to display API specifications.", "full_html": "Returns Brython frontend code to display API specifications.", "summary_html": "Returns Brython frontend code to display API specifications.", "summary": "Returns Brython frontend code to display API specifications."}, "invokes": [], "namespace_name": "zato-test"}, {"invoked_by": [], "simple_io": {}, "name": "apispec-pub.public-api-spec", "docs": {"full": "Returns public version of API specifications.", "description": "Returns public version of API specifications.", "description_html": "Returns public version of API specifications.", "full_html": "Returns public version of API specifications.", "summary_html": "Returns public version of API specifications.", "summary": "Returns public version of API specifications."}, "invokes": [], "namespace_name": "zato-test"}], "docs": "", "docs_md": "", "name": "zato-test"}}}'''
-        self.response.payload = page_template.replace('ZATO_DATA', data).replace('ZATO_CLUSTER_ID', str(self.server.cluster_id))
+
+        replace_with = {
+            'ZATO_DATA': self.invoke('zato.apispec.get-api-spec'),
+            'ZATO_CLUSTER_ID': str(self.server.cluster_id),
+            'ZATO_PUB_NAME': self.server.fs_server_config.apispec.pub_name,
+            'ZATO_PUB_CSS_STYLE': self.server.fs_server_config.apispec.pub_css_style,
+        }
+
+        _page_template = page_template
+
+        for k, v in replace_with.items():
+            _page_template = _page_template.replace(k, v)
+
+        self.response.payload = _page_template
         self.response.headers['Content-Type'] = 'text/html'
 
 # ################################################################################################################################
 
-class APISpecBrython(Service):
+class BrythonJS(_Base):
     """ Returns Brython's main source code module.
     """
     def handle(self):
@@ -701,7 +728,7 @@ class APISpecBrython(Service):
 
 # ################################################################################################################################
 
-class APISpecBrythonJSONPy(Service):
+class BrythonJSON(_Base):
     """ Brython's 'json' module.
     """
     def handle(self):
@@ -724,7 +751,7 @@ return  {
 
 # ################################################################################################################################
 
-class APISpecDocsPy(Service):
+class Frontend(_Base):
     """ Returns Brython frontend code to display API specifications.
     """
     def handle(self):

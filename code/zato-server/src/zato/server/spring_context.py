@@ -47,6 +47,7 @@ class ZatoContext(PythonConfig):
         return [
             'zato.server.service.internal',
             'zato.server.service.internal.apispec',
+            'zato.server.service.internal.apispec.pub',
             'zato.server.service.internal.checks.sio',
             'zato.server.service.internal.channel.amqp',
             'zato.server.service.internal.channel.jms_wmq',
