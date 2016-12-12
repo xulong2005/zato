@@ -8,12 +8,6 @@ Licensed under LGPLv3, see LICENSE.txt for terms and conditions.
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-# stdlib
-from json import dumps, loads
-
-# Bunch
-from bunch import Bunch, bunchify
-
 # Zato
 from zato.admin.web.views import Index as _Index
 

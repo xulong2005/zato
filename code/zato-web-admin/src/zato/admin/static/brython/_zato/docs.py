@@ -46,6 +46,7 @@ def zip_longest(*args, **kwds):
     """
     fillvalue = kwds.get('fillvalue')
     counter = len(args) - 1
+
     def sentinel():
         nonlocal counter
         if not counter:
@@ -75,7 +76,8 @@ tr_ns_html_contents_template = """
 
 tr_service_html_contents_template = """
 <td id="td-service-{ns_name}-{name}" class="td-service">
-  <div id="service-name-{ns_name}-{name}" class="service-name"><span class="header">{service_no}. {display_name}</span> <span class="service-desc" id="service-desc-{ns_name}-{name}"></span></div>
+  <div id="service-name-{ns_name}-{name}" class="service-name"><span class="header">{service_no}. {display_name}</span>
+  <span class="service-desc" id="service-desc-{ns_name}-{name}"></span></div>
   <div id="service-options-{ns_name}-{name}" class="service-options"><a href="#" id="a-toggle-details-{ns_name}-{name}">Toggle details</a></div>
   <div id="service-details-header-{ns_name}-{name}" class="hidden service-details service-details-toggle-{ns_name}-{name}">
     <span class="header">
