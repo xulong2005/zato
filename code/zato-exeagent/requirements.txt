@@ -1,0 +1,7 @@
+appdirs==1.4.0
+bunch==1.0.1
+ConcurrentLogHandler==0.9.1
+configobj==5.0.6
+flake8==3.2.1
+gevent==1.2a2
+PyYAML==3.12

@@ -1,0 +1,2 @@
+from zato.exeagent.main import main
+main()
