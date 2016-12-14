@@ -15,11 +15,13 @@ code/pip-selfcheck.json
 code/release-info/revision.txt
 code/sec-wall-trunk-src/*
 code/zato-cy/src/zato/cy/*.c
+code/zato-exeagent/exeagent-env
 code/zato-web-admin/src/zato/admin/static/css/.sass-cache/
 code/zato_extra_paths/*
 code/*/build
 code/*/dist
 hotfixes
+pidfile
 *.egg-info*
 *.geany*
 *.pyc

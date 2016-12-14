@@ -14,10 +14,11 @@ monkey.patch_all()
 import logging
 import os
 from logging.config import dictConfig
+from platform import uname
 from traceback import format_exc
 
 # appdirs
-from appdirs import user_config_dir
+from appdirs import user_config_dir, user_log_dir
 
 # ConcurrentLogHandler - updates stlidb's logging config on import so this needs to stay
 import cloghandler
@@ -27,8 +28,15 @@ cloghandler = cloghandler # For pyflakes
 import yaml
 
 # Zato
-from zato.exeagent.util import absjoin, get_config, store_pidfile
+from zato.exeagent.default import exeagent_conf, logging_conf
 from zato.exeagent.server import Config, ExeAgentServer
+from zato.exeagent.util import absjoin, get_config, store_pidfile
+
+# ################################################################################################################################
+
+app_name = 'ExeAgent' if 'windows' in uname().system.lower() else 'exeagent'
+app_author = 'Zato Source s.r.o.'
+app_version = '1'
 
 # ################################################################################################################################
 
@@ -57,6 +65,9 @@ def main():
     logging.captureWarnings(True)
 
     config = Config()
+
+    print(user_config_dir(app_name, app_author))
+    print(user_log_dir(app_name, app_author))
 
     return
 
