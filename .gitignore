@@ -18,6 +18,7 @@ code/zato-cy/src/zato/cy/*.c
 code/zato-exeagent/exeagent-env
 code/zato-web-admin/src/zato/admin/static/css/.sass-cache/
 code/zato_extra_paths/*
+code/zato-exeagent
 code/*/build
 code/*/dist
 hotfixes
