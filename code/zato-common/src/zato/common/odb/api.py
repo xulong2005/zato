@@ -27,6 +27,7 @@ from sqlalchemy import create_engine, event
 from sqlalchemy.exc import IntegrityError, ProgrammingError
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.pool import NullPool
+from sqlalchemy.sql.expression import true
 
 # Bunch
 from bunch import Bunch
@@ -35,7 +36,8 @@ from bunch import Bunch
 from zato.common import DEPLOYMENT_STATUS, Inactive, MISC, SEC_DEF_TYPE, SECRET_SHADOW, SERVER_UP_STATUS, TRACE1, ZATO_NONE, \
      ZATO_ODB_POOL_NAME
 from zato.common.odb.model import APIKeySecurity, Cluster, DeployedService, DeploymentPackage, DeploymentStatus, HTTPBasicAuth, \
-     HTTPSOAP, HTTSOAPAudit, JWT, OAuth, Server, Service, TechnicalAccount, TLSChannelSecurity, XPathSecurity, WSSDefinition
+     HTTPSOAP, HTTSOAPAudit, JWT, OAuth, Server, Service, TechnicalAccount, TLSChannelSecurity, XPathSecurity, WSSDefinition, \
+     VaultConnection
 from zato.common.odb import ping_queries, query
 from zato.common.util import current_host, get_component_name, get_engine_url, get_http_json_channel, get_http_soap_channel, \
      parse_extra_into_dict, parse_tls_channel_security_definition
@@ -340,6 +342,7 @@ class ODBManager(SessionWrapper):
                 DeployedService.source_path, DeployedService.source).\
                 join(DeployedService, Service.id==DeployedService.service_id).\
                 join(Server, DeployedService.server_id==Server.id).\
+                filter(Service.is_internal!=true()).\
                 all()
 
             for item in server_services:
@@ -382,8 +385,9 @@ class ODBManager(SessionWrapper):
                 SEC_DEF_TYPE.JWT: JWT,
                 SEC_DEF_TYPE.OAUTH: OAuth,
                 SEC_DEF_TYPE.TECH_ACCOUNT: TechnicalAccount,
-                SEC_DEF_TYPE.WSS: WSSDefinition,
                 SEC_DEF_TYPE.TLS_CHANNEL_SEC: TLSChannelSecurity,
+                SEC_DEF_TYPE.WSS: WSSDefinition,
+                SEC_DEF_TYPE.VAULT: VaultConnection,
                 SEC_DEF_TYPE.XPATH_SEC: XPathSecurity,
                 }
 
@@ -715,6 +719,8 @@ class ODBManager(SessionWrapper):
             ('zato.security.rbac.client-role.create.json', 'zato.server.service.internal.security.rbac.client_role.Create'),
             ('zato.security.rbac.client-role.delete', 'zato.server.service.internal.security.rbac.client_role.Delete'),
             ('zato.security.rbac.client-role.delete.json', 'zato.server.service.internal.security.rbac.client_role.Delete'),
+            ('zato.security.rbac.client-role.get-client-def-list', 'zato.server.service.internal.security.rbac.client_role.GetClientDefList'),
+            ('zato.security.rbac.client-role.get-client-def-list.json', 'zato.server.service.internal.security.rbac.client_role.GetClientDefList'),
             ('zato.security.rbac.permission.create', 'zato.server.service.internal.security.rbac.permission.Create'),
             ('zato.security.rbac.permission.create.json', 'zato.server.service.internal.security.rbac.permission.Create'),
             ('zato.security.rbac.permission.delete', 'zato.server.service.internal.security.rbac.permission.Delete'),
@@ -887,6 +893,12 @@ class ODBManager(SessionWrapper):
         with closing(self.session()) as session:
             return query.wss_list(session, cluster_id, needs_columns)
 
+    def get_vault_connection_list(self, cluster_id, needs_columns=False):
+        """ Returns a list of Vault connections on the given cluster.
+        """
+        with closing(self.session()) as session:
+            return query.vault_connection_list(session, cluster_id, needs_columns)
+
     def get_xpath_sec_list(self, cluster_id, needs_columns=False):
         """ Returns a list of XPath-based security definitions on the given cluster.
         """
@@ -895,17 +907,17 @@ class ODBManager(SessionWrapper):
 
 # ################################################################################################################################
 
-    def get_def_amqp(self, cluster_id, def_id):
+    def get_definition_amqp(self, cluster_id, def_id):
         """ Returns an AMQP definition's details.
         """
         with closing(self.session()) as session:
-            return query.def_amqp(session, cluster_id, def_id)
+            return query.definition_amqp(session, cluster_id, def_id)
 
-    def get_def_amqp_list(self, cluster_id, needs_columns=False):
+    def get_definition_amqp_list(self, cluster_id, needs_columns=False):
         """ Returns a list of AMQP definitions on the given cluster.
         """
         with closing(self.session()) as session:
-            return query.def_amqp_list(session, cluster_id, needs_columns)
+            return query.definition_amqp_list(session, cluster_id, needs_columns)
 
     def get_out_amqp(self, cluster_id, out_id):
         """ Returns an outgoing AMQP connection's details.

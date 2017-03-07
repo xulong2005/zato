@@ -301,6 +301,7 @@ class ZatoCommand(object):
         EXCEPTION_CAUGHT = 16
         CANNOT_MIGRATE = 17
         FAILED_TO_START = 18
+        FOUND_PIDFILE = 19
 
     class COMPONENTS(object):
         class _ComponentName(object):
@@ -693,7 +694,7 @@ class ManageCommand(ZatoCommand):
     def _on_lb(self, *ignored_args, **ignored_kwargs):
         raise NotImplementedError('Should be implemented by subclasses')
 
-    _on_web_admin = _on_server = _on_lb
+    _on_web_admin = _on_server = _on_scheduler = _on_lb
 
     def execute(self, args):
 

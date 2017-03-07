@@ -16,15 +16,15 @@ from django.views.static import serve as django_static_serve
 
 # Zato
 from zato.admin import settings
-from zato.admin.web.views import account, cluster, http_soap, kvdb, load_balancer, main, scheduler, service, stats
-from zato.admin.web.views.channel import amqp as channel_amqp
+from zato.admin.web.views import account, cluster, docs, http_soap, kvdb, load_balancer, main, scheduler, service, stats
+from zato.admin.web.views.channel import amqp_ as channel_amqp
 from zato.admin.web.views.channel import jms_wmq as channel_jms_wmq
 from zato.admin.web.views.channel import stomp as channel_stomp
 from zato.admin.web.views.channel import web_socket as channel_web_socket
 from zato.admin.web.views.channel import zmq as channel_zmq
 from zato.admin.web.views.cloud.aws import s3 as cloud_aws_s3
 from zato.admin.web.views.cloud.openstack import swift as cloud_openstack_swift
-from zato.admin.web.views.definition import amqp as def_amqp
+from zato.admin.web.views.definition import amqp_ as def_amqp
 from zato.admin.web.views.definition import cassandra as def_cassandra
 from zato.admin.web.views.definition import jms_wmq as def_jms_wmq
 from zato.admin.web.views.email import imap as email_imap
@@ -33,7 +33,7 @@ from zato.admin.web.views.kvdb.data_dict import dictionary, impexp, translation
 from zato.admin.web.views.message import json_pointer, live_browser, namespace, xpath
 from zato.admin.web.views.notif.cloud.openstack import swift as notif_cloud_openstack_swift
 from zato.admin.web.views.notif import sql as notif_sql
-from zato.admin.web.views.outgoing import amqp as out_amqp
+from zato.admin.web.views.outgoing import amqp_ as out_amqp
 from zato.admin.web.views.outgoing import ftp as out_ftp
 from zato.admin.web.views.outgoing import jms_wmq as out_jms_wmq
 from zato.admin.web.views.outgoing import odoo as out_odoo
@@ -50,6 +50,7 @@ from zato.admin.web.views.search import solr
 from zato.admin.web.views.security import apikey, aws, basic_auth, jwt, ntlm, oauth, openstack as openstack_security, rbac, \
      tech_account, wss, xpath as xpath_sec
 from zato.admin.web.views.security.tls import ca_cert as tls_ca_cert, channel as tls_channel, key_cert as tls_key_cert
+from zato.admin.web.views.security.vault import connection as vault_conn
 
 urlpatterns = [
 
@@ -165,6 +166,15 @@ urlpatterns += [
         login_required(service.slow_response_details), name='service-slow-response-details'),
     url(r'^zato/service/slow-response/(?P<service_name>.*)/$',
         login_required(service.slow_response), name='service-slow-response'),
+    ]
+
+urlpatterns += [
+
+    # Services docs
+
+    url(r'^zato/docs/web-admin/$',
+        login_required(docs.Index()), name=docs.Index.url_name),
+
     ]
 
 # ################################################################################################################################
@@ -488,6 +498,22 @@ urlpatterns += [
     url(r'^zato/security/tls/ca-cert/delete/(?P<id>.*)/cluster/(?P<cluster_id>.*)/$',
         login_required(tls_ca_cert.Delete()), name='security-tls-ca-cert-delete'),
 
+    ]
+
+# ################################################################################################################################
+
+urlpatterns += [
+
+    # .. Vault connections
+
+    url(r'^zato/security/vault/conn/$',
+        login_required(vault_conn.Index()), name=vault_conn.Index.url_name),
+    url(r'^zato/security/vault/conn/create/$',
+        login_required(vault_conn.Create()), name=vault_conn.Create.url_name),
+    url(r'^zato/security/vault/conn/edit/$',
+        login_required(vault_conn.Edit()), name=vault_conn.Edit.url_name),
+    url(r'^zato/security/vault/conn/delete/(?P<id>.*)/cluster/(?P<cluster_id>.*)/$',
+        login_required(vault_conn.Delete()), name=vault_conn.Delete.url_name),
     ]
 
 # ################################################################################################################################

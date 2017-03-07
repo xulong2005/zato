@@ -110,8 +110,8 @@ from texttable import Texttable
 from validate import is_boolean, is_integer, VdtTypeError
 
 # Zato
-from zato.common import CHANNEL, DATA_FORMAT, engine_def, engine_def_sqlite, KVDB, MISC, SECRET_SHADOW, SIMPLE_IO, \
-     soap_body_path, soap_body_xpath, TLS, TRACE1, ZatoException, ZATO_NOT_GIVEN, ZMQ
+from zato.common import CHANNEL, CLI_ARG_SEP, curdir as common_curdir, DATA_FORMAT, engine_def, engine_def_sqlite, KVDB, MISC, \
+     SECRET_SHADOW, SIMPLE_IO, soap_body_path, soap_body_xpath, TLS, TRACE1, ZatoException, ZATO_NOT_GIVEN, ZMQ
 from zato.common.broker_message import SERVICE
 from zato.common.crypto import CryptoManager
 from zato.common.odb.model import HTTPBasicAuth, HTTPSOAP, IntervalBasedJob, Job, Server, Service
@@ -1078,12 +1078,12 @@ def wait_until_port_free(port, timeout=2, interval=0.1):
 
 # ################################################################################################################################
 
-def get_haproxy_pidfile(component_dir):
+def get_haproxy_agent_pidfile(component_dir):
     json_config = json.loads(open(os.path.join(component_dir, 'config', 'repo', 'lb-agent.conf')).read())
     return os.path.abspath(os.path.join(component_dir, json_config['pid_file']))
 
-def store_pidfile(component_dir):
-    open(os.path.join(component_dir, MISC.PIDFILE), 'w').write('{}'.format(os.getpid()))
+def store_pidfile(component_dir, pidfile=MISC.PIDFILE):
+    open(os.path.join(component_dir, pidfile), 'w').write('{}'.format(os.getpid()))
 
 # ################################################################################################################################
 
@@ -1541,7 +1541,7 @@ def timeouting_popen(command, timeout, timeout_msg, rc_non_zero_msg, common_msg=
 
 def spawn_greenlet(callable, *args, **kwargs):
     """ Spawns a new greenlet and wait up to timeout seconds for its response. It is expected that the response never arrives
-    because that means that there were no errors.
+    because if it does, it means that there were some errors.
     """
     try:
         g = spawn(callable, *args, **kwargs)
@@ -1604,5 +1604,49 @@ def require_tcp_port(address):
         int(port)
     except ValueError:
         raise Exception('Invalid TCP port in {}'.format(address))
+
+# ################################################################################################################################
+
+def get_brython_js():
+    code_root = os.path.normpath(os.path.join(common_curdir, '..', '..', '..', '..'))
+    brython_path = os.path.join(
+        code_root, 'zato-web-admin', 'src', 'zato', 'admin', 'static', 'brython', '_brython', 'brython.js')
+
+    f = open(brython_path)
+    brython = f.read()
+    f.close()
+
+    # To make it 100% certain that we are returning the correct file
+    expected = '450c1a7fcab574947c5a5299b81512be2f251649c326209e7c612ed1be6f35e5'
+    actual = sha256(brython).hexdigest()
+
+    if actual != expected:
+        raise ValueError('Failed to validate hash of `{}`'.format(brython_path))
+
+    return brython
+
+# ################################################################################################################################
+
+def update_apikey_username(config):
+    config.username = 'HTTP_{}'.format(config.get('username', '').upper().replace('-', '_'))
+
+# ################################################################################################################################
+
+def get_response_value(response):
+    """ Extracts the actual response string from a response object produced by services.
+    """
+    return (response.payload.getvalue() if hasattr(response.payload, 'getvalue') else response.payload) or ''
+
+# ################################################################################################################################
+
+def get_lb_agent_json_config(repo_dir):
+    return json.loads(open(os.path.join(repo_dir, 'lb-agent.conf')).read())
+
+# ################################################################################################################################
+
+def parse_cmd_line_options(argv):
+    options = argv.split(CLI_ARG_SEP)
+    options = '\n'.join(options)
+    return parse_extra_into_dict(options)
 
 # ################################################################################################################################

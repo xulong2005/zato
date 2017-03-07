@@ -26,13 +26,27 @@ from zato.common.util import get_http_json_channel, get_http_soap_channel
 
 msg_browser_defaults = WEB_SOCKET.DEFAULT.LIVE_MSG_BROWSER
 
+apispec_name_path = {
+    'zato.apispec.pub.brython-js': '/apispec/static/brython/_brython/brython.js',
+    'zato.apispec.pub.brython-json': '/apispec/static/brython/_brython/libs/json.js',
+    'zato.apispec.pub.main': '/apispec',
+    'zato.apispec.pub.frontend': '/apispec/static/brython/_zato/docs.py',
+}
+
 zato_services = {
 
+    # API Spec
+    'zato.apispec.get-api-spec':'zato.server.service.internal.apispec.GetAPISpec',
+    'zato.apispec.pub.main':'zato.server.service.internal.apispec.pub.Main',
+    'zato.apispec.pub.brython-js':'zato.server.service.internal.apispec.pub.BrythonJS',
+    'zato.apispec.pub.brython-json':'zato.server.service.internal.apispec.pub.BrythonJSON',
+    'zato.apispec.pub.frontend':'zato.server.service.internal.apispec.pub.Frontend',
+
     # Channels - AMQP
-    'zato.channel.amqp.create':'zato.server.service.internal.channel.amqp.Create',
-    'zato.channel.amqp.delete':'zato.server.service.internal.channel.amqp.Delete',
-    'zato.channel.amqp.edit':'zato.server.service.internal.channel.amqp.Edit',
-    'zato.channel.amqp.get-list':'zato.server.service.internal.channel.amqp.GetList',
+    'zato.channel.amqp.create':'zato.server.service.internal.channel.amqp_.Create',
+    'zato.channel.amqp.delete':'zato.server.service.internal.channel.amqp_.Delete',
+    'zato.channel.amqp.edit':'zato.server.service.internal.channel.amqp_.Edit',
+    'zato.channel.amqp.get-list':'zato.server.service.internal.channel.amqp_.GetList',
 
     # Channels - JMS WebSphere MQ
     'zato.channel.jms-wmq.create':'zato.server.service.internal.channel.jms_wmq.Create',
@@ -63,6 +77,24 @@ zato_services = {
     'zato.channel.zmq.edit':'zato.server.service.internal.channel.zmq.Edit',
     'zato.channel.zmq.get-list':'zato.server.service.internal.channel.zmq.GetList',
 
+    # Checks
+    'zato.checks.sio.as-is-service': 'zato.server.service.internal.checks.sio.AsIsService',
+    'zato.checks.sio.boolean-service': 'zato.server.service.internal.checks.sio.BooleanService',
+    'zato.checks.sio.csv-service': 'zato.server.service.internal.checks.sio.CSVService',
+    'zato.checks.sio.check-sio': 'zato.server.service.internal.checks.sio.CheckSIO',
+    'zato.checks.check-service': 'zato.server.service.internal.checks.CheckService',
+    'zato.checks.sio.check-target-service': 'zato.server.service.internal.checks.sio.CheckTargetService',
+    'zato.checks.sio.dict-service': 'zato.server.service.internal.checks.sio.DictService',
+    'zato.checks.sio.integer-service': 'zato.server.service.internal.checks.sio.IntegerService',
+    'zato.checks.sio.list-of-dicts-service': 'zato.server.service.internal.checks.sio.ListOfDictsService',
+    'zato.checks.sio.list-service': 'zato.server.service.internal.checks.sio.ListService',
+    'zato.checks.sio.nested-service': 'zato.server.service.internal.checks.sio.NestedService',
+    'zato.checks.sio.no-force-type-service': 'zato.server.service.internal.checks.sio.NoForceTypeService',
+    'zato.checks.sio.utc-service': 'zato.server.service.internal.checks.sio.UTCService',
+    'zato.checks.sio.unicode-service': 'zato.server.service.internal.checks.sio.UnicodeService',
+    'zato.checks.sio.fixed-width-string': 'zato.server.service.internal.checks.sio.FixedWidthString',
+    'zato.checks.sio.fixed-width-string-multi-line': 'zato.server.service.internal.checks.sio.FixedWidthStringMultiLine',
+
     # Cloud - AWS - S3
     'zato.cloud.aws.s3.create':'zato.server.service.internal.cloud.aws.s3.Create',
     'zato.cloud.aws.s3.delete':'zato.server.service.internal.cloud.aws.s3.Delete',
@@ -75,13 +107,16 @@ zato_services = {
     'zato.cloud.openstack.swift.edit':'zato.server.service.internal.cloud.openstack.swift.Edit',
     'zato.cloud.openstack.swift.get-list':'zato.server.service.internal.cloud.openstack.swift.GetList',
 
+    # Connectors - AMQP
+    'zato.connector.amqp.create':'zato.server.service.internal.connector.amqp_.Create',
+
     # Definitions - AMQP
-    'zato.definition.amqp.change-password':'zato.server.service.internal.definition.amqp.ChangePassword',
-    'zato.definition.amqp.create':'zato.server.service.internal.definition.amqp.Create',
-    'zato.definition.amqp.delete':'zato.server.service.internal.definition.amqp.Delete',
-    'zato.definition.amqp.edit':'zato.server.service.internal.definition.amqp.Edit',
-    'zato.definition.amqp.get-by-id':'zato.server.service.internal.definition.amqp.GetByID',
-    'zato.definition.amqp.get-list':'zato.server.service.internal.definition.amqp.GetList',
+    'zato.definition.amqp.change-password':'zato.server.service.internal.definition.amqp_.ChangePassword',
+    'zato.definition.amqp.create':'zato.server.service.internal.definition.amqp_.Create',
+    'zato.definition.amqp.delete':'zato.server.service.internal.definition.amqp_.Delete',
+    'zato.definition.amqp.edit':'zato.server.service.internal.definition.amqp_.Edit',
+    'zato.definition.amqp.get-by-id':'zato.server.service.internal.definition.amqp_.GetByID',
+    'zato.definition.amqp.get-list':'zato.server.service.internal.definition.amqp_.GetList',
 
     # Definitions - Cassandra
     'zato.definition.cassandra.create':'zato.server.service.internal.definition.cassandra.Create',
@@ -189,10 +224,10 @@ zato_services = {
     'zato.notif.cloud.sql.get-list': 'zato.server.service.internal.notif.cloud.sql.GetList',
 
     # Outgoing connections - AMQP
-    'zato.outgoing.amqp.create':'zato.server.service.internal.outgoing.amqp.Create',
-    'zato.outgoing.amqp.delete':'zato.server.service.internal.outgoing.amqp.Delete',
-    'zato.outgoing.amqp.edit':'zato.server.service.internal.outgoing.amqp.Edit',
-    'zato.outgoing.amqp.get-list':'zato.server.service.internal.outgoing.amqp.GetList',
+    'zato.outgoing.amqp.create':'zato.server.service.internal.outgoing.amqp_.Create',
+    'zato.outgoing.amqp.delete':'zato.server.service.internal.outgoing.amqp_.Delete',
+    'zato.outgoing.amqp.edit':'zato.server.service.internal.outgoing.amqp_.Edit',
+    'zato.outgoing.amqp.get-list':'zato.server.service.internal.outgoing.amqp_.GetList',
 
     # Outgoing connections - FTP
     'zato.outgoing.ftp.change-password':'zato.server.service.internal.outgoing.ftp.ChangePassword',
@@ -349,23 +384,24 @@ zato_services = {
     'zato.security.rbac.role.create':'zato.server.service.internal.security.rbac.role.Create',
     'zato.security.rbac.role.delete':'zato.server.service.internal.security.rbac.role.Delete',
     'zato.security.rbac.role.edit':'zato.server.service.internal.security.rbac.role.Edit',
-    'zato.security.rbac.role.get-list':'zato.server.service.internal.security.rbac.role.get-list',
+    'zato.security.rbac.role.get-list':'zato.server.service.internal.security.rbac.role.GetList',
 
     # Security - RBAC - Client roles
     'zato.security.rbac.client-role.create':'zato.server.service.internal.security.rbac.client_role.Create',
     'zato.security.rbac.client-role.delete':'zato.server.service.internal.security.rbac.client_role.Delete',
-    'zato.security.rbac.client-role.get-list':'zato.server.service.internal.security.rbac.client_role.get-list',
+    'zato.security.rbac.client-role.get-list':'zato.server.service.internal.security.rbac.client_role.GetList',
+    'zato.security.rbac.client-role.get-client-def-list':'zato.server.service.internal.security.rbac.client_role.GetClientDefList',
 
     # Security - RBAC - Permissions
     'zato.security.rbac.permission.create':'zato.server.service.internal.security.rbac.permission.Create',
     'zato.security.rbac.permission.delete':'zato.server.service.internal.security.rbac.permission.Delete',
     'zato.security.rbac.permission.edit':'zato.server.service.internal.security.rbac.permission.Edit',
-    'zato.security.rbac.permission.get-list':'zato.server.service.internal.security.rbac.permission.get-list',
+    'zato.security.rbac.permission.get-list':'zato.server.service.internal.security.rbac.permission.GetList',
 
     # Security - RBAC - Permissions for roles
     'zato.security.rbac.role-permission.create':'zato.server.service.internal.security.rbac.role_permission.Create',
     'zato.security.rbac.role-permission.delete':'zato.server.service.internal.security.rbac.role_permission.Delete',
-    'zato.security.rbac.role-permission.get-list':'zato.server.service.internal.security.rbac.role_permission.get-list',
+    'zato.security.rbac.role-permission.get-list':'zato.server.service.internal.security.rbac.role_permission.GetList',
 
     # Security - Technical accounts
     'zato.security.tech-account.change-password':'zato.server.service.internal.security.tech_account.ChangePassword',
@@ -394,6 +430,18 @@ zato_services = {
     'zato.security.wss.edit':'zato.server.service.internal.security.wss.Edit',
     'zato.security.wss.get-list':'zato.server.service.internal.security.wss.GetList',
 
+    # Security - Vault - Connections
+    'zato.security.vault.connection.create':'zato.server.service.internal.security.vault.connection.Create',
+    'zato.security.vault.connection.delete':'zato.server.service.internal.security.vault.connection.Delete',
+    'zato.security.vault.connection.edit':'zato.server.service.internal.security.vault.connection.Edit',
+    'zato.security.vault.connection.get-list':'zato.server.service.internal.security.vault.connection.GetList',
+
+    # Security - Vault - Policies
+    'zato.security.vault.policy.create':'zato.server.service.internal.security.vault.policy.Create',
+    'zato.security.vault.policy.delete':'zato.server.service.internal.security.vault.policy.Delete',
+    'zato.security.vault.policy.edit':'zato.server.service.internal.security.vault.policy.Edit',
+    'zato.security.vault.policy.get-list':'zato.server.service.internal.security.vault.policy.GetList',
+
     # Security - XPath
     'zato.security.xpath.change-password':'zato.server.service.internal.security.xpath.ChangePassword',
     'zato.security.xpath.create':'zato.server.service.internal.security.xpath.Create',
@@ -411,7 +459,7 @@ zato_services = {
     'zato.service.delete':'zato.server.service.internal.service.Delete',
     'zato.service.edit':'zato.server.service.internal.service.Edit',
     'zato.service.get-by-name':'zato.server.service.internal.service.GetByName',
-    'zato.service.get-channel-list':'zato.server.service.interna.sol.service.GetChannelList',
+    'zato.service.get-channel-list':'zato.server.service.internal.service.GetChannelList',
     'zato.service.get-deployment-info-list':'zato.server.service.internal.service.GetDeploymentInfoList',
     'zato.service.get-list':'zato.server.service.internal.service.GetList',
     'zato.service.get-request-response':'zato.server.service.internal.service.GetRequestResponse',
@@ -543,6 +591,12 @@ class Create(ZatoCommand):
 
             elif name == 'zato.message.live-browser.dispatch':
                 self.add_live_browser(session, cluster, service, live_browser_sec)
+
+            elif 'apispec.pub' in name:
+                self.add_apispec_pub(session, cluster, service)
+
+            elif 'check' in name:
+                self.add_check(session, cluster, service, pubapi_sec)
 
             session.add(get_http_soap_channel(name, service, cluster, pubapi_sec))
             session.add(get_http_json_channel(name, service, cluster, pubapi_sec))
@@ -688,3 +742,25 @@ class Create(ZatoCommand):
             'ws://0.0.0.0:{}/{}'.format(msg_browser_defaults.PORT, msg_browser_defaults.CHANNEL), DATA_FORMAT.JSON, 5,
             msg_browser_defaults.TOKEN_TTL, service=service, cluster=cluster, security=live_browser_sec)
         session.add(channel)
+
+    def add_apispec_pub(self, session, cluster, service, _name_path=apispec_name_path):
+        url_path = _name_path[service.name]
+        channel = HTTPSOAP(None, url_path, True, True, 'channel', 'plain_http', None, url_path, None, '', None, None,
+            merge_url_params_req=True, service=service, cluster=cluster)
+        session.add(channel)
+
+    def add_check(self, session, cluster, service, pubapi_sec):
+
+        if 'fixed-width' in service.name:
+            data_formats = [DATA_FORMAT.FIXED_WIDTH]
+        else:
+            data_formats = [DATA_FORMAT.JSON, DATA_FORMAT.XML]
+
+        for data_format in data_formats:
+
+            name = 'zato.checks.{}.{}'.format(data_format, service.name)
+            url_path = '/zato/checks/{}/{}'.format(data_format, service.name)
+
+            channel = HTTPSOAP(None, name, True, True, 'channel', 'plain_http', None, url_path, None, '', None, data_format,
+                merge_url_params_req=True, service=service, cluster=cluster, security=pubapi_sec)
+            session.add(channel)

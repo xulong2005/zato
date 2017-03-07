@@ -22,9 +22,9 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import backref, relationship
 
 # Zato
-from zato.common import CASSANDRA, CLOUD, HTTP_SOAP_SERIALIZATION_TYPE, INVOCATION_TARGET, MISC, NOTIF, \
+from zato.common import AMQP, CASSANDRA, CLOUD, HTTP_SOAP_SERIALIZATION_TYPE, INVOCATION_TARGET, MISC, NOTIF, \
      MSG_PATTERN_TYPE, ODOO, PUB_SUB, SCHEDULER, STOMP, PARAMS_PRIORITY, URL_PARAMS_PRIORITY
-from zato.common.odb import AMQP_DEFAULT_PRIORITY, WMQ_DEFAULT_PRIORITY
+from zato.common.odb import WMQ_DEFAULT_PRIORITY
 
 Base = declarative_base()
 make_class_dictable(Base)
@@ -191,7 +191,7 @@ class SecurityBase(Base):
     id = Column(Integer, Sequence('sec_base_seq'), primary_key=True)
     name = Column(String(200), nullable=False)
 
-    # It's nullable because TechnicalAccount doesn't use usernames
+    # It's nullable because some children classes do not use usernames
     username = Column(String(200), nullable=True)
 
     password = Column(String(64), nullable=True)
@@ -458,6 +458,28 @@ class TLSChannelSecurity(SecurityBase):
 
 # ################################################################################################################################
 
+class VaultConnection(SecurityBase):
+    """ Stores information on how to connect to Vault and how to authenticate against it by default.
+    """
+    __tablename__ = 'sec_vault_conn'
+    __mapper_args__ = {'polymorphic_identity':'vault_conn_sec'}
+
+    id = Column(Integer, ForeignKey('sec_base.id'), primary_key=True)
+    url = Column(String(200), nullable=False)
+    token = Column(String(200), nullable=True)
+    default_auth_method = Column(String(200), nullable=True)
+    timeout = Column(Integer, nullable=False)
+    allow_redirects = Column(Boolean(), nullable=False)
+    tls_verify = Column(Boolean(), nullable=False)
+
+    tls_key_cert_id = Column(Integer, ForeignKey('sec_tls_key_cert.id', ondelete='CASCADE'), nullable=True)
+    tls_ca_cert_id = Column(Integer, ForeignKey('sec_tls_ca_cert.id', ondelete='CASCADE'), nullable=True)
+
+    service_id = Column(Integer, ForeignKey('service.id', ondelete='CASCADE'), nullable=True)
+    service = relationship('Service', backref=backref('vault_conn_list', order_by=id, cascade='all, delete, delete-orphan'))
+
+# ################################################################################################################################
+
 class TLSCACert(Base):
     """ Stores information regarding CA certs.
     """
@@ -666,6 +688,11 @@ class Service(Base):
         self.time_trend_mean_1h = None # Not used by the database
         self.time_trend_rate_1h = None # Not used by the database
 
+        self.docs_summary = None # Not used by the database
+        self.docs_description = None # Not used by the database
+        self.invokes = None # Not used by the database
+        self.invoked_by = None # Not used by the database
+
 # ################################################################################################################################
 
 class DeployedService(Base):
@@ -799,13 +826,11 @@ class ConnDefAMQP(Base):
     """ An AMQP connection definition.
     """
     __tablename__ = 'conn_def_amqp'
-    __table_args__ = (UniqueConstraint('name', 'cluster_id', 'def_type'), {})
+    __table_args__ = (UniqueConstraint('name', 'cluster_id'), {})
 
     id = Column(Integer, Sequence('conn_def_amqp_seq'), primary_key=True)
     name = Column(String(200), nullable=False)
-    # TODO is_active = Column(Boolean(), nullable=False)
 
-    def_type = Column(String(10), nullable=False)
     host = Column(String(200), nullable=False)
     port = Column(Integer(), nullable=False)
     vhost = Column(String(200), nullable=False)
@@ -817,12 +842,10 @@ class ConnDefAMQP(Base):
     cluster_id = Column(Integer, ForeignKey('cluster.id', ondelete='CASCADE'), nullable=False)
     cluster = relationship(Cluster, backref=backref('amqp_conn_defs', order_by=name, cascade='all, delete, delete-orphan'))
 
-    def __init__(self, id=None, name=None, def_type=None, host=None, port=None,
-                 vhost=None, username=None, password=None, frame_max=None,
-                 heartbeat=None, cluster_id=None):
+    def __init__(self, id=None, name=None, host=None, port=None, vhost=None, username=None, password=None, frame_max=None,
+            heartbeat=None, cluster_id=None):
         self.id = id
         self.name = name
-        self.def_type = def_type
         self.host = host
         self.port = port
         self.vhost = vhost
@@ -895,13 +918,14 @@ class OutgoingAMQP(Base):
     is_active = Column(Boolean(), nullable=False)
 
     delivery_mode = Column(SmallInteger(), nullable=False)
-    priority = Column(SmallInteger(), server_default=str(AMQP_DEFAULT_PRIORITY), nullable=False)
+    priority = Column(SmallInteger(), server_default=str(AMQP.DEFAULT.PRIORITY), nullable=False)
 
     content_type = Column(String(200), nullable=True)
     content_encoding = Column(String(200), nullable=True)
-    expiration = Column(String(20), nullable=True)
+    expiration = Column(Integer(), nullable=True)
     user_id = Column(String(200), nullable=True)
     app_id = Column(String(200), nullable=True)
+    pool_size = Column(SmallInteger(), nullable=False)
 
     def_id = Column(Integer, ForeignKey('conn_def_amqp.id', ondelete='CASCADE'), nullable=False)
     def_ = relationship(ConnDefAMQP, backref=backref('out_conns_amqp', cascade='all, delete, delete-orphan'))
@@ -1083,6 +1107,8 @@ class ChannelAMQP(Base):
     is_active = Column(Boolean(), nullable=False)
     queue = Column(String(200), nullable=False)
     consumer_tag_prefix = Column(String(200), nullable=False)
+    pool_size = Column(Integer, nullable=False)
+    ack_mode = Column(String(20), nullable=False)
     data_format = Column(String(20), nullable=True)
 
     service_id = Column(Integer, ForeignKey('service.id', ondelete='CASCADE'), nullable=False)

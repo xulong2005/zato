@@ -32,6 +32,11 @@ from candv import Constants, ValueConstant
 from lxml import etree
 from lxml.objectify import ObjectPath as _ObjectPath
 
+# Zato
+from zato.vault.client import VAULT
+
+# For pyflakes, otherwise it doesn't know that other parts of Zato import VAULT from here
+VAULT = VAULT
 
 # ##############################################################################
 # Version
@@ -42,7 +47,7 @@ try:
     _version_py = os.path.normpath(os.path.join(curdir, '..', '..', '..', '..', '.version.py'))
     _locals = {}
     execfile(_version_py, _locals)
-    version = _locals['version']
+    version = 'Zato {}'.format(_locals['version'])
 except IOError:
     version = '2.0.3.4'
 
@@ -123,8 +128,6 @@ SECONDS_IN_DAY = 86400 # 60 seconds * 60 minutes * 24 hours (and we ignore leap 
 scheduler_date_time_format = '%Y-%m-%d %H:%M:%S'
 soap_date_time_format = '%Y-%m-%dT%H:%M:%S.%fZ'
 
-ACCESS_LOG_DT_FORMAT = '%d/%b/%Y:%H:%M:%S %z'
-
 # TODO: Classes that have this attribute defined (no matter the value) will not be deployed
 # onto servers.
 DONT_DEPLOY_ATTR_NAME = 'zato_dont_import'
@@ -132,6 +135,9 @@ DONT_DEPLOY_ATTR_NAME = 'zato_dont_import'
 # A convenient constant used in several places, simplifies passing around
 # arguments which are, well, not given (as opposed to being None, an empty string etc.)
 ZATO_NOT_GIVEN = b'ZATO_NOT_GIVEN'
+
+# Separates command line arguments in shell commands.
+CLI_ARG_SEP = 'ZATO_ZATO_ZATO'
 
 # Also used in a couple of places.
 ZATO_OK = 'ZATO_OK'
@@ -207,6 +213,8 @@ ZMQ_OUTGOING_TYPES = ('PUSH', 'PUB')
 class ZMQ:
 
     PULL = 'PULL'
+    PUSH = 'PUSH'
+    PUB = 'PUB'
     SUB = 'SUB'
     MDP = 'MDP'
     MDP01 = MDP + '01'
@@ -225,6 +233,11 @@ class ZMQ:
         PULL: 'Pull',
         SUB: 'Sub',
         MDP01: MDP01_HUMAN,
+    })
+
+    OUTGOING = OrderedDict({
+        PUSH: 'Push',
+        PUB: 'Pub',
     })
 
     class METHOD_NAME:
@@ -281,6 +294,7 @@ class SEC_DEF_TYPE:
     TLS_CHANNEL_SEC = 'tls_channel_sec'
     TLS_KEY_CERT = 'tls_key_cert'
     WSS = 'wss'
+    VAULT = 'vault_conn_sec'
     XPATH_SEC = 'xpath_sec'
 
 SEC_DEF_TYPE_NAME = {
@@ -295,6 +309,7 @@ SEC_DEF_TYPE_NAME = {
     SEC_DEF_TYPE.TLS_CHANNEL_SEC: 'TLS channel',
     SEC_DEF_TYPE.TLS_KEY_CERT: 'TLS key/cert',
     SEC_DEF_TYPE.WSS: 'WS-Security',
+    SEC_DEF_TYPE.VAULT: 'Vault',
     SEC_DEF_TYPE.XPATH_SEC: 'XPath',
 }
 
@@ -342,6 +357,7 @@ class Attrs(type):
 
 class DATA_FORMAT(Attrs):
     DICT = 'dict'
+    FIXED_WIDTH = 'fixed-width'
     XML = 'xml'
     JSON = 'json'
     CSV = 'csv'
@@ -355,9 +371,11 @@ class DATA_FORMAT(Attrs):
 
 # TODO: SIMPLE_IO.FORMAT should be done away with in favour of plain DATA_FORMAT
 class SIMPLE_IO:
+
     class FORMAT(Attrs):
-        XML = DATA_FORMAT.XML
         JSON = DATA_FORMAT.JSON
+        XML = DATA_FORMAT.XML
+        FIXED_WIDTH = DATA_FORMAT.FIXED_WIDTH
 
     class INT_PARAMETERS:
         VALUES = ['id']
@@ -365,6 +383,15 @@ class SIMPLE_IO:
 
     class BOOL_PARAMETERS:
         SUFFIXES = ['is_', 'needs_', 'should_']
+
+    COMMON_FORMAT = OrderedDict()
+    COMMON_FORMAT[DATA_FORMAT.JSON] = 'JSON'
+    COMMON_FORMAT[DATA_FORMAT.XML] = 'XML'
+
+    HTTP_SOAP_FORMAT = OrderedDict()
+    HTTP_SOAP_FORMAT[DATA_FORMAT.JSON] = 'JSON'
+    HTTP_SOAP_FORMAT[DATA_FORMAT.XML] = 'XML'
+    HTTP_SOAP_FORMAT[DATA_FORMAT.FIXED_WIDTH] = 'Fixed-width'
 
 class DEPLOYMENT_STATUS(Attrs):
     DEPLOYED = 'deployed'
@@ -475,6 +502,7 @@ class CHANNEL(Attrs):
     SCHEDULER_AFTER_ONE_TIME = 'scheduler-after-one-time'
     STARTUP_SERVICE = 'startup-service'
     STOMP = 'stomp'
+    URL_DATA = 'url-data'
     WEB_SOCKET = 'web-socket'
     WORKER = 'worker'
     ZMQ = 'zmq'
@@ -810,6 +838,27 @@ class WEB_SOCKET:
         AUTHENTICATE = 'authenticate'
         INVOKE_SERVICE = 'invoke-service'
         CLIENT_RESPONSE = 'client-response'
+
+class APISPEC:
+    OPEN_API_V2 = 'openapi-v2'
+    NAMESPACE_NULL = ''
+
+class PADDING:
+    LEFT = 'left'
+    RIGHT = 'right'
+
+class AMQP:
+    class DEFAULT:
+        POOL_SIZE = 10
+        PRIORITY = 5
+
+    class ACK_MODE:
+        ACK = NameId('Ack', 'ack')
+        NO_ACK = NameId('No ack', 'no-ack')
+
+        class __metaclass__(type):
+            def __iter__(self):
+                return iter((self.ACK, self.NO_ACK))
 
 # Need to use such a constant because we can sometimes be interested in setting
 # default values which evaluate to boolean False.

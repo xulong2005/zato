@@ -47,9 +47,9 @@ Feature: zato.service.get-list
     Given URL path "/zato/json/zato.service.invoke"
 
     Given format "JSON"
-    Given request "service_upload.json"
+    Given request is "{}"
     Given JSON Pointer "/name" in request is "test-service.test-service"
-    # payload sent as base64 {"service_request": "hola"}
+    # payload sent as base64 {"test_output": "Test Output"}
     Given JSON Pointer "/payload" in request is "eyJzZXJ2aWNlX3JlcXVlc3QiOiAiaG9sYSJ9Cg=="
     Given JSON Pointer "/data_format" in request is "json"
     When the URL is invoked
@@ -57,7 +57,7 @@ Feature: zato.service.get-list
     Then status is "200"
 
     And JSON Pointer "/zato_env/result" is "ZATO_OK"
-    And JSON Pointer "/zato_service_invoke_response/response" is base64 JSON which pointer "/response/echo_request" has "hola"
+    And JSON Pointer "/zato_service_invoke_response/response" is base64 JSON which pointer "/response/service_response/echo_request" has "hola"
 
   @service.get-list
   Scenario: Get service list
@@ -69,13 +69,14 @@ Feature: zato.service.get-list
     Given format "JSON"
     Given request is "{}"
     Given JSON Pointer "/cluster_id" in request is "$ZATO_API_TEST_CLUSTER_ID"
+    Given JSON Pointer "/name_filter" in request is "test-service.test-service"
 
     When the URL is invoked
 
     Then status is "200"
     And JSON Pointer "/zato_env/result" is "ZATO_OK"
-    And JSON Pointer "/zato_service_get_list_response" is a list "test-service.test-service"
-    
+    And JSON Pointer "/zato_service_get_list_response" isn't an empty list
+
   @service.get-list
   Scenario: Delete test service
 

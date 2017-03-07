@@ -16,7 +16,7 @@ from traceback import format_exc
 # Zato
 from zato.common import SEARCH, SECRET_SHADOW, zato_namespace, ZATO_NONE
 from zato.common.broker_message import MESSAGE_TYPE
-from zato.common.util import replace_private_key
+from zato.common.util import get_response_value, replace_private_key
 from zato.server.service import Service
 
 # ################################################################################################################################
@@ -67,13 +67,13 @@ class AdminService(Service):
 
 # ################################################################################################################################
 
-    def _init(self):
+    def _init(self, is_http):
         if self._filter_by:
             self._search_tool = SearchTool(self._filter_by)
 
         self.ipc_api = self.server.ipc_api
 
-        super(AdminService, self)._init()
+        super(AdminService, self)._init(is_http)
 
 # ################################################################################################################################
 
@@ -104,9 +104,8 @@ class AdminService(Service):
         if needs_meta and hasattr(self, '_search_tool') and not is_basestring:
             payload.zato_meta = self._search_tool.output_meta
 
-        response = replace_private_key(payload if is_basestring else payload.getvalue())
-
-        logger.info('cid:`{}`, name:`{}`, response:`{}`'.format(self.cid, self.name, response))
+        logger.info(
+            'cid:`%s`, name:`%s`, response:`%s`', self.cid, self.name, replace_private_key(get_response_value(self.response)))
 
 # ################################################################################################################################
 
@@ -180,7 +179,7 @@ class AdminSIO(object):
 
 class GetListAdminSIO(object):
     namespace = zato_namespace
-    input_optional = ('paginate', 'cur_page', 'query')
+    input_optional = ('cur_page', 'paginate', 'query')
 
 # ################################################################################################################################
 
@@ -191,6 +190,15 @@ class Ping(AdminService):
 
     def handle(self):
         self.response.payload.pong = 'zato'
+
+    def after_handle(self):
+        """ A no-op method because zato.ping can be used in benchmarks and the parent's .before/after_handle
+        would constitute about 10-15% of the overhead each. With typical admin services it is fine because
+        they are rarely used but in benchmarking, this is unnecessary and misleading seeing as they do things
+        that user-defined services don't do.
+        """
+
+    before_handle = after_handle
 
 # ################################################################################################################################
 

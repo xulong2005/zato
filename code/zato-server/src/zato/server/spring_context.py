@@ -46,8 +46,10 @@ class ZatoContext(PythonConfig):
     def internal_service_modules(self):
         return [
             'zato.server.service.internal',
+            'zato.server.service.internal.apispec',
+            'zato.server.service.internal.apispec.pub',
             'zato.server.service.internal.checks.sio',
-            'zato.server.service.internal.channel.amqp',
+            'zato.server.service.internal.channel.amqp_',
             'zato.server.service.internal.channel.jms_wmq',
             'zato.server.service.internal.channel.stomp',
             'zato.server.service.internal.channel.web_socket',
@@ -56,7 +58,8 @@ class ZatoContext(PythonConfig):
             'zato.server.service.internal.channel.zmq',
             'zato.server.service.internal.cloud.aws.s3',
             'zato.server.service.internal.cloud.openstack.swift',
-            'zato.server.service.internal.definition.amqp',
+            'zato.server.service.internal.connector.amqp_',
+            'zato.server.service.internal.definition.amqp_',
             'zato.server.service.internal.definition.cassandra',
             'zato.server.service.internal.definition.jms_wmq',
             'zato.server.service.internal.email.imap',
@@ -77,7 +80,7 @@ class ZatoContext(PythonConfig):
             'zato.server.service.internal.notif',
             'zato.server.service.internal.notif.cloud.openstack.swift',
             'zato.server.service.internal.notif.sql',
-            'zato.server.service.internal.outgoing.amqp',
+            'zato.server.service.internal.outgoing.amqp_',
             'zato.server.service.internal.outgoing.ftp',
             'zato.server.service.internal.outgoing.jms_wmq',
             'zato.server.service.internal.outgoing.odoo',
@@ -113,6 +116,8 @@ class ZatoContext(PythonConfig):
             'zato.server.service.internal.security.tls.channel',
             'zato.server.service.internal.security.tls.key_cert',
             'zato.server.service.internal.security.wss',
+            'zato.server.service.internal.security.vault.connection',
+            'zato.server.service.internal.security.vault.policy',
             'zato.server.service.internal.security.xpath',
             'zato.server.service.internal.server',
             'zato.server.service.internal.service',
@@ -165,6 +170,7 @@ class ZatoContext(PythonConfig):
         server = ParallelServer()
         server.odb = self.odb_manager()
         server.service_store = self.service_store()
+        server.service_store.server = server
         server.sql_pool_store = self.sql_pool_store()
         server.int_parameters = self.int_parameters()
         server.int_parameter_suffixes = self.int_parameter_suffixes()

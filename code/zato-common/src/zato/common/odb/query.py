@@ -27,7 +27,8 @@ from zato.common.odb.model import AWSS3, APIKeySecurity, AWSSecurity, CassandraC
      NotificationSQL as NotifSQL, NTLM, OAuth, OutgoingOdoo, OpenStackSecurity, OpenStackSwift, OutgoingAMQP, OutgoingFTP, \
      OutgoingSTOMP, OutgoingWMQ, OutgoingZMQ, PubSubConsumer, PubSubProducer, PubSubTopic, RBACClientRole, RBACPermission, \
      RBACRole, RBACRolePermission, SecurityBase, Server, Service, SMTP, Solr, SQLConnectionPool, TechnicalAccount, TLSCACert, \
-     TLSChannelSecurity, TLSKeyCertSecurity, WebSocketClient, WebSocketSubscription, WSSDefinition, XPath, XPathSecurity
+     TLSChannelSecurity, TLSKeyCertSecurity, WebSocketClient, WebSocketSubscription, WSSDefinition, VaultConnection, \
+     XPath, XPathSecurity
 
 # ################################################################################################################################
 
@@ -354,28 +355,27 @@ def xpath_sec_list(session, cluster_id, needs_columns=False):
 
 # ################################################################################################################################
 
-def _def_amqp(session, cluster_id):
+def _definition_amqp(session, cluster_id):
     return session.query(
         ConnDefAMQP.name, ConnDefAMQP.id, ConnDefAMQP.host,
         ConnDefAMQP.port, ConnDefAMQP.vhost, ConnDefAMQP.username,
         ConnDefAMQP.frame_max, ConnDefAMQP.heartbeat, ConnDefAMQP.password).\
-        filter(ConnDefAMQP.def_type=='amqp').\
         filter(Cluster.id==ConnDefAMQP.cluster_id).\
         filter(Cluster.id==cluster_id).\
         order_by(ConnDefAMQP.name)
 
-def def_amqp(session, cluster_id, id):
+def definition_amqp(session, cluster_id, id):
     """ A particular AMQP definition
     """
-    return _def_amqp(session, cluster_id).\
+    return _definition_amqp(session, cluster_id).\
         filter(ConnDefAMQP.id==id).\
         one()
 
 @query_wrapper
-def def_amqp_list(session, cluster_id, needs_columns=False):
+def definition_amqp_list(session, cluster_id, needs_columns=False):
     """ AMQP connection definitions.
     """
-    return _def_amqp(session, cluster_id)
+    return _definition_amqp(session, cluster_id)
 
 # ################################################################################################################################
 
@@ -409,7 +409,7 @@ def _out_amqp(session, cluster_id):
     return session.query(
         OutgoingAMQP.id, OutgoingAMQP.name, OutgoingAMQP.is_active,
         OutgoingAMQP.delivery_mode, OutgoingAMQP.priority, OutgoingAMQP.content_type,
-        OutgoingAMQP.content_encoding, OutgoingAMQP.expiration, OutgoingAMQP.user_id,
+        OutgoingAMQP.content_encoding, OutgoingAMQP.expiration, OutgoingAMQP.pool_size, OutgoingAMQP.user_id,
         OutgoingAMQP.app_id, ConnDefAMQP.name.label('def_name'), OutgoingAMQP.def_id).\
         filter(OutgoingAMQP.def_id==ConnDefAMQP.id).\
         filter(ConnDefAMQP.id==OutgoingAMQP.def_id).\
@@ -470,6 +470,7 @@ def _channel_amqp(session, cluster_id):
         ChannelAMQP.id, ChannelAMQP.name, ChannelAMQP.is_active,
         ChannelAMQP.queue, ChannelAMQP.consumer_tag_prefix,
         ConnDefAMQP.name.label('def_name'), ChannelAMQP.def_id,
+        ChannelAMQP.pool_size, ChannelAMQP.ack_mode,
         ChannelAMQP.data_format,
         Service.name.label('service_name'),
         Service.impl_name.label('service_impl_name')).\
@@ -571,7 +572,7 @@ def out_stomp_list(session, cluster_id, needs_columns=False):
 def _out_zmq(session, cluster_id):
     return session.query(
         OutgoingZMQ.id, OutgoingZMQ.name, OutgoingZMQ.is_active,
-        OutgoingZMQ.address, OutgoingZMQ.socket_type).\
+        OutgoingZMQ.address, OutgoingZMQ.socket_type, OutgoingZMQ.socket_method).\
         filter(Cluster.id==OutgoingZMQ.cluster_id).\
         filter(Cluster.id==cluster_id).\
         order_by(OutgoingZMQ.name)
@@ -1396,11 +1397,13 @@ def _channel_web_socket(session, cluster_id):
         ChannelWebSocket.data_format, ChannelWebSocket.service_id, ChannelWebSocket.security_id,
         ChannelWebSocket.new_token_wait_time, ChannelWebSocket.token_ttl,
         SecurityBase.sec_type,
+        VaultConnection.default_auth_method.label('vault_conn_default_auth_method'),
         SecurityBase.name.label('sec_name'),
         Service.name.label('service_name'),
         ).\
         outerjoin(Service, Service.id==ChannelWebSocket.service_id).\
         outerjoin(SecurityBase, SecurityBase.id==ChannelWebSocket.security_id).\
+        outerjoin(VaultConnection, SecurityBase.id==VaultConnection.id).\
         filter(Cluster.id==ChannelWebSocket.cluster_id).\
         filter(Cluster.id==cluster_id).\
         order_by(ChannelWebSocket.name)
@@ -1466,5 +1469,31 @@ def _web_socket_sub(session, cluster_id):
 
 def web_socket_sub_list(session, cluster_id):
     return _web_socket_sub(session, cluster_id)
+
+# ################################################################################################################################
+
+def _vault_connection(session, cluster_id):
+    return session.query(VaultConnection.id, VaultConnection.is_active, VaultConnection.name,
+            VaultConnection.url, VaultConnection.token, VaultConnection.default_auth_method,
+            VaultConnection.timeout, VaultConnection.allow_redirects, VaultConnection.tls_verify,
+            VaultConnection.tls_ca_cert_id, VaultConnection.tls_key_cert_id, VaultConnection.sec_type,
+            Service.name.label('service_name'), Service.id.label('service_id')).\
+        filter(Cluster.id==cluster_id).\
+        filter(Cluster.id==VaultConnection.cluster_id).\
+        outerjoin(Service, Service.id==VaultConnection.service_id).\
+        order_by(VaultConnection.name)
+
+def vault_connection(session, cluster_id, id):
+    """ An individual Vault connection.
+    """
+    return _vault_connection(session, cluster_id).\
+        filter(VaultConnection.id==id).\
+        one()
+
+@query_wrapper
+def vault_connection_list(session, cluster_id, needs_columns=False):
+    """ A list of Vault connections.
+    """
+    return _vault_connection(session, cluster_id)
 
 # ################################################################################################################################

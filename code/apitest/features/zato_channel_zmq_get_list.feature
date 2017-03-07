@@ -18,6 +18,9 @@ Feature: zato.channel.zmq.create
     Given JSON Pointer "/is_active" in request is "true"
     Given JSON Pointer "/address" in request is "127.0.0.1:33445"
     Given JSON Pointer "/socket_type" in request is "PULL"
+    Given JSON Pointer "/socket_method" in request is "Bind"
+    Given JSON Pointer "/pool_strategy" in request is "Single"
+    Given JSON Pointer "/service_source" in request is "Zato"
     Given JSON Pointer "/service" in request is "zato.ping"
     Given JSON Pointer "/data_format" in request is "json"
 
@@ -45,7 +48,6 @@ Feature: zato.channel.zmq.create
     And JSON Pointer "/zato_env/result" is "ZATO_OK"
     And JSON Pointer "/zato_channel_zmq_get_list_response" isn't an empty list
 
-
   @channel.zmq.get-list
   Scenario: Delete zmq channel
 
@@ -62,5 +64,3 @@ Feature: zato.channel.zmq.create
 
     Then status is "200"
     And JSON Pointer "/zato_env/result" is "ZATO_OK"
-
-
