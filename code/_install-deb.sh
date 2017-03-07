@@ -66,7 +66,7 @@ sudo pip install zato-apitest
 
 virtualenv . --no-pip
 
-$CURDIR/bin/python bootstrap.py -v 1.7.0
+$CURDIR/bin/python bootstrap.py
 $CURDIR/bin/buildout
 
 echo
