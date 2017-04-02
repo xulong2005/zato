@@ -208,6 +208,12 @@
                                 <li class='wide'><a href="{% url "email-smtp" %}?cluster={{ cluster_id|default:'' }}">SMTP</a></li>
                             </ul>
                         </li>
+                        <li>
+                            <span class="like-a">Plugins &rarr;</span>
+                            <ul>
+                                <li class='wide'><a href="{% url "plugin-outgoing" %}?cluster={{ cluster_id|default:'' }}">Designer</a></li>
+                            </ul>
+                        </li>
                     </ul>
                 </li>
 

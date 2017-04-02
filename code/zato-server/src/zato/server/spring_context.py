@@ -90,6 +90,7 @@ class ZatoContext(PythonConfig):
             'zato.server.service.internal.pattern',
             'zato.server.service.internal.pickup',
             'zato.server.service.internal.pattern.invoke_retry',
+            'zato.server.service.internal.plugin.outgoing',
             'zato.server.service.internal.pubsub',
             'zato.server.service.internal.pubsub.consumers',
             'zato.server.service.internal.pubsub.message',

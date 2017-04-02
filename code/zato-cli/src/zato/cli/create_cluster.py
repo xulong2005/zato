@@ -264,6 +264,12 @@ zato_services = {
     'zato.outgoing.zmq.edit':'zato.server.service.internal.outgoing.zmq.Edit',
     'zato.outgoing.zmq.get-list':'zato.server.service.internal.outgoing.zmq.GetList',
 
+    # Outgoing connections - Plugins
+    'zato.plugin.outgoing.create':'zato.server.service.internal.plugin.outgoing.Create',
+    'zato.plugin.outgoing.delete':'zato.server.service.internal.plugin.outgoing.Delete',
+    'zato.plugin.outgoing.edit':'zato.server.service.internal.plugin.outgoing.Edit',
+    'zato.plugin.outgoing.get-list':'zato.server.service.internal.plugin.outgoing.GetList',
+
     # Publish/subscribe - init
     'zato.pubsub.delete-expired':'zato.server.service.internal.pubsub.DeleteExpired',
     'zato.pubsub.invoke-callbacks':'zato.server.service.internal.pubsub.InvokeCallbacks',

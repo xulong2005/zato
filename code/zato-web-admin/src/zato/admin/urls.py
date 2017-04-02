@@ -40,6 +40,7 @@ from zato.admin.web.views.outgoing import odoo as out_odoo
 from zato.admin.web.views.outgoing import sql as out_sql
 from zato.admin.web.views.outgoing import stomp as out_stomp
 from zato.admin.web.views.outgoing import zmq as out_zmq
+from zato.admin.web.views.plugin import outgoing as plugin_outgoing
 from zato.admin.web.views.pubsub import topics as pubsub_topics
 from zato.admin.web.views.pubsub import consumers as pubsub_consumers
 from zato.admin.web.views.pubsub import message as pubsub_message
@@ -922,6 +923,28 @@ urlpatterns += [
         login_required(solr.ping), name='search-solr-ping'),
 
     ]
+
+# ################################################################################################################################
+
+#   Plugins
+
+# ################################################################################################################################
+
+urlpatterns += [
+
+    # .. Outgoing
+
+    url(r'^zato/plugin/outgoing/$',
+        login_required(plugin_outgoing.Index()), name=plugin_outgoing.Index.url_name),
+    url(r'^zato/plugin/outgoing/create/cluster/(?P<cluster_id>.*)/$',
+        login_required(plugin_outgoing.create), name='plugin-outgoing-create'),
+    url(r'^zato/plugin/outgoing/create/cluster/(?P<cluster_id>.*)/plugin-id/(?P<plugin_id>.*)/$',
+        login_required(plugin_outgoing.edit), name='plugin-outgoing-edit'),
+    url(r'^zato/plugin/outgoing/import/cluster/(?P<cluster_id>.*)/$',
+        login_required(plugin_outgoing.install), name='plugin-outgoing-install'),
+    #url(r'^zato/plugin/outgoing/delete/(?P<id>.*)/cluster/(?P<cluster_id>.*)/$',
+    #    login_required(es.Delete()), name=es.Delete.url_name),
+]
 
 # ################################################################################################################################
 

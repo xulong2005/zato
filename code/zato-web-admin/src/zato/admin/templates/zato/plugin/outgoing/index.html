@@ -1,0 +1,133 @@
+{% extends "zato/index.html" %}
+
+{% block html_title %}Outgoing connection plugins{% endblock %}
+
+{% block "extra_css" %}
+    <link rel="stylesheet" type="text/css" href="/static/css/jquery.alerts.css">
+{% endblock %}
+
+{% block "extra_js" %}
+
+    {% comment %} jQuery {% endcomment %}
+    <script type="text/javascript" src="/static/jquery/jquery.tablesorter.min.js"></script>
+    <script type="text/javascript" src="/static/jquery/jquery.cookie.js"></script>
+    <script type="text/javascript" src="/static/jquery/jquery.alerts.min.js"></script>
+
+    {% comment %} Common JS {% endcomment %}
+    <script type="text/javascript" src="/static/js/common.js"></script>
+
+    {% comment %} STOMP {% endcomment %}
+    <script type="text/javascript" src="/static/js/plugin/outgoing.js"></script>
+
+
+    <script>
+    $.fn.zato.data_table.get_columns = function() {
+        return [
+            '_numbering',
+            '_selection',
+            'transport',
+            'name',
+            '_is_active',
+            '_is_internal',
+            'py_name',
+            'version',
+            'author',
+            'homepage',
+            'file_name',
+            'repo_revision',
+            '_export',
+            '_edit',
+            '_delete',
+            'id',
+            'is_active',
+            'is_internal',
+        ]
+    }
+    </script>
+
+{% endblock %}
+
+{% block "content" %}
+<h2 class="zato">Outgoing connection plugins</h2>
+
+{% if not zato_clusters %}
+    {% include "zato/no-clusters.html" %}
+{% else %}
+
+    <div id="user-message-div" style='display:none'><pre id="user-message" class="user-message"></pre></div>
+
+{% include "zato/search-form.html" with page_prompt="Show plugins"%}
+
+
+    {% if cluster_id %}
+        <div class='page_prompt' style="clear:left">
+        <a href="{% url "plugin-outgoing-create" cluster_id %}">Create</a> |
+            <a href="{% url "plugin-outgoing-install" cluster_id %}">Install</a>
+        </div>
+
+        <div id="markup">
+            <table id="data-table">
+                <thead>
+                    <tr class='ignore'>
+                        <th>&nbsp;</th>
+                        <th>&nbsp;</th>
+                        <th><a href="#">Transport</a></th>
+                        <th><a href="#">Name</a></th>
+                        <th><a href="#">Active</a></th>
+                        <th><a href="#">Internal</a></th>
+                        <th><a href="#">Python name</a></th>
+                        <th><a href="#">Version</a></th>
+                        <th><a href="#">Author</a></th>
+                        <th><a href="#">Homepage</a></th>
+                        <th><a href="#">File name</a></th>
+                        <th><a href="#">Repo revision</a></th>
+                        <th>&nbsp;</th>
+                        <th>&nbsp;</th>
+                        <th>&nbsp;</th>
+                        <th class='ignore'>&nbsp;</th>
+                        <th class='ignore'>&nbsp;</th>
+                        <th class='ignore'>&nbsp;</th>
+                </thead>
+
+                <tbody>
+                {% if items %}
+                {% for item in items %}
+                    <tr class="{% cycle 'odd' 'even' %}" id='tr_{{ item.id }}'>
+                        <td class='numbering'>&nbsp;</td>
+                        <td class="impexp"><input type="checkbox" /></td>
+                        <td>{{ item.transport }}</td>
+                        <td>{{ item.name }}</td>
+                        <td>{{ item.is_active|yesno:'Yes,No' }}</td>
+                        <td>{{ item.is_internal|yesno:'Yes,No' }}</td>
+                        <td>self.out.{{ item.py_name }}</td>
+                        <td>{{ item.version }}</td>
+                        <td>{{ item.author }}</td>
+                        <td>{{ item.homepage }}</td>
+                        <td>{{ item.file_name }}</td>
+                        <td>{{ item.repo_revision }}</td>
+                        <td><a href="javascript:$.fn.zato.plugin.outgoing.export('{{ item.id }}')">Export</a></td>
+                        <td><a href="{% url "plugin-outgoing-edit" cluster_id item.id %}">Edit</a></td>
+                        <td><a href="javascript:$.fn.zato.plugin.outgoing.delete_('{{ item.id }}')">Delete</a></td>
+                        <td class='ignore item_id_{{ item.id }}'>{{ item.id }}</td>
+                        <td class='ignore'>{{ item.is_active }}</td>
+                        <td class='ignore'>{{ item.is_internal }}</td>
+                    </tr>
+                {% endfor %}
+                {% else %}
+                    <tr class='ignore'>
+                        <td colspan='17'>No results</td>
+                    </tr>
+                {% endif %}
+
+                </tbody>
+            </table>
+        </div>
+
+    {% include "zato/paginate/action-panel.html" %}
+
+    {% endif %}{% comment %}cluster_id{% endcomment %}
+
+
+{% endif %}{% comment %}not zato_clusters{% endcomment %}
+
+{% endblock %}
