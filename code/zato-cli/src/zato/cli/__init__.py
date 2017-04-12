@@ -16,9 +16,6 @@ from socket import gethostname
 import logging, os, sys, tempfile, time
 from datetime import datetime
 
-# Importing
-from peak.util.imports import importString
-
 # SQLAlchemy
 import sqlalchemy
 
@@ -229,6 +226,23 @@ version: 1
 
 # ######################################################################################################################
 
+# Taken from peak.utils.imports.importString
+def _import_string(name):
+    path  = []
+
+    for part in filter(None, name.split('.')):
+        if path:
+            try:
+                item = getattr(item, part)
+                path.append(part)
+                continue
+            except AttributeError:
+                pass
+        path.append(part)
+        item = __import__('.'.join(path), {}, {}, ['__name__'])
+
+    return item
+
 def run_command(args):
     command_class = {}
     command_imports = (
@@ -260,7 +274,7 @@ def run_command(args):
         ('update_password', 'zato.cli.web_admin_auth.UpdatePassword'),
     )
     for k, v in command_imports:
-        command_class[k] = importString(v)
+        command_class[k] = _import_string(v)
 
     command_class[args.command](args).run(args)
 

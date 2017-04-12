@@ -13,15 +13,9 @@ import os
 from setuptools import Extension, find_packages, setup
 from Cython.Build import cythonize
 
-curdir = os.path.dirname(os.path.abspath(__file__))
-_version_py = os.path.normpath(os.path.join(curdir, '..', '.version.py'))
-_locals = {}
-execfile(_version_py, _locals)
-version = _locals['version']
-
 setup(
       name = 'zato-cy',
-      version = version,
+      version = '3.0.0+src',
 
       author = 'Zato Developers',
       author_email = 'info@zato.io',

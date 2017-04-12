@@ -10,15 +10,6 @@ Licensed under LGPLv3, see LICENSE.txt for terms and conditions.
 import os
 from setuptools import setup, find_packages
 
-try:
-    curdir = os.path.dirname(os.path.abspath(__file__))
-    _version_py = os.path.normpath(os.path.join(curdir, '..', '.version.py'))
-    _locals = {}
-    execfile(_version_py, _locals)
-    version = _locals['version']
-except IOError:
-    version = '2.0.3.4'
-
 long_description = description = 'Convenience Python client for Zato ESB and app server (https://zato.io)'
 
 def parse_requirements(requirements):
@@ -29,7 +20,7 @@ def parse_requirements(requirements):
 
 setup(
       name = 'zato-client',
-      version = version,
+      version = '3.0.0+src',
 
       author = 'Zato Developers',
       author_email = 'info@zato.io',
@@ -44,7 +35,7 @@ setup(
       namespace_packages = ['zato'],
 
       install_requires = parse_requirements(
-          os.path.join(os.path.dirname(os.path.realpath(__file__)), 'requirements.txt')),
+          os.path.join(os.path.dirname(os.path.realpath(__file__)), 'reqs.txt')),
 
       keywords=('soa eai esb middleware messaging queueing asynchronous integration performance http zeromq framework events agile broker messaging server jms enterprise python middleware clustering amqp nosql websphere mq wmq mqseries ibm amqp zmq'),
       classifiers = [

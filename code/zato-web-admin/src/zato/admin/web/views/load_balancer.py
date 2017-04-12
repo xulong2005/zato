@@ -13,11 +13,7 @@ import json, logging
 from traceback import format_exc
 from xmlrpclib import Fault
 
-# OrderedDict is new in 2.7
-try:
-    from collections import OrderedDict
-except ImportError:
-    from ordereddict import OrderedDict
+from ordereddict import OrderedDict
 
 # Django
 from django.http import HttpResponse, HttpResponseServerError

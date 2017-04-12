@@ -143,6 +143,71 @@ TLS_KEY_TYPE = {
 
 # ################################################################################################################################
 
+# Validation functions taken from the validate package which doesn't install cleanly with pip 9.0.1
+
+class ValidateError(Exception):
+    pass
+
+class VdtTypeError(ValidateError):
+    """ The value supplied was of the wrong type.
+    """
+    def __init__(self, value):
+        ValidateError.__init__(self, 'the value "%s" is of the wrong type.' % (value,))
+
+
+class VdtValueError(ValidateError):
+    """ The value supplied was of the correct type, but was not an allowed value.
+    """
+    def __init__(self, value):
+        ValidateError.__init__(self, 'the value "%s" is unacceptable.' % (value,))
+
+class VdtValueTooSmallError(VdtValueError):
+    """ The value supplied was of the correct type, but was too small.
+    """
+    def __init__(self, value):
+        ValidateError.__init__(self, 'the value "%s" is too small.' % (value,))
+
+
+class VdtValueTooBigError(VdtValueError):
+    """ The value supplied was of the correct type, but was too big.
+    """
+    def __init__(self, value):
+        ValidateError.__init__(self, 'the value "%s" is too big.' % (value,))
+
+def is_boolean(value):
+    if isinstance(value, basestring):
+        try:
+            return bool_dict[value.lower()]
+        except KeyError:
+            raise VdtTypeError(value)
+    # we do an equality test rather than an identity test
+    # this ensures Python 2.2 compatibilty
+    # and allows 0 and 1 to represent True and False
+    if value == False:
+        return False
+    elif value == True:
+        return True
+    else:
+        raise VdtTypeError(value)
+
+def is_integer(value, min=None, max=None):
+    (min_val, max_val) = _is_num_param(('min', 'max'), (min, max))
+    if not isinstance(value, (int, long, basestring)):
+        raise VdtTypeError(value)
+    if isinstance(value, basestring):
+        # if it's a string - does it represent an integer ?
+        try:
+            value = int(value)
+        except ValueError:
+            raise VdtTypeError(value)
+    if (min_val is not None) and (value < min_val):
+        raise VdtValueTooSmallError(value)
+    if (max_val is not None) and (value > max_val):
+        raise VdtValueTooBigError(value)
+    return value
+
+# ################################################################################################################################
+
 def absjoin(base, path):
     """ Turns a path into an absolute path if it's relative to the base location. If the path is already an absolute path,
     it is returned as-is.
