@@ -26,6 +26,7 @@ endif
 
 deb-install:
 
+	# DEB-specific packages and dependencies
 	sudo apt-get update
 	sudo apt-get install -y git bzr gfortran haproxy \
 		libatlas-dev libatlas3-base libblas3 \
@@ -37,23 +38,43 @@ deb-install:
 
 	# So that the 'zato' user can run HAProxy straight from its $PATH
 	sudo ln -sf /usr/sbin/haproxy /usr/bin/haproxy
-	
-	sudo pip install --upgrade pip
-	sudo pip install virtualenv==15.1.0
-	virtualenv --no-site-packages -p python $(CURDIR)/$(ENV_NAME)
 
+	# Common installation path
+	$(MAKE) _common-install
+
+##################################################################################################################################
+
+rhel-install:
+
+	# RHEL-specific packages and dependencies
+	sudo yum update
+	sudo yum -y install git bzr gcc-gfortran haproxy \
+		gcc-c++ atlas-devel atlas blas-devel  \
+		bzip2 bzip2-devel cyrus-sasl-devel libev libev-devel libffi libffi-devel \
+		libevent-devel libgfortran lapack-devel lapack \
+		libpqxx-devel libyaml-devel libxml2-devel libxslt-devel suitesparse \
+		openssl openssl-devel python-devel python-pip \
+		swig uuid-devel uuid
+
+	# Common installation path
 	$(MAKE) _common-install
 
 ##################################################################################################################################
 
 _common-install:
-	$(MAKE) pip-install
+
+	$(MAKE) pip-venv-install
 	$(MAKE) _add-binaries
 	$(MAKE) _apply-patches
 
 ##################################################################################################################################
 
-pip-install:
+pip-venv-install:
+
+	sudo pip install --upgrade pip
+	sudo pip install virtualenv==15.1.0
+	virtualenv --no-site-packages -p python $(CURDIR)/$(ENV_NAME)
+
 	$(BIN_DIR)/pip install setuptools==34.4.1
 	$(BIN_DIR)/pip install cython
 	$(BIN_DIR)/pip install -e $(CURDIR)/zato-agent
