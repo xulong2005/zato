@@ -63,6 +63,7 @@ rhel-install:
 
 _common-install:
 
+	git log -n 1 --pretty=format:"%H" > $(CURDIR)/release-info/revision.txt
 	$(MAKE) pip-venv-install
 	$(MAKE) _add-binaries
 	$(MAKE) _apply-patches
@@ -94,7 +95,7 @@ pip-venv-install:
 
 _add-binaries:
 	. $(BIN_DIR)/activate
-	$(BIN_DIR)/python $(CURDIR)/scripts/add_binaries.py $(CURDIR)/bin
+	$(BIN_DIR)/python $(CURDIR)/scripts/add-binaries.py $(CURDIR)/bin
 
 ##################################################################################################################################
 
