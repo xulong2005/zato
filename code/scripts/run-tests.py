@@ -17,6 +17,7 @@ import logging, glob, os, sys
 
 # Click
 import click
+click.disable_unicode_literals_warning = True
 
 # psutil
 import psutil
@@ -86,8 +87,8 @@ def get_conn_info_from_env():
 # ################################################################################################################################
 
 def _nosetests():
-    nosetests_cmd = os.path.join(curdir, 'bin', 'nosetests')
-    zato_packages = ' '.join([item for item in glob.iglob(os.path.join(curdir, 'zato-*'))])
+    nosetests_cmd = os.path.join(curdir, '..', 'env-zato', 'bin', 'nosetests')
+    zato_packages = ' '.join([item for item in glob.iglob(os.path.join(curdir, '..', 'zato-*'))])
 
     run('{} {} --nocapture'.format(nosetests_cmd, zato_packages))
 
