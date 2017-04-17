@@ -1,6 +1,6 @@
---- hvac/v1/__init__.py.orig	2016-11-14 18:56:09.134646418 +0100
-+++ hvac/v1/__init__.py	2016-11-14 18:56:35.810646849 +0100
-@@ -891,18 +891,18 @@
+--- __init__.py.orig	2017-04-17 16:46:54.868334333 +0200
++++ __init__.py	2017-04-17 16:48:11.260337053 +0200
+@@ -941,18 +941,18 @@
          self.session.close()
  
      def _get(self, url, **kwargs):
@@ -24,7 +24,7 @@
          url = urljoin(self._url, url)
  
          if not headers:
-@@ -933,11 +933,11 @@
+@@ -983,7 +983,7 @@
                  errors = response.json().get('errors')
              if errors is None:
                  text = response.text
@@ -33,8 +33,3 @@
  
          return response
  
--    def __raise_error(self, status_code, message=None, errors=None):
-+    def _raise_error(self, status_code, message=None, errors=None):
-         if status_code == 400:
-             raise exceptions.InvalidRequest(message, errors=errors)
-         elif status_code == 401:

@@ -81,6 +81,11 @@ pip-venv-install:
 	sudo pip install --upgrade pip
 	sudo pip install virtualenv==15.1.0
 	virtualenv --no-site-packages -p python $(CURDIR)/$(ENV_NAME)
+	$(MAKE) pip-install
+
+##################################################################################################################################
+
+pip-install:
 
 	$(BIN_DIR)/pip install setuptools==34.4.1
 	$(BIN_DIR)/pip install cython
@@ -95,6 +100,12 @@ pip-venv-install:
 	$(BIN_DIR)/pip install -e $(CURDIR)/zato-server
 	$(BIN_DIR)/pip install -e $(CURDIR)/zato-web-admin
 	$(BIN_DIR)/pip install -e $(CURDIR)/zato-zmq
+	$(MAKE) pip-requirements
+
+##################################################################################################################################
+
+pip-requirements:
+
 	$(BIN_DIR)/pip install -r $(CURDIR)/requirements.txt
 
 ##################################################################################################################################
@@ -107,58 +118,56 @@ _add-binaries:
 
 _apply-patches:
 
-	# Applies patches but ignores errors (leading dash) so that this target can be re-run multiple times
-	# if needed. This is handy during development.
-
 	# patch_anyjson
-	-$(PATCH_CMD) $(PATCHES_DIR)/anyjson/__init__.py.diff $(SITE_PACKAGES)/anyjson/__init__.py
+	$(PATCH_CMD) $(PATCHES_DIR)/anyjson/__init__.py.diff $(SITE_PACKAGES)/anyjson/__init__.py
 
 	# patch_butler
-	-$(PATCH_CMD) $(PATCHES_DIR)/butler/__init__.py.diff $(SITE_PACKAGES)/butler/__init__.py
+	$(PATCH_CMD) $(PATCHES_DIR)/butler/__init__.py.diff $(SITE_PACKAGES)/butler/__init__.py
 
 	# patch_gunicorn
-	-$(PATCH_CMD) $(PATCHES_DIR)/gunicorn/workers/base.py.diff $(SITE_PACKAGES)/gunicorn/workers/base.py
+	$(PATCH_CMD) $(PATCHES_DIR)/gunicorn/workers/base.py.diff $(SITE_PACKAGES)/gunicorn/workers/base.py
 
 	# patch_gunicorn_arbiter
-	-$(PATCH_CMD) $(PATCHES_DIR)/gunicorn/arbiter.py.diff $(SITE_PACKAGES)/gunicorn/arbiter.py
+	$(PATCH_CMD) $(PATCHES_DIR)/gunicorn/arbiter.py.diff $(SITE_PACKAGES)/gunicorn/arbiter.py
 
 	# patch_gunicorn_logger
-	-$(PATCH_CMD) $(PATCHES_DIR)/gunicorn/glogging.py.diff $(SITE_PACKAGES)/gunicorn/glogging.py
+	$(PATCH_CMD) $(PATCHES_DIR)/gunicorn/glogging.py.diff $(SITE_PACKAGES)/gunicorn/glogging.py
 
 	# patch_gunicorn_tls
-	-$(PATCH_CMD) $(PATCHES_DIR)/gunicorn/config.py.diff $(SITE_PACKAGES)/gunicorn/config.py
-	-$(PATCH_CMD) $(PATCHES_DIR)/gunicorn/workers/geventlet.py.diff $(SITE_PACKAGES)/gunicorn/workers/geventlet.py
-	-$(PATCH_CMD) $(PATCHES_DIR)/gunicorn/workers/ggevent.py.diff $(SITE_PACKAGES)/gunicorn/workers/ggevent.py
-	-$(PATCH_CMD) $(PATCHES_DIR)/gunicorn/workers/sync.py.diff $(SITE_PACKAGES)/gunicorn/workers/sync.py
+	$(PATCH_CMD) $(PATCHES_DIR)/gunicorn/config.py.diff $(SITE_PACKAGES)/gunicorn/config.py
+	$(PATCH_CMD) $(PATCHES_DIR)/gunicorn/workers/geventlet.py.diff $(SITE_PACKAGES)/gunicorn/workers/geventlet.py
+	$(PATCH_CMD) $(PATCHES_DIR)/gunicorn/workers/ggevent.py.diff $(SITE_PACKAGES)/gunicorn/workers/ggevent.py
+	$(PATCH_CMD) $(PATCHES_DIR)/gunicorn/workers/sync.py.diff $(SITE_PACKAGES)/gunicorn/workers/sync.py
 
 	# patch_hvac
-	-$(PATCH_CMD) $(PATCHES_DIR)/hvac/__init__.py.diff $(SITE_PACKAGES)/hvac/__init__.py
+	$(PATCH_CMD) $(PATCHES_DIR)/hvac/v1/__init__.py.diff $(SITE_PACKAGES)/hvac/v1/__init__.py
 
 	# patch_jsonpointer
-	-$(PATCH_CMD) $(PATCHES_DIR)/jsonpointer/jsonpointer.py.diff $(SITE_PACKAGES)/jsonpointer/jsonpointer.py
+	$(PATCH_CMD) $(PATCHES_DIR)/jsonpointer/jsonpointer.py.diff $(SITE_PACKAGES)/jsonpointer.py
 
 	# patch_oauth
-	-$(PATCH_CMD) $(PATCHES_DIR)/oauth/oauth.py.diff $(SITE_PACKAGES)/oauth/oauth.py
+	$(PATCH_CMD) $(PATCHES_DIR)/oauth/oauth.py.diff $(SITE_PACKAGES)/oauth/oauth.py
 
 	# patch_outbox
-	-$(PATCH_CMD) $(PATCHES_DIR)/outbox/outbox.py.diff $(SITE_PACKAGES)/outbox/outbox.py
-	-$(PATCH_CMD) $(PATCHES_DIR)/outbox/outbox.py2.diff $(SITE_PACKAGES)/outbox/outbox.py
-	-$(PATCH_CMD) $(PATCHES_DIR)/outbox/outbox.py3.diff $(SITE_PACKAGES)/outbox/outbox.py
-	-$(PATCH_CMD) $(PATCHES_DIR)/outbox/outbox.py4.diff $(SITE_PACKAGES)/outbox/outbox.py
+	$(PATCH_CMD) $(PATCHES_DIR)/outbox/outbox.py.diff $(SITE_PACKAGES)/outbox.py
+	$(PATCH_CMD) $(PATCHES_DIR)/outbox/outbox.py2.diff $(SITE_PACKAGES)/outbox.py
+	$(PATCH_CMD) $(PATCHES_DIR)/outbox/outbox.py3.diff $(SITE_PACKAGES)/outbox.py
+	$(PATCH_CMD) $(PATCHES_DIR)/outbox/outbox.py4.diff $(SITE_PACKAGES)/outbox.py
 
 	# patch_redis
-	-$(PATCH_CMD) $(PATCHES_DIR)/redis/redis/connection.py.diff $(SITE_PACKAGES)/redis/redis/connection.py
+	$(PATCH_CMD) $(PATCHES_DIR)/redis/redis/connection.py.diff $(SITE_PACKAGES)/redis/connection.py
 
 	# patch_requests
-	-$(PATCH_CMD) $(PATCHES_DIR)/requests/models.py.diff $(SITE_PACKAGES)/requests/models.py
-	-$(PATCH_CMD) $(PATCHES_DIR)/requests/sessions.py.diff $(SITE_PACKAGES)/requests/sessions.py
-	-$(PATCH_CMD) $(PATCHES_DIR)/requests/packages/urllib3/connectionpool.py.diff $(SITE_PACKAGES)/requests/packages/urllib3/connectionpool.py
+	$(PATCH_CMD) $(PATCHES_DIR)/requests/models.py.diff $(SITE_PACKAGES)/requests/models.py
+	$(PATCH_CMD) $(PATCHES_DIR)/requests/sessions.py.diff $(SITE_PACKAGES)/requests/sessions.py
+	$(PATCH_CMD) $(PATCHES_DIR)/requests/packages/urllib3/connectionpool.py.diff \
+		$(SITE_PACKAGES)/requests/packages/urllib3/connectionpool.py
 
 	# patch_springpython
-	-$(PATCH_CMD) $(PATCHES_DIR)/springpython/jms/factory.py.diff $(SITE_PACKAGES)/springpython/jms/factory.py
+	$(PATCH_CMD) $(PATCHES_DIR)/springpython/jms/factory.py.diff $(SITE_PACKAGES)/springpython/jms/factory.py
 
 	# patch_ws4py
-	-$(PATCH_CMD) $(PATCHES_DIR)/ws4py/server/geventserver.py.diff $(SITE_PACKAGES)/ws4py/server/geventserver.py
+	$(PATCH_CMD) $(PATCHES_DIR)/ws4py/server/geventserver.py.diff $(SITE_PACKAGES)/ws4py/server/geventserver.py
 
 ##################################################################################################################################
 
