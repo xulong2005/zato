@@ -15,7 +15,7 @@ from threading import RLock
 from traceback import format_exc
 
 # pyfilesystem
-from fs.ftpfs import FTPFS, _GLOBAL_DEFAULT_TIMEOUT
+from fs.ftpfs import FTPFS
 
 # Zato
 from zato.common import Inactive, SECRET_SHADOW, TRACE1
@@ -67,7 +67,7 @@ class FTPStore(object):
         with self._lock:
             params = self.conn_params[name]
             if params.is_active:
-                timeout = float(params.timeout) if params.timeout else _GLOBAL_DEFAULT_TIMEOUT
+                timeout = float(params.timeout) if params.timeout else 10 # 10 is default in fs.ftpfs.FTPFS
                 return FTPFacade(params.host, params.user, params.get('password'), params.acct, timeout, int(params.port), params.dircache)
             else:
                 raise Inactive(params.name)

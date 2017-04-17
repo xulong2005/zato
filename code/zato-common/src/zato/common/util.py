@@ -145,6 +145,26 @@ TLS_KEY_TYPE = {
 
 # Validation functions taken from the validate package which doesn't install cleanly with pip 9.0.1
 
+bool_dict = {
+    True: True, 'on': True, '1': True, 'true': True, 'yes': True, 
+    False: False, 'off': False, '0': False, 'false': False, 'no': False,
+}
+
+def _is_num_param(names, values, to_float=False):
+    fun = to_float and float or int
+    out_params = []
+    for (name, val) in zip(names, values):
+        if val is None:
+            out_params.append(val)
+        elif isinstance(val, (int, long, float, basestring)):
+            try:
+                out_params.append(fun(val))
+            except ValueError, e:
+                raise VdtParamError(name, val)
+        else:
+            raise VdtParamError(name, val)
+    return out_params
+
 class ValidateError(Exception):
     pass
 
