@@ -2,6 +2,7 @@ code/.coverage
 code/env-zato
 code/.installed.cfg
 code/bin/*
+!code/bin/.empty
 code/build/*
 code/develop-eggs/*
 code/env-zato
