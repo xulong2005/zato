@@ -113,6 +113,7 @@ pip-requirements:
 _add-binaries:
 	. $(BIN_DIR)/activate
 	$(BIN_DIR)/python $(CURDIR)/scripts/add-binaries.py $(CURDIR)/bin
+	ln -s $(CURDIR)/bin/py $(BIN_DIR)/py
 
 ##################################################################################################################################
 
