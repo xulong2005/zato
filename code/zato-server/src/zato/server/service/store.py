@@ -261,9 +261,9 @@ class ServiceStore(InitializingObject):
 
 
             # All set, write out the cache file
-            #f = open(cache_file_path, 'wb')
-            #f.write(dill_dumps(internal_cache))
-            #f.close()
+            f = open(cache_file_path, 'wb')
+            f.write(dill_dumps(internal_cache))
+            f.close()
 
             return deployed
 

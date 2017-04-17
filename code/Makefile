@@ -188,7 +188,17 @@ test:
 ##################################################################################################################################
 
 pyflakes:
-	$(BIN_DIR)/pyflakes $(CURDIR)/src
-	$(BIN_DIR)/pyflakes $(CURDIR)/test
+	$(BIN_DIR)/pyflakes $(CURDIR)/zato-agent
+	$(BIN_DIR)/pyflakes $(CURDIR)/zato-broker
+	$(BIN_DIR)/pyflakes $(CURDIR)/zato-cache
+	$(BIN_DIR)/pyflakes $(CURDIR)/zato-cli
+	$(BIN_DIR)/pyflakes $(CURDIR)/zato-client
+	$(BIN_DIR)/pyflakes $(CURDIR)/zato-common
+	$(BIN_DIR)/pyflakes $(CURDIR)/zato-cy
+	$(BIN_DIR)/pyflakes $(CURDIR)/zato-distlock
+	$(BIN_DIR)/pyflakes $(CURDIR)/zato-scheduler
+	$(BIN_DIR)/pyflakes $(CURDIR)/zato-server
+	$(BIN_DIR)/pyflakes $(CURDIR)/zato-web-admin/src/zato/admin/web
+	$(BIN_DIR)/pyflakes $(CURDIR)/zato-zmq
 
 ##################################################################################################################################

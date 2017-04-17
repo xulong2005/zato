@@ -106,9 +106,6 @@ from sqlalchemy.exc import IntegrityError, ProgrammingError
 # Texttable
 from texttable import Texttable
 
-# validate
-from validate import is_boolean, is_integer, VdtTypeError
-
 # Zato
 from zato.common import CHANNEL, CLI_ARG_SEP, curdir as common_curdir, DATA_FORMAT, engine_def, engine_def_sqlite, KVDB, MISC, \
      SECRET_SHADOW, SIMPLE_IO, soap_body_path, soap_body_xpath, TLS, TRACE1, ZatoException, ZATO_NOT_GIVEN, ZMQ
@@ -159,7 +156,7 @@ def _is_num_param(names, values, to_float=False):
         elif isinstance(val, (int, long, float, basestring)):
             try:
                 out_params.append(fun(val))
-            except ValueError, e:
+            except ValueError:
                 raise VdtParamError(name, val)
         else:
             raise VdtParamError(name, val)
@@ -174,6 +171,16 @@ class VdtTypeError(ValidateError):
     def __init__(self, value):
         ValidateError.__init__(self, 'the value "%s" is of the wrong type.' % (value,))
 
+
+class VdtParamError(SyntaxError):
+    """An incorrect parameter was passed"""
+
+    def __init__(self, name, value):
+        """ >>> raise VdtParamError('yoda', 'jedi')
+        Traceback (most recent call last):
+        VdtParamError: passed an incorrect value "jedi" for parameter "yoda".
+        """
+        SyntaxError.__init__(self, 'passed an incorrect value "%s" for parameter "%s".' % (value, name))
 
 class VdtValueError(ValidateError):
     """ The value supplied was of the correct type, but was not an allowed value.
