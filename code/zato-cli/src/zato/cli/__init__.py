@@ -233,7 +233,7 @@ def _import_string(name):
     for part in filter(None, name.split('.')):
         if path:
             try:
-                item = getattr(path, part)
+                item = getattr(item, part)
                 path.append(part)
                 continue
             except AttributeError:
