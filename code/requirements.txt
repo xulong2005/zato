@@ -65,6 +65,7 @@ python-swiftclient>=3.3.0
 pytz>=2017.2
 pyyaml>=3.12
 pyzmq>=16.0.2
+qualname==0.1.0
 redis>=2.10.5
 regex>=2017.04.05
 repoze.bfg>=1.3
