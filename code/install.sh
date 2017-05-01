@@ -8,6 +8,7 @@ git log -n 1 --pretty=format:"%H" > $CURDIR/release-info/revision.txt
 
 IS_DEB=0
 IS_RHEL=0
+IS_ALPINE=0
 
 RUN=0
 
@@ -20,6 +21,9 @@ if (($? == 0)) ; then IS_DEB=1 ; fi
 
 yum --help > /dev/null 2>&1
 if (($? == 0)) ; then IS_RHEL=1 ; fi
+
+apk stats > /dev/null 2>&1
+if (($? == 0)) ; then IS_ALPINE=1; fi
 
 #
 # Run an OS-specific installer
@@ -37,12 +41,19 @@ then
   RUN=1
 fi
 
+if [ $IS_ALPINE -eq 1 ]
+then
+  bash $CURDIR/_install-alpine.sh
+  RUN=1
+fi
+
 #
 # Unknown system
 #
 
 if [ $RUN -ne 1 ]
 then
-   echo "Could not find apt-get nor yum. OS could not be determined, installer cannot run."
+   echo "Could not find apt-get, yum nor apk. OS could not be determined, installer cannot run."
    exit 1
 fi
+
