@@ -17,23 +17,18 @@ bash $CURDIR/clean.sh
 # comes to fetching the packages from repositories.
 sudo apk update
 
-#
-# These are missing:
-#
-# bzr
-# libatlas-dev
-# libatlas3-dev
-# libblas3
-# liblapack
-# libumfpack
-# python-numpy
-# python-scipy
+sudo apk add py-numpy
+sudo apk add py-numpy-f2py --update-cache --repository http://dl-5.alpinelinux.org/alpine/edge/community
+sudo apk add py-scipy --update-cache --repository http://dl-5.alpinelinux.org/alpine/edge/testing
 
 sudo apk add gcc g++ git gfortran haproxy libbz2 libev libev-dev libevent libevent-dev \
     libgfortran libffi-dev libldap libpq libsasl libuuid libxml2-dev libxslt-dev \
     linux-headers musl-dev openldap-dev openssl postgresql-dev py2-pip python2-dev swig yaml-dev
 
 mkdir $CURDIR/zato_extra_paths
+
+symlink_py 'numpy'
+symlink_py 'scipy'
 
 export CYTHON=$CURDIR/bin/cython
 
@@ -52,4 +47,3 @@ $CURDIR/bin/buildout
 
 echo
 echo OK
-
