@@ -1,36 +1,41 @@
-#!/bin/bash
+#!/bin/sh -e
 
-#
-# Taken from https://gist.github.com/josephwecker/2884332
-#
-CURDIR="${BASH_SOURCE[0]}";RL="readlink";([[ `uname -s`=='Darwin' ]] || RL="$RL -f")
-while([ -h "${CURDIR}" ]) do CURDIR=`$RL "${CURDIR}"`; done
-N="/dev/null";pushd .>$N;cd `dirname ${CURDIR}`>$N;CURDIR=`pwd`;popd>$N
+CURDIR=`readlink -f .`
 
-function symlink_py {
-    ln -s `python -c 'import '${1}', os.path, sys; sys.stdout.write(os.path.dirname('${1}'.__file__))'` $CURDIR/zato_extra_paths
+symlink_py() {
+  ln -s `python -c 'import '${1}', os.path, sys; sys.stdout.write(os.path.dirname('${1}'.__file__))'` $CURDIR/zato_extra_paths
 }
 
-bash $CURDIR/clean.sh
+$CURDIR/clean.sh
+
+
+# We only need to do the following if we're being run from a
+# manual install.sh invocation. If we're running from abuild,
+# then build-zato.sh or abuild is already taking care of all this for us.
+
+if test -z "$RUNNING_FROM_ABUILD" ; then
 
 # Always run an update so there are no surprises later on when it actually
 # comes to fetching the packages from repositories.
-sudo apk update
 
-sudo apk add py-numpy
-sudo apk add py-numpy-f2py --update-cache --repository http://dl-5.alpinelinux.org/alpine/edge/community
-sudo apk add py-scipy --update-cache --repository http://dl-5.alpinelinux.org/alpine/edge/testing
+  sudo apk update
 
-sudo apk add gcc g++ git gfortran haproxy libbz2 libev libev-dev libevent libevent-dev \
+  sudo apk add py-numpy
+  sudo apk add py-numpy-f2py --update-cache --repository http://dl-5.alpinelinux.org/alpine/edge/community
+  sudo apk add py-scipy --update-cache --repository http://dl-5.alpinelinux.org/alpine/edge/testing
+
+  sudo apk add gcc g++ git gfortran haproxy libbz2 libev libev-dev libevent libevent-dev \
     libgfortran libffi-dev libldap libpq libsasl libuuid libxml2-dev libxslt-dev \
     linux-headers musl-dev openldap-dev openssl postgresql-dev py2-pip python2-dev swig yaml-dev
+fi
 
 mkdir $CURDIR/zato_extra_paths
 
-symlink_py 'numpy'
-symlink_py 'scipy'
+symlink_py numpy
+symlink_py scipy
 
-export CYTHON=$CURDIR/bin/cython
+CYTHON=$CURDIR/bin/cython
+export CYTHON
 
 sudo pip install --upgrade pip
 sudo pip install distribute==0.7.3
