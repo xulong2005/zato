@@ -21,7 +21,7 @@ if test -z "$RUNNING_FROM_ABUILD" ; then
 # comes to fetching the packages from repositories.
 
 if test -z "$PREFERRED_REPOSITORY" ; then
-  PREFERRED_REPOSITORY=http://dl-5.alpinelinux.org/alpine
+  PREFERRED_REPOSITORY=http://dl-cdn.alpinelinux.org/alpine
 fi
 
 if test -z "$ALPINE_FLAVOUR" ; then
@@ -35,14 +35,9 @@ fi
   sudo apk add gcc g++ git gfortran haproxy libbz2 libev libev-dev libevent libevent-dev \
     libgfortran libffi-dev libldap libpq libsasl libuuid libxml2-dev libxslt-dev \
     linux-headers musl-dev openldap-dev openssl postgresql-dev py2-pip python2-dev swig yaml-dev
-fi
 
-
-# Work around an inconsistency in the way Alpine installs zlib
-if test -f /usr/lib/libz.so ; then
-  :
-else
-  sudo ln -s ../../lib/libz.so /usr/lib/libz.so
+# Ensure we use the bundled libzmq, not the system-provided one
+  sudo apk del zeromq-dev 
 fi
 
 mkdir -p $CURDIR/zato_extra_paths
