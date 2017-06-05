@@ -30,7 +30,7 @@ fi
 
   sudo apk update
 
-  sudo apk add openblas py-numpy py-numpy-f2py --update-cache --repository "$PREFERRED_REPOSITORY/$ALPINE_FLAVOUR/community"
+  sudo apk add openblas py-numpy py-numpy-f2py py2-numpy py2-numpy-f2py --update-cache --repository "$PREFERRED_REPOSITORY/$ALPINE_FLAVOUR/community"
   sudo apk add py-scipy --update-cache --repository "$PREFERRED_REPOSITORY/edge/testing"
   sudo apk add gcc g++ git gfortran haproxy libbz2 libev libev-dev libevent libevent-dev \
     libgfortran libffi-dev libldap libpq libsasl libuuid libxml2-dev libxslt-dev \
