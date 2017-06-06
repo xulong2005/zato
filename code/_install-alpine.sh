@@ -1,6 +1,8 @@
 #!/bin/sh -e
 
-CURDIR=`readlink -f .`
+if test -z "$RUNNING_FROM_ABUILD" ; then
+  CURDIR=`readlink -f .`
+fi
 
 symlink_py() {
   target=`python -c 'import '${1}', os.path, sys; sys.stdout.write(os.path.dirname('${1}'.__file__))'`
