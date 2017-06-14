@@ -12,6 +12,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import httplib, ssl
 from datetime import datetime
 from logging import getLogger
+from ssl import OPENSSL_VERSION
 from tempfile import NamedTemporaryFile
 from time import sleep
 from unittest import TestCase
@@ -38,6 +39,8 @@ from zato.common.test.tls_material import ca_cert, ca_cert_invalid, client1_cert
 from zato.server.connection.http_soap.outgoing import HTTPSOAPWrapper
 
 logger = getLogger(__name__)
+
+is_libre_ssl = 'libressl' in OPENSSL_VERSION.lower()
 
 # ################################################################################################################################
 
@@ -495,11 +498,13 @@ class TLSPingTestCase(TestCase, Base):
 
             wrapper = HTTPSOAPWrapper(config, requests)
 
+            expected = 'CONNECT_CR_CERT' if is_libre_ssl else 'SSL3_GET_SERVER_CERTIFICATE'
+
             try:
                 wrapper.ping(rand_string())
             except Exception, e:
                 details = e.message[0][1][0][0]
-                self.assertEquals(details, ('SSL routines', 'SSL3_GET_SERVER_CERTIFICATE', 'certificate verify failed'))
+                self.assertEquals(details, ('SSL routines', expected, 'certificate verify failed'))
             else:
                 self.fail('Excepted a TLS error here because the CA is invalid')
 
@@ -525,11 +530,13 @@ class TLSPingTestCase(TestCase, Base):
 
             wrapper = HTTPSOAPWrapper(config, requests)
 
+            expected = 'CONNECT_CR_SESSION_TICKET' if is_libre_ssl else 'SSL3_READ_BYTES'
+
             try:
                 wrapper.ping(rand_string())
             except Exception, e:
                 details = e.message[0][1][0][0]
-                self.assertEquals(details, ('SSL routines', 'SSL3_READ_BYTES', 'sslv3 alert handshake failure'))
+                self.assertEquals(details, ('SSL routines', expected, 'sslv3 alert handshake failure'))
             else:
                 self.fail('Excepted a TLS error here because no TLS cert has been provided by client')
 
@@ -612,11 +619,13 @@ class TLSHTTPTestCase(TestCase, Base):
 
             wrapper = HTTPSOAPWrapper(config, requests)
 
+            expected = 'CONNECT_CR_CERT' if is_libre_ssl else 'SSL3_GET_SERVER_CERTIFICATE'
+
             try:
                 wrapper.get('123')
             except Exception, e:
                 details = e.message[0][1][0][0]
-                self.assertEquals(details, ('SSL routines', 'SSL3_GET_SERVER_CERTIFICATE', 'certificate verify failed'))
+                self.assertEquals(details, ('SSL routines', expected, 'certificate verify failed'))
             else:
                 self.fail('Excepted a TLS error here because the CA is invalid')
 
@@ -643,11 +652,13 @@ class TLSHTTPTestCase(TestCase, Base):
 
             wrapper = HTTPSOAPWrapper(config, requests)
 
+            expected = 'CONNECT_CR_SESSION_TICKET' if is_libre_ssl else 'SSL3_READ_BYTES'
+
             try:
                 wrapper.get('123')
             except Exception, e:
                 details = e.message[0][1][0][0]
-                self.assertEquals(details, ('SSL routines', 'SSL3_READ_BYTES', 'sslv3 alert handshake failure'))
+                self.assertEquals(details, ('SSL routines', expected, 'sslv3 alert handshake failure'))
             else:
                 self.fail('Excepted a TLS error here because no TLS cert has been provided by client')
 
