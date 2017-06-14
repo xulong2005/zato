@@ -95,6 +95,10 @@ def _nosetests():
 def nosetests():
     _nosetests()
 
+@click.command()
+def unittests():
+    _nosetests()
+
 def _apitests(tags):
 
     # First check out if we have a process running on localhost:17010.
@@ -172,6 +176,7 @@ def all():
 # ################################################################################################################################
 
 main.add_command(nosetests)
+main.add_command(unittests)
 main.add_command(apitests)
 main.add_command(all)
 
