@@ -34,8 +34,8 @@ class WMQFacade(object):
     """ A WebSphere MQ facade for services so they aren't aware that sending WMQ
     messages actually requires us to use the Zato broker underneath.
     """
-    def __init__(self, broker_client):
-        self.broker_client = broker_client # A Zato broker client
+    def __init__(self, service):
+        self.service = service
 
     def send(self, msg, out_name, queue, delivery_mode=None, expiration=None, priority=None, max_chars_printed=None,
             task_id=None, *args, **kwargs):
@@ -62,7 +62,7 @@ class WMQFacade(object):
         params['args'] = args
         params['kwargs'] = kwargs
 
-        self.broker_client.publish(params, msg_type=MESSAGE_TYPE.TO_JMS_WMQ_PUBLISHING_CONNECTOR_ALL)
+        self.service.broker_client.publish(params, msg_type=MESSAGE_TYPE.TO_JMS_WMQ_PUBLISHING_CONNECTOR_ALL)
 
     def conn(self):
         """ Returns self. Added to make the facade look like other outgoing

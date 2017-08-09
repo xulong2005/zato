@@ -45,6 +45,8 @@ from zato.common.util import absolutize, get_config, get_kvdb_config_for_log, ge
 from zato.distlock import LockManager
 from zato.server.base.worker import WorkerStore
 from zato.server.config import ConfigStore
+from zato.server.connection.jms_wmq.channel import start_connector as jms_wmq_channel_start_connector
+from zato.server.connection.jms_wmq.outgoing import start_connector as jms_wmq_out_start_connector
 from zato.server.connection.server import Servers
 from zato.server.base.parallel.config import ConfigLoader
 from zato.server.base.parallel.http import HTTPHandler
