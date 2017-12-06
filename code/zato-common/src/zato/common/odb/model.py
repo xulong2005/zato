@@ -16,14 +16,14 @@ from json import dumps
 from dictalchemy import make_class_dictable
 
 # SQLAlchemy
-from sqlalchemy import BigInteger, Boolean, Column, DateTime, Enum, Float, ForeignKey, func, Index, Integer, LargeBinary, \
-     Sequence, SmallInteger, String, Text, UniqueConstraint
+from sqlalchemy import BigInteger, Boolean, Column, DateTime, Enum, ForeignKey, Index, Integer, LargeBinary, Sequence, \
+     SmallInteger, String, Text, UniqueConstraint
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import backref, relation, relationship
+from sqlalchemy.orm import backref, relationship
 
 # Zato
-from zato.common import AMQP, CASSANDRA, CLOUD, CONNECTION, DATA_FORMAT, HTTP_SOAP_SERIALIZATION_TYPE, INVOCATION_TARGET, \
-     MISC, NOTIF, MSG_PATTERN_TYPE, ODOO, PUBSUB, SCHEDULER, STOMP, PARAMS_PRIORITY, URL_PARAMS_PRIORITY, URL_TYPE
+from zato.common import AMQP, CASSANDRA, CLOUD, CONNECTION, DATA_FORMAT, HTTP_SOAP_SERIALIZATION_TYPE, MISC, NOTIF, \
+     MSG_PATTERN_TYPE, ODOO, PUBSUB, SCHEDULER, STOMP, PARAMS_PRIORITY, URL_PARAMS_PRIORITY, URL_TYPE
 from zato.common.odb import WMQ_DEFAULT_PRIORITY
 
 Base = declarative_base()
@@ -2170,7 +2170,7 @@ class PubSubMessage(Base):
     data = Column(Text(), nullable=False)
     data_prefix = Column(Text(), nullable=False)
     data_prefix_short = Column(String(200), nullable=False)
-    data_format = Column(String(200), nullable=False)
+    data_format = Column(String(200), nullable=False, default=PUBSUB.DEFAULT.DATA_FORMAT)
     mime_type = Column(String(200), nullable=False)
     size = Column(Integer, nullable=False)
     priority = Column(Integer, nullable=False)
@@ -2198,6 +2198,7 @@ class PubSubSubscription(Base):
         Index('pubsb_sub_clust_idx', 'cluster_id', unique=False),
         Index('pubsb_sub_id_idx', 'cluster_id', 'id', unique=True),
         Index('pubsb_sub_clust_endpt_idx', 'cluster_id', 'endpoint_id', 'topic_id', unique=False),
+        Index('pubsb_sub_clust_subk', 'cluster_id', 'sub_key', unique=True),
     {})
 
     id = Column(Integer, Sequence('pubsub_sub_seq'), primary_key=True)
@@ -2206,7 +2207,8 @@ class PubSubSubscription(Base):
     creation_time = Column(BigInteger(), nullable=False)
     sub_key = Column(String(200), nullable=False) # Externally visible ID of this subscription
     pattern_matched = Column(Text, nullable=False)
-    deliver_by = Column(Text, nullable=True)
+    deliver_by = Column(Text, nullable=True) # Delivery order, e.g. by priority, date etc.
+    ext_client_id = Column(Text, nullable=True) # Subscriber's ID as it is stored by that external system
 
     is_durable = Column(Boolean(), nullable=False, default=True) # For now always True = survives cluster restarts
     has_gd = Column(Boolean(), nullable=False) # Guaranteed delivery
@@ -2300,6 +2302,11 @@ class PubSubSubscription(Base):
     ws_channel_id = Column(Integer, ForeignKey('channel_web_socket.id', ondelete='CASCADE'), nullable=True)
     ws_channel = relationship(
         ChannelWebSocket, backref=backref('pubsub_ws_subs', order_by=id, cascade='all, delete, delete-orphan'))
+
+    # Server that will run the delivery task for this subscription
+    server_id = Column(Integer, ForeignKey('server.id', ondelete='CASCADE'), nullable=True)
+    server = relationship(
+        Server, backref=backref('pubsub_sub_list', order_by=id, cascade='all, delete, delete-orphan'))
 
     cluster_id = Column(Integer, ForeignKey('cluster.id', ondelete='CASCADE'), nullable=True)
     cluster = relationship(

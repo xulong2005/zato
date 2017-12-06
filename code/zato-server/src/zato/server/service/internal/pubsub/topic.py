@@ -17,6 +17,7 @@ from zato.common.odb.model import PubSubEndpointEnqueuedMessage, PubSubMessage, 
 from zato.common.odb.query import pubsub_messages_for_topic, pubsub_publishers_for_topic, pubsub_topic, pubsub_topic_list
 from zato.common.odb.query_ps_topic import get_topics_by_sub_keys
 from zato.common.time_util import datetime_from_ms
+from zato.common.util import ensure_pubsub_hook_is_valid
 from zato.server.service import AsIs, Dict, List
 from zato.server.service.internal import AdminService, GetListAdminSIO
 from zato.server.service.meta import CreateEditMeta, DeleteMeta, GetListMeta
@@ -43,7 +44,9 @@ sub_broker_attrs = ('active_status', 'active_status', 'cluster_id', 'creation_ti
 def broker_message_hook(self, input, instance, attrs, service_type):
     if service_type == 'create_edit':
         with closing(self.odb.session()) as session:
-            input.is_internal = pubsub_topic(session, input.cluster_id, instance.id).is_internal
+            topic = pubsub_topic(session, input.cluster_id, instance.id)
+            input.is_internal = topic.is_internal
+            input.hook_service_name = topic.hook_service_name
 
 # ################################################################################################################################
 
@@ -52,6 +55,10 @@ def response_hook(service, input, instance, attrs, service_type):
         for item in service.response.payload:
             if item.last_pub_time:
                 item.last_pub_time = datetime_from_ms(item.last_pub_time)
+
+# ################################################################################################################################
+
+instance_hook = ensure_pubsub_hook_is_valid
 
 # ################################################################################################################################
 

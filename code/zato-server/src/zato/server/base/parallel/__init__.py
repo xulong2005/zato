@@ -40,6 +40,7 @@ from zato.bunch import Bunch
 from zato.common import DATA_FORMAT, KVDB, SERVER_UP_STATUS, ZATO_ODB_POOL_NAME
 from zato.common.broker_message import HOT_DEPLOY, MESSAGE_TYPE, TOPICS
 from zato.common.ipc.api import IPCAPI
+from zato.common.posix_ipc_util import ServerStartupIPC
 from zato.common.time_util import TimeUtil
 from zato.common.util import absolutize, get_config, get_kvdb_config_for_log, get_user_config_name, hot_deploy, \
      invoke_startup_services as _invoke_startup_services, new_cid, spawn_greenlet, StaticConfig, register_diag_handlers
@@ -123,6 +124,9 @@ class ParallelServer(DisposableObject, BrokerMessageReceiver, ConfigLoader, HTTP
         self.ipc_forwarder = IPCAPI(True)
         self.fifo_response_buffer_size = 0.1 # In megabytes
         self.live_msg_browser = None
+        self.is_first_worker = None
+        self.shmem_size = -1.0
+        self.server_startup_ipc = ServerStartupIPC()
 
         # Allows users store arbitrary data across service invocations
         self.user_ctx = Bunch()
@@ -200,21 +204,17 @@ class ParallelServer(DisposableObject, BrokerMessageReceiver, ConfigLoader, HTTP
             locally_deployed.extend(self.service_store.import_services_from_anywhere(
                 self.service_modules + self.service_sources, self.base_dir))
 
-            # Migrations
-            #self.odb.add_channels_2_0()
-
             return set(locally_deployed)
 
         lock_name = '{}{}:{}'.format(KVDB.LOCK_SERVER_STARTING, self.fs_server_config.main.token, self.deployment_key)
         already_deployed_flag = '{}{}:{}'.format(KVDB.LOCK_SERVER_ALREADY_DEPLOYED,
-                                                 self.fs_server_config.main.token, self.deployment_key)
+            self.fs_server_config.main.token, self.deployment_key)
 
-        logger.debug('Will use the lock_name: [{}]'.format(lock_name))
+        logger.debug('Will use the lock_name: `%s`', lock_name)
 
         with self.zato_lock_manager(lock_name, ttl=self.deployment_lock_expires, block=self.deployment_lock_timeout):
             if redis_conn.get(already_deployed_flag):
-                # There has been already the first worker who's done everything
-                # there is to be done so we may just return.
+                # There has been already the first worker who's done everything there is to be done so we may just return.
                 is_first = False
                 logger.debug('Not attempting to grab the lock_name:`%s`', lock_name)
 
@@ -324,6 +324,9 @@ class ParallelServer(DisposableObject, BrokerMessageReceiver, ConfigLoader, HTTP
         # This cannot be done in __init__ because each sub-process obviously has its own PID
         self.pid = os.getpid()
 
+        # This also cannot be done in __init__ which doesn't have this variable yet
+        self.is_first_worker = int(os.environ['ZATO_SERVER_WORKER_IDX']) == 0
+
         # Used later on
         use_tls = asbool(self.fs_server_config.crypto.use_tls)
 
@@ -334,6 +337,10 @@ class ParallelServer(DisposableObject, BrokerMessageReceiver, ConfigLoader, HTTP
         self.deployment_key = zato_deployment_key
 
         register_diag_handlers()
+
+        # Create all POSIX IPC objects now that we have the deployment key
+        self.shmem_size = int(float(self.fs_server_config.shmem.size) * 10**6) # Convert to megabytes as integer
+        self.server_startup_ipc.create(self.deployment_key, self.shmem_size)
 
         # Store the ODB configuration, create an ODB connection pool and have self.odb use it
         self.config.odb_data = self.get_config_odb_data(self)
@@ -572,8 +579,10 @@ class ParallelServer(DisposableObject, BrokerMessageReceiver, ConfigLoader, HTTP
 
 # ################################################################################################################################
 
-    def invoke_outconn_http(self, name, request):
-        logger.warn('AAA %s %s', name, request)
+    def deliver_pubsub_msg(self, msg):
+        """ A callback method invoked by pub/sub delivery tasks for each messages that is to be delivered.
+        """
+        self.invoke('pubapi1.deliver-message', msg)
 
 # ################################################################################################################################
 
@@ -599,7 +608,6 @@ class ParallelServer(DisposableObject, BrokerMessageReceiver, ConfigLoader, HTTP
     def destroy(self):
         """ A Spring Python hook for closing down all the resources held.
         """
-
         # Tell the ODB we've gone through a clean shutdown but only if this is
         # the main process going down (Arbiter) not one of Gunicorn workers.
         # We know it's the main process because its ODB's session has never
@@ -616,6 +624,10 @@ class ParallelServer(DisposableObject, BrokerMessageReceiver, ConfigLoader, HTTP
 
         # Per-worker cleanup
         else:
+
+            # Close all POSIX IPC structures
+            self.server_startup_ipc.close()
+
             self.invoke('zato.channel.web-socket.client.delete-by-server')
             self.invoke('zato.channel.web-socket.client.delete-by-server')
 

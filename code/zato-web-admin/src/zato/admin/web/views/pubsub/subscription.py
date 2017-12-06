@@ -17,7 +17,7 @@ from bunch import Bunch
 # Zato
 from zato.admin.web import from_utc_to_user
 from zato.admin.web.forms.pubsub.subscription import CreateForm, EditForm
-from zato.admin.web.views import CreateEdit, Delete as _Delete, Index as _Index
+from zato.admin.web.views import CreateEdit, Delete as _Delete, django_url_reverse, Index as _Index, slugify
 from zato.common.odb.model import PubSubEndpoint
 
 # ################################################################################################################################
@@ -30,7 +30,7 @@ class Index(_Index):
     method_allowed = 'GET'
     url_name = 'pubsub-subscription'
     template = 'zato/pubsub/subscription.html'
-    service_name = 'zato.pubsub.subscription.get-endpoint-summary-list'
+    service_name = 'zato.pubsub.endpoint.get-endpoint-summary-list'
     output_class = PubSubEndpoint
     paginate = True
 
@@ -84,19 +84,40 @@ class _CreateEdit(CreateEdit):
     method_allowed = 'POST'
 
     class SimpleIO(CreateEdit.SimpleIO):
-        input_required = ('endpoint_id', 'is_active')
-        input_optional = ('topic_list_text', 'topic_list_json')
+        input_required = ('endpoint_id', 'is_active', 'cluster_id', 'server_id')
+        input_optional = ('has_gd', 'topic_list_text', 'topic_list_json', 'endpoint_type', 'endpoint_id', 'active_status',
+            'delivery_method', 'delivery_data_format', 'delivery_batch_size', 'wrap_one_msg_in_list', 'delivery_max_retry',
+            'delivery_err_should_block', 'wait_sock_err', 'wait_non_sock_err', 'topic_list_text', 'amqp_exchange',
+            'amqp_routing_key', 'files_directory_list', 'ftp_directory_list', 'out_rest_http_soap_id', 'rest_delivery_endpoint',
+            'service_id', 'sms_twilio_from', 'sms_twilio_to_list', 'smtp_is_html', 'smtp_subject', 'smtp_from', 'smtp_to_list',
+            'smtp_body', 'out_soap_http_soap_id', 'soap_delivery_endpoint')
         output_required = ('id',)
 
     def post_process_return_data(self, return_data):
 
-        response = self.req.zato.client.invoke('zato.pubsub.subscription.get', {
+        response = self.req.zato.client.invoke('zato.pubsub.endpoint.get-endpoint-summary', {
             'cluster_id': self.req.zato.cluster_id,
-            'id': return_data['id'],
-        }).data['response']
+            'endpoint_id': self.input.endpoint_id,
+        }).data
+
+        if response['last_seen']:
+            response['last_seen'] = from_utc_to_user(response['last_seen']+'+00:00', self.req.zato.user_profile)
+
+        if response['last_deliv_time']:
+            response['last_deliv_time'] = from_utc_to_user(response['last_deliv_time']+'+00:00', self.req.zato.user_profile)
+
+        response['pubsub_endpoint_queues_link'] = \
+            django_url_reverse('pubsub-endpoint-queues',
+                    kwargs={
+                        'cluster_id':self.req.zato.cluster_id,
+                        'endpoint_id':response['id'],
+                        'name_slug':slugify(response['endpoint_name'])}
+                    ),
+
+        return_data.update(response)
 
     def success_message(self, item):
-        return 'Pub/sub subscription {} successfully'.format(self.verb)
+        return 'Pub/sub subscription(s) {} successfully'.format(self.verb)
 
 # ################################################################################################################################
 
@@ -109,13 +130,14 @@ class Create(_CreateEdit):
 class Edit(_CreateEdit):
     url_name = 'pubsub-subscription-edit'
     form_prefix = 'edit-'
-    service_name = 'zato.pubsub.subscription.edit'
+    service_name = 'subscription-edit' #'zato.pubsub.subscription.edit'
 
 # ################################################################################################################################
 
 class Delete(_Delete):
-    url_name = 'pubsub-subscription-delete'
-    error_message = 'Could not delete pub/sub subscription'
-    service_name = 'zato.pubsub.subscription.delete'
+    id_elem = 'endpoint_id'
+    url_name = 'pubsub-subscription-delete-all'
+    error_message = 'Could not delete pub/sub subscriptions'
+    service_name = 'zato.pubsub.subscription.delete-all'
 
 # ################################################################################################################################

@@ -25,7 +25,7 @@ from zato.server.service.internal import AdminService, AdminSIO
 # ################################################################################################################################
 
 class Create(AdminService):
-    """ Stores in ODB information about an established connection of an authenciated WebSocket client.
+    """ Stores in ODB information about an established connection of an authenticated WebSocket client.
     """
     class SimpleIO(AdminSIO):
         input_required = (AsIs('pub_client_id'), AsIs('ext_client_id'), 'is_internal', 'local_address', 'peer_address',
@@ -63,16 +63,6 @@ class Create(AdminService):
             session.commit()
 
             self.response.payload.ws_client_id = client.id
-
-            # Create default subscriptions for the client
-            '''
-            self.invoke('zato.channel.web-socket.subscription.create-default', {
-                'ext_client_id': req.ext_client_id,
-                'client_id': client.id,
-                'channel_id': channel.id,
-                'channel_name': channel.name,
-            })
-            '''
 
 # ################################################################################################################################
 

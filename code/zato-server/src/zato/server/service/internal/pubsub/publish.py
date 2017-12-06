@@ -20,13 +20,12 @@ from dateparser import parse as dt_parse
 from gevent import spawn
 
 # Zato
-from zato.common import DATA_FORMAT, PUBSUB
+from zato.common import DATA_FORMAT, PUBSUB, ZATO_NONE
 from zato.common.exception import Forbidden, NotFound, ServiceUnavailable
 from zato.common.odb.query_ps_publish import get_topic_depth, incr_topic_depth, insert_queue_messages, insert_topic_messages, \
      update_publish_metadata
 from zato.common.pubsub import new_msg_id
 from zato.common.time_util import datetime_to_ms, utcnow_as_ms
-from zato.common.util import spawn_greenlet
 from zato.server.pubsub import get_expiration, get_priority, PubSub, Topic
 from zato.server.service import AsIs, Int, List
 from zato.server.service.internal import AdminService
@@ -59,14 +58,20 @@ class Publish(AdminService):
 
 # ################################################################################################################################
 
-    def _get_message(self, topic, input, now, pattern_matched, endpoint_id, _initialized=_initialized):
+    def _get_message(self, topic, input, now, pattern_matched, endpoint_id, _initialized=_initialized, _zato_none=ZATO_NONE):
 
         priority = get_priority(self.cid, input)
         expiration = get_expiration(self.cid, input)
         expiration_time = now + (expiration * 1000)
 
         pub_msg_id = input.get('msg_id', '').encode('utf8') or new_msg_id()
-        has_gd = input['has_gd'] if isinstance(input.get('has_gd'), bool) else topic.has_gd
+
+        has_gd = input.get('has_gd', _zato_none)
+        if has_gd != _zato_none:
+            if not isinstance(has_gd, bool):
+                raise ValueError('Input has_gd is not a bool (found:`{}`)'.format(repr(has_gd)))
+        else:
+            has_gd = topic.has_gd
 
         pub_correl_id = input.get('correl_id')
         in_reply_to = input.get('in_reply_to')
@@ -108,6 +113,9 @@ class Publish(AdminService):
         if has_gd:
             ps_msg['data_prefix'] = input['data'][:2048].encode('utf8')
             ps_msg['data_prefix_short'] = input['data'][:64].encode('utf8')
+
+        if topic.hook_service_invoker:
+            topic.hook_service_invoker(topic, ps_msg)
 
         return ps_msg
 
@@ -214,6 +222,10 @@ class Publish(AdminService):
         # Get all subscribers for that topic from local worker store
         subscriptions_by_topic = pubsub.get_subscriptions_by_topic(input.topic_name)
 
+        # Just so it is not overlooked, log information that no subscribers are found for this topic
+        if not subscriptions_by_topic:
+            self.logger.warn('No subscribers found for topic `%s`', input.topic_name)
+
         # Local aliases
         cluster_id = self.server.cluster_id
         has_pubsub_audit_log = self.server.has_pubsub_audit_log
@@ -276,7 +288,7 @@ class Publish(AdminService):
         # Also in background, notify pub/sub task runners that there are new messages for them
         if subscriptions_by_topic:
             self._notify_pubsub_tasks(
-                topic.id, topic.name, subscriptions_by_topic, non_gd_msg_list, len(gd_msg_list) > 1)
+                topic.id, topic.name, subscriptions_by_topic, non_gd_msg_list, len(gd_msg_list) > 0)
 
         # Return either a single msg_id if there was only one message published or a list of message IDs,
         # one for each message published.

@@ -18,7 +18,6 @@ from numbers import Number
 from string import Template
 from sys import maxint
 from traceback import format_exc
-from uuid import uuid4
 
 # boto
 from boto.s3.key import Key
@@ -118,6 +117,8 @@ zato_cid_xpath = etree.XPath(zato_result_path, namespaces=common_namespaces)
 
 zato_details_path = '//zato:zato_env/zato:details'
 zato_details_xpath = etree.XPath(zato_details_path, namespaces=common_namespaces)
+
+megabyte = 10 ** 6
 
 SECRET_SHADOW = '******'
 
@@ -745,6 +746,10 @@ class PUBSUB:
             def __iter__(self):
                 return iter((self.CSV, self.DICT, self.FIXED_WIDTH, self.JSON, self.POST, self.SOAP, self.XML))
 
+    class HOOK_TYPE:
+        PUB = 'pub'
+        SUB = 'sub'
+
     class DELIVER_BY:
         PRIORITY = 'priority'
         EXT_PUB_TIME = 'ext_pub_time'
@@ -755,12 +760,13 @@ class PUBSUB:
                 return iter((self.PRIORITY, self.EXT_PUB_TIME, self.PUB_TIME))
 
     class DEFAULT:
+        DATA_FORMAT = 'text/plain'
         TOPIC_MAX_DEPTH_GD = 10000
         TOPIC_MAX_DEPTH_NON_GD = 1000
         GD_DEPTH_CHECK_FREQ = 100
         GET_BATCH_SIZE = 50
         DELIVERY_BATCH_SIZE = 50
-        DELIVERY_MAX_RETRY = 2 ** 32 - 1
+        DELIVERY_MAX_RETRY = 1234567890
         DELIVERY_MAX_SIZE = 500000 # 500 kB
         WAIT_TIME_SOCKET_ERROR = 10
         WAIT_TIME_NON_SOCKET_ERROR = 30
@@ -783,7 +789,7 @@ class PUBSUB:
                 return iter((self.DEFAULT_PER_TOPIC, self.YES, self.NO))
 
     class QUEUE_ACTIVE_STATUS:
-        FULLY_ENABLED = NameId('Fully enabled', 'pub-sub')
+        FULLY_ENABLED = NameId('Pub and sub', 'pub-sub')
         PUB_ONLY = NameId('Pub only', 'pub-only')
         SUB_ONLY = NameId('Sub only', 'sub-only')
         DISABLED = NameId('Disabled', 'disabled')
@@ -828,7 +834,7 @@ class PUBSUB:
         IMAP = NameId('IMAP', 'imap')
         REST = NameId('REST', 'rest')
         SERVICE = NameId('Service', 'service')
-        SMS_TWILIO = NameId('SMS - Twilio', 'sms-twilio')
+        SMS_TWILIO = NameId('SMS - Twilio', 'sms_twilio')
         SMTP = NameId('SMTP', 'smtp')
         SOAP = NameId('SOAP', 'soap')
         SQL = NameId('SQL', 'sql')

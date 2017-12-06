@@ -10,7 +10,6 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 # stdlib
 from logging import getLogger
-from traceback import format_exc
 
 # Zato
 from zato.server.base.worker.common import WorkerImpl
@@ -65,12 +64,12 @@ class PubSub(WorkerImpl):
 # ################################################################################################################################
 
     def on_broker_msg_PUBSUB_SUBSCRIPTION_DELETE(self, msg):
-        self.pubsub.unsubscribe(msg.sub_key)
+        self.pubsub.unsubscribe(msg.topic_sub_keys)
 
 # ################################################################################################################################
 
-    def on_broker_msg_PUBSUB_WSX_CLIENT_SUB_KEY_SERVER_SET(self, msg):
-        self.pubsub.set_ws_sub_key_server(msg)
+    def on_broker_msg_PUBSUB_SUB_KEY_SERVER_SET(self, msg):
+        self.pubsub.set_sub_key_server(msg)
 
 # ################################################################################################################################
 

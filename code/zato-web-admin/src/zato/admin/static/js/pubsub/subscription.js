@@ -7,7 +7,11 @@ $.fn.zato.data_table.PubSubEndpoint = new Class({
         return String.format(s, this.id ? this.id : '(none)',
                                 this.endpoint_name ? this.endpoint_name : '(none)'
                                 );
+    },
+    get_name: function() {
+        return this.endpoint_name;
     }
+
 });
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -17,10 +21,12 @@ $(document).ready(function() {
     $.fn.zato.data_table.password_required = false;
     $.fn.zato.data_table.class_ = $.fn.zato.data_table.PubSubEndpoint;
     $.fn.zato.data_table.new_row_func = $.fn.zato.pubsub.subscription.data_table.new_row;
+    $.fn.zato.data_table.new_row_func_update_in_place = true;
     $.fn.zato.data_table.parse();
     $.fn.zato.data_table.before_submit_hook = $.fn.zato.pubsub.subscription.before_submit_hook;
     $.fn.zato.data_table.setup_forms([
         'endpoint_id',
+        'server_id',
         'active_status',
         'delivery_method',
         'delivery_batch_size',
@@ -71,16 +77,6 @@ $.fn.zato.pubsub.subscription.before_submit_hook = function(form) {
 
 }
 
-$.fn.zato.pubsub.subscription.clear_forms = function() {
-    // Hide everything ..
-    $('tr[id^=endpoint_row_id_]').css('display', 'none');
-    $('tr[id^=edit-endpoint_row_id_]').css('display', 'none');
-
-    // .. except for WebSockets which we display by default.
-    $('tr[id=endpoint_row_id_ws_channel_id]').css('display', 'table-row');
-    $('tr[id=edit-endpoint_row_id_ws_channel_id]').css('display', 'table-row');
-}
-
 $.fn.zato.pubsub.subscription.create = function() {
     window.zato_run_dyn_form_handler();
     $.fn.zato.data_table._create_edit('create', 'Create new pub/sub subscriptions', null);
@@ -94,58 +90,47 @@ $.fn.zato.pubsub.subscription.edit = function(id) {
 $.fn.zato.pubsub.subscription.data_table.new_row = function(item, data, include_tr) {
     var row = '';
 
-    if(include_tr) {
-        row += String.format("<tr id='tr_{0}' class='updated'>", item.id);
-    }
+    var is_active = data.is_active ? "Yes" : "No";
+    var last_seen = data.last_seen ? data.last_seen : $.fn.zato.empty_value;
+    var last_deliv_time = data.last_deliv_time ? data.last_deliv_time : $.fn.zato.empty_value;
 
-    var empty = '<span class="form_hint">---</span>';
-    var topic_patterns_html = data.topic_patterns_html ? data.topic_patterns_html : empty;
-    var client_html = data.client_html ? data.client_html : empty;
-
-    // Update it with latest content dynamically obtained from the call to backend
-    item.sub_key = data.sub_key;
+    var pubsub_endpoint_queues_link = String.format(
+        '<a id="pubsub_endpoint_queues_link_{0}" href="{1}">{2}</a>', data.id, data.pubsub_endpoint_queues_link,
+        data.subscription_count);
 
     row += "<td class='numbering'>&nbsp;</td>";
     row += "<td class='impexp'><input type='checkbox' /></td>";
-    row += String.format('<td>{0}</td>', data.name);
-    row += String.format('<td>{0}</td>', data.role);
-    row += String.format('<td>{0}</td>', topic_patterns_html);
-    row += String.format('<td>{0}</td>', client_html);
-    row += String.format('<td>{0}</td>', data.endpoint_topics_html);
-    row += String.format('<td>{0}</td>', data.endpoint_queues_html);
-    row += String.format('<td>{0}</td>',
-        String.format("<a href=\"javascript:$.fn.zato.pubsub.subscription.edit('{0}')\">Edit</a>", data.id));
-    row += String.format('<td>{0}</td>', data.delete_html);
-    row += String.format("<td class='ignore item_id_{0}'>{0}</td>", data.id);
-    row += String.format("<td class='ignore'>{0}</td>", data.is_internal);
-    row += String.format("<td class='ignore'>{0}</td>", data.is_active);
-    row += String.format("<td class='ignore'>{0}</td>", data.topic_patterns);
-    row += String.format("<td class='ignore'>{0}</td>", data.security_id);
-    row += String.format("<td class='ignore'>{0}</td>", data.ws_channel_id);
 
-    if(include_tr) {
-        row += '</tr>';
-    }
+    row += String.format('<td>{0}</td>', is_active);
+    row += String.format('<td>{0}</td>', data.endpoint_name);
+    row += String.format('<td>{0}</td>', data.endpoint_type);
+
+    row += String.format('<td>{0}</td>', data.role);
+    row += String.format('<td>{0}</td>', pubsub_endpoint_queues_link);
+
+    row += String.format('<td>{0}</td>', last_seen);
+    row += String.format('<td>{0}</td>', last_deliv_time);
+
+    row += String.format('<td>{0}</td>',
+        String.format("<a href=\"javascript:$.fn.zato.pubsub.subscription.delete_('{0}')\">Delete all subscriptions</a>", data.id));
+    row += String.format("<td class='ignore item_id_{0}'>{0}</td>", data.id);
 
     return row;
 }
 
-$.fn.zato.pubsub.subscription.delete_ = function(id) {
-    $.fn.zato.data_table.delete_(id, 'td.item_id_',
-        'Pub/sub endpoint `{0}` deleted',
-        'Are you sure you want to delete pub/sub endpoint `{0}`?',
-        true);
+$.fn.zato.pubsub.subscription.on_delete_success = function(id) {
+    var link = $('#pubsub_endpoint_queues_link_' + id);
+    link.html(0);
 }
 
-$.fn.zato.pubsub.subscription.toggle_sub_key = function(id) {
-    var hidden = 'Show';
-    var instance = $.fn.zato.data_table.data[id];
-    var span = $('#sub_key_' + id);
+$.fn.zato.pubsub.subscription.delete_ = function(id) {
 
-    if(span.html().startsWith(hidden)) {
-        span.html(instance.sub_key);
+    var on_delete_success = function() {
+        $.fn.zato.pubsub.subscription.on_delete_success(id);
     }
-    else {
-        span.html(hidden);
-    }
+
+    $.fn.zato.data_table.delete_(id, 'td.item_id_',
+        'Deleted subscriptions for endpoint `{0}`',
+        'Are you sure you want to delete all subscriptions for endpoint `{0}`?',
+        true, false, null, null, false, on_delete_success);
 }

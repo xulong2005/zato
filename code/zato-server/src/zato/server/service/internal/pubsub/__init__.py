@@ -13,8 +13,30 @@ from contextlib import closing
 from traceback import format_exc
 
 # Zato
-from zato.server.service import AsIs, Int, List, ListOfDicts, Opaque
+from zato.common import PUBSUB
+from zato.common.util import is_class_pubsub_hook
+from zato.common.odb.model import PubSubSubscription, PubSubTopic
+from zato.common.odb.query import pubsub_hook_service
+from zato.server.service import AsIs, List, ListOfDicts, Opaque, PubSubHook
 from zato.server.service.internal import AdminService, AdminSIO
+
+endpoint_type_service = {
+    PUBSUB.ENDPOINT_TYPE.AMQP.id:        'zato.pubsub.delivery.notify-pub-sub-message',
+    PUBSUB.ENDPOINT_TYPE.FILES.id:       'zato.pubsub.delivery.notify-pub-sub-message',
+    PUBSUB.ENDPOINT_TYPE.FTP.id:         'zato.pubsub.delivery.notify-pub-sub-message',
+    PUBSUB.ENDPOINT_TYPE.REST.id:        'zato.pubsub.delivery.notify-pub-sub-message',
+    PUBSUB.ENDPOINT_TYPE.REST.id:        'zato.pubsub.delivery.notify-pub-sub-message',
+    PUBSUB.ENDPOINT_TYPE.SERVICE.id:     'zato.pubsub.delivery.notify-pub-sub-message',
+    PUBSUB.ENDPOINT_TYPE.SMS_TWILIO.id:  'zato.pubsub.delivery.notify-pub-sub-message',
+    PUBSUB.ENDPOINT_TYPE.SMTP.id:        'zato.pubsub.delivery.notify-pub-sub-message',
+    PUBSUB.ENDPOINT_TYPE.SOAP.id:        'zato.pubsub.delivery.notify-pub-sub-message',
+    PUBSUB.ENDPOINT_TYPE.WEB_SOCKETS.id: 'zato.channel.web-socket.client.notify-pub-sub-message',
+}
+
+hook_type_model = {
+    PUBSUB.HOOK_TYPE.PUB: PubSubTopic,
+    PUBSUB.HOOK_TYPE.SUB: PubSubSubscription,
+}
 
 # ################################################################################################################################
 
@@ -27,8 +49,7 @@ class AfterPublish(AdminService):
         # Notify all background tasks that new messages are available for their recipients.
         # However, this needs to take into account the fact that there may be many notifications
         # pointing to a single server so instead of sending notifications one by one,
-        # we first find all servers and then notify each server once giving it a list of subscriptions
-        # on input.
+        # we first find all servers and then notify each server once giving it a list of subscriptions on input.
         #
         # We also need to remember that recipients may be currently offline, or in any other way inaccessible,
         # in which case we keep non-GD messages in our server's RAM.
@@ -56,13 +77,14 @@ class AfterPublish(AdminService):
         #
 
         try:
-            current_servers, not_found = self.pubsub.get_ws_clients_by_sub_keys(sub_keys)
+            current_servers, not_found = self.pubsub.get_task_servers_by_sub_keys(sub_keys)
 
             # Local aliases
             cid = self.request.input.cid
             topic_id = self.request.input.topic_id
             topic_name = self.request.input.topic_name
             non_gd_msg_list = self.request.input.non_gd_msg_list
+            has_gd_msg_list = self.request.input.has_gd_msg_list
 
             # We already know we can store them in RAM
             if not_found:
@@ -87,26 +109,29 @@ class AfterPublish(AdminService):
 
 # ################################################################################################################################
 
-    def _notify_pub_sub(self, current_servers, non_gd_msg_list, has_gd_msg_list):
+    def _notify_pub_sub(self, current_servers, non_gd_msg_list, has_gd_msg_list, endpoint_type_service=endpoint_type_service):
         """ Notifies all relevant remote servers about new messages available for delivery.
-        For GD messages     - a flag is sent to indicate that there is at least one message in SQL waiting.
+        For GD messages     - a flag is sent to indicate that there is at least one message waiting in SQL DB.
         For non-GD messages - their actual contents is sent.
         """
         notif_error_sub_keys = []
 
         for server_info, sub_key_list in current_servers.items():
-            server_name, server_pid, pub_client_id, channel_name = server_info
+            server_name, server_pid, pub_client_id, channel_name, endpoint_type = server_info
+            service_name = endpoint_type_service[endpoint_type]
 
             try:
-                self.server.servers[server_name].invoke('zato.channel.web-socket.client.notify-pub-sub-message', {
+                self.server.servers[server_name].invoke(service_name, {
                     'pub_client_id': pub_client_id,
                     'channel_name': channel_name,
                     'request': {
+                        'endpoint_type': endpoint_type,
                         'has_gd': has_gd_msg_list,
                         'sub_key_list': sub_key_list,
                         'non_gd_msg_list': non_gd_msg_list
                     },
                 }, pid=server_pid)
+
             except Exception, e:
                 self.logger.warn('Error in pub/sub notification %r', format_exc(e))
                 notif_error_sub_keys.extend(sub_key_list)
@@ -116,7 +141,9 @@ class AfterPublish(AdminService):
 # ################################################################################################################################
 
 class AfterWSXReconnect(AdminService):
-    """ Invoked by WSX clients after they reconnect with a list of their sub_keys on input.
+    """ Invoked by WSX clients after they reconnect with a list of their sub_keys on input. Collects all messages
+    waiting on other servers for that WebSocket and lets the caller know how many of them are available. At the same time,
+    the collection process trigger's that WebSocket's delivery task (via pubsub_tool) to start deliveries.
     """
     class SimpleIO(AdminSIO):
         input_required = ('sql_ws_client_id', 'channel_name', AsIs('pub_client_id'), Opaque('web_socket'))

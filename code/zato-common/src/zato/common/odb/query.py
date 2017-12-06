@@ -945,6 +945,7 @@ def _pubsub_topic(session, cluster_id):
         PubSubTopic.has_gd,
         PubSubTopic.is_api_sub_allowed,
         PubSubTopic.gd_depth_check_freq,
+        PubSubTopic.hook_service_id,
         Service.name.label('hook_service_name'),
         ).\
         outerjoin(Service, Service.id==PubSubTopic.hook_service_id).\
@@ -1062,6 +1063,13 @@ def pubsub_endpoint_queue_list(session, cluster_id, endpoint_id):
 
 # ################################################################################################################################
 
+def pubsub_endpoint_queue_list_by_sub_keys(session, cluster_id, sub_key_list):
+    return _pubsub_endpoint_queue(session, cluster_id).\
+        filter(PubSubSubscription.sub_key.in_(sub_key_list)).\
+        all()
+
+# ################################################################################################################################
+
 def pubsub_endpoint_queue(session, cluster_id, sub_id):
     return _pubsub_endpoint_queue(session, cluster_id).\
         filter(PubSubSubscription.id==sub_id).\
@@ -1123,6 +1131,17 @@ def pubsub_messages_for_queue(session, cluster_id, sub_id, needs_columns=False):
     return _pubsub_queue_message(session, cluster_id).\
         filter(PubSubEndpointEnqueuedMessage.subscription_id==sub_id).\
         order_by(PubSubEndpointEnqueuedMessage.creation_time.desc())
+
+# ################################################################################################################################
+
+def pubsub_hook_service(session, cluster_id, endpoint_id, model_class):
+    return session.query(
+        Service.id,
+        Service.name,
+        ).\
+        filter(Cluster.id==Service.cluster_id).\
+        filter(Service.id==model_class.hook_service_id).\
+        first()
 
 # ################################################################################################################################
 

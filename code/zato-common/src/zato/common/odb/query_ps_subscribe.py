@@ -44,27 +44,65 @@ def add_wsx_subscription(session, cluster_id, is_internal, sub_key, ext_client_i
 
 # ################################################################################################################################
 
-def add_subscription(session, cluster_id, active_status, is_internal, creation_time, pattern_matched, sub_key, has_gd, topic_id,
-    endpoint_id, delivery_method, delivery_data_format, deliver_to, deliver_by, delivery_group_size, ws_channel_id, ws_sub):
+def add_subscription(session, cluster_id, ctx):
     """ Adds an object representing a subscription regardless of the underlying protocol.
     """
+    # Common
     ps_sub = PubSubSubscription()
-    ps_sub.active_status = active_status
-    ps_sub.is_internal = is_internal
-    ps_sub.creation_time = creation_time
-    ps_sub.pattern_matched = pattern_matched
-    ps_sub.sub_key = sub_key
-    ps_sub.has_gd = has_gd
-    ps_sub.topic_id = topic_id
-    ps_sub.endpoint_id = endpoint_id
-    ps_sub.delivery_method = delivery_method
-    ps_sub.delivery_data_format = delivery_data_format
-    ps_sub.delivery_endpoint = deliver_to
-    ps_sub.deliver_by = deliver_by
-    ps_sub.delivery_group_size = delivery_group_size
-    ps_sub.ws_channel_id = ws_channel_id
-    ps_sub.ws_sub = ws_sub
-    ps_sub.cluster_id = cluster_id
+
+    ps_sub.cluster_id = ctx.cluster_id
+    ps_sub.server_id = ctx.server_id
+    ps_sub.topic_id = ctx.topic.id
+    ps_sub.is_internal = ctx.is_internal
+    ps_sub.creation_time = ctx.creation_time
+    ps_sub.sub_key = ctx.sub_key
+    ps_sub.pattern_matched = ctx.pattern_matched
+    ps_sub.has_gd = ctx.has_gd
+    ps_sub.active_status = ctx.active_status
+    ps_sub.endpoint_type = ctx.endpoint_type
+    ps_sub.endpoint_id = ctx.endpoint_id
+    ps_sub.delivery_method = ctx.delivery_method
+    ps_sub.delivery_data_format = ctx.delivery_data_format
+    ps_sub.delivery_batch_size = ctx.delivery_batch_size
+    ps_sub.wrap_one_msg_in_list = ctx.wrap_one_msg_in_list
+    ps_sub.delivery_max_retry = ctx.delivery_max_retry
+    ps_sub.delivery_err_should_block = ctx.delivery_err_should_block
+    ps_sub.wait_sock_err = ctx.wait_sock_err
+    ps_sub.wait_non_sock_err = ctx.wait_non_sock_err
+    ps_sub.ext_client_id = ctx.ext_client_id
+
+    # AMQP
+    ps_sub.amqp_exchange = ctx.amqp_exchange
+    ps_sub.amqp_routing_key = ctx.amqp_routing_key
+
+    # Local files
+    ps_sub.files_directory_list = ctx.files_directory_list
+
+    # FTP
+    ps_sub.ftp_directory_list = ctx.ftp_directory_list
+
+    # REST/SOAP
+    ps_sub.security_id = ctx.security_id
+    ps_sub.out_http_soap_id = ctx.out_http_soap_id
+
+    # Services
+    ps_sub.service_id = ctx.service_id
+
+    # SMS - Twilio
+    ps_sub.sms_twilio_from = ctx.sms_twilio_from
+    ps_sub.sms_twilio_to_list = ctx.sms_twilio_to_list
+    ps_sub.smtp_is_html = ctx.smtp_is_html
+    ps_sub.smtp_subject = ctx.smtp_subject
+    ps_sub.smtp_from = ctx.smtp_from
+    ps_sub.smtp_to_list = ctx.smtp_to_list
+    ps_sub.smtp_body = ctx.smtp_body
+
+    # WebSockets
+    ps_sub.ws_channel_id = ctx.ws_channel_id
+    ps_sub.ws_channel_name = ctx.ws_channel_name
+    ps_sub.ws_pub_client_id = ctx.ws_pub_client_id
+    ps_sub.sql_ws_client_id = ctx.sql_ws_client_id
+
     session.add(ps_sub)
 
     return ps_sub
@@ -120,3 +158,4 @@ def move_messages_to_sub_queue(session, cluster_id, topic_id, endpoint_id, ps_su
     return total_moved
 
 # ################################################################################################################################
+

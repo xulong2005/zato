@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Copyright (C) 2016 Dariusz Suchojad <dsuch at zato.io>
+Copyright (C) 2017, Zato Source s.r.o. https://zato.io
 
 Licensed under LGPLv3, see LICENSE.txt for terms and conditions.
 """
@@ -34,18 +34,14 @@ from ws4py.server.geventserver import WSGIServer
 from ws4py.server.wsgiutils import WebSocketWSGIApplication
 
 # Zato
-from zato.common import CHANNEL, DATA_FORMAT, ParsingException, SEC_DEF_TYPE, WEB_SOCKET
+from zato.common import CHANNEL, DATA_FORMAT, ParsingException, PUBSUB, SEC_DEF_TYPE, WEB_SOCKET
 from zato.common.exception import Reportable
 from zato.common.util import new_cid
 from zato.server.connection.connector import Connector
 from zato.server.connection.web_socket.msg import AuthenticateResponse, ClientInvokeRequest, ClientMessage, copy_forbidden, \
      error_response, ErrorResponse, Forbidden, OKResponse
-from zato.server.connection.web_socket.pubsub import PubSubTool
-from zato.server.pubsub import PubSub
+from zato.server.pubsub.task import PubSubTool
 from zato.vault.client import VAULT
-
-# For pyflakes
-PubSub = PubSub
 
 # ################################################################################################################################
 
@@ -99,7 +95,7 @@ class WebSocket(_WebSocket):
         self.ping_last_response_time = None
 
         # For publish/subscribe over WSX
-        self.pubsub_tool = PubSubTool(config.parallel_server.worker_store.pubsub, self)
+        self.pubsub_tool = PubSubTool(config.parallel_server.worker_store.pubsub, self, PUBSUB.ENDPOINT_TYPE.WEB_SOCKETS.id)
 
         # Active WebSocket client ID (WebSocketClient model, web_socket_client.id in SQL)
         self.sql_ws_client_id = None

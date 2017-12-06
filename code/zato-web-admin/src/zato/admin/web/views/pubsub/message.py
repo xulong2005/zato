@@ -20,7 +20,7 @@ from django.http import HttpResponse, HttpResponseServerError
 from django.template.response import TemplateResponse
 
 # Zato
-from zato.admin.web import from_user_to_utc, from_utc_to_user
+from zato.admin.web import from_utc_to_user
 from zato.admin.web.forms.pubsub import MsgForm, MsgPublishForm
 from zato.admin.web.views import method_allowed, slugify
 from zato.admin.web.views.pubsub import get_endpoint_html
@@ -69,7 +69,7 @@ def get(req, cluster_id, object_type, object_id, msg_id):
             'msg_id': msg_id,
         }).data.response
 
-    except Exception, e:
+    except Exception:
         return_data.has_msg = False
 
     else:
@@ -103,21 +103,23 @@ def get(req, cluster_id, object_type, object_id, msg_id):
             hook_sub_endpoint_id = return_data.endpoint_id
 
         hook_pub_service_response = req.zato.client.invoke(
-            'zato.pubsub.endpoint.get-hook-service', {
+            'zato.pubsub.hook.get-hook-service', {
             'cluster_id': cluster_id,
             'endpoint_id': hook_pub_endpoint_id,
+            'hook_type': PUBSUB.HOOK_TYPE.PUB,
         }).data.response
-        return_data.hook_pub_service_id = hook_pub_service_response.service_id
-        return_data.hook_pub_service_name = hook_pub_service_response.service_name
+        return_data.hook_pub_service_id = hook_pub_service_response.id
+        return_data.hook_pub_service_name = hook_pub_service_response.name
 
         if hook_sub_endpoint_id:
             hook_sub_service_response = req.zato.client.invoke(
-                'zato.pubsub.endpoint.get-hook-service', {
+                'zato.pubsub.hook.get-hook-service', {
                 'cluster_id': cluster_id,
                 'endpoint_id': hook_sub_endpoint_id,
+                'hook_type': PUBSUB.HOOK_TYPE.SUB,
             }).data.response
-            return_data.hook_sub_service_id = hook_sub_service_response.service_id
-            return_data.hook_sub_service_name = hook_sub_service_response.service_name
+            return_data.hook_sub_service_id = hook_sub_service_response.id
+            return_data.hook_sub_service_name = hook_sub_service_response.name
 
         return_data.form = MsgForm(return_data)
 
