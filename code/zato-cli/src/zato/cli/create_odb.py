@@ -13,17 +13,29 @@ from datetime import datetime
 from getpass import getuser
 from socket import gethostname
 
+# Alembic
+import alembic.command
+
 # Zato
 from zato.cli import ZatoCommand, common_odb_opts
+from zato.common.odb import alembic_utils
 from zato.common.odb import VERSION
-from zato.common.odb.model import AlembicRevision, Base, ZatoInstallState
+from zato.common.odb.model import Base, ZatoInstallState
 
-LATEST_ALEMBIC_REVISION = '0028_ae3419a9'
 
 class Create(ZatoCommand):
     """ Creates a new Zato ODB (Operational Database)
     """
     opts = common_odb_opts
+
+    def create_alembic_stamp(self, engine):
+        """http://alembic.zzzcomputing.com/en/latest/cookbook.html"""
+        with alembic_utils.share_connection(engine) as config:
+            alembic.command.stamp(config, 'head')
+
+    def create_zato_install_state(self, session):
+        state = ZatoInstallState(None, VERSION, datetime.now(), gethostname(), getuser())
+        session.add(state)
 
     def execute(self, args, show_output=True):
         engine = self._get_engine(args)
@@ -42,13 +54,8 @@ class Create(ZatoCommand):
 
         else:
             Base.metadata.create_all(engine)
-
-            state = ZatoInstallState(None, VERSION, datetime.now(), gethostname(), getuser())
-            alembic_rev = AlembicRevision(LATEST_ALEMBIC_REVISION)
-
-            session.add(state)
-            session.add(alembic_rev)
-
+            self.create_alembic_stamp(engine)
+            self.create_zato_install_state(session)
             session.commit()
 
             if show_output:

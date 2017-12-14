@@ -26,7 +26,7 @@ def get_config(engine):
     """
     config = alembic.config.Config()
     config.set_main_option('script_location', get_alembic_dir())
-    config.set_main_option('sqlalchemy.url', engine.url)
+    config.set_main_option('sqlalchemy.url', str(engine.url))
     return config
 
 
@@ -37,7 +37,7 @@ def share_connection(engine):
     connection. This is necessary to avoid having to duplicate the large amount
     of logic involved in setting up an mxODBC connection, etc.
     """
-    config = get_config()
+    config = get_config(engine)
     with engine.begin() as connection:
         config.attributes['connection'] = connection
         yield config
