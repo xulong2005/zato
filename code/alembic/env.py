@@ -1,27 +1,24 @@
 from __future__ import with_statement
+
+# stdlib
+import logging.config
+
+# Alembic
 from alembic import context
-from sqlalchemy import engine_from_config, pool
-from logging.config import fileConfig
 
-# this is the Alembic Config object, which provides
-# access to the values within the .ini file in use.
-config = context.config
+# SQLAlchemy
+import sqlalchemy
 
-# Interpret the config file for Python logging.
-# This line sets up loggers basically.
-fileConfig(config.config_file_name)
-
-# add your model's MetaData object here
-# for 'autogenerate' support
-# from myapp import mymodel
-# target_metadata = mymodel.Base.metadata
+# Zato
 import zato.common.odb.model
+
+
+# Don't mess with logging if running from within Zato.
+if config.config_file_name is not None:
+    logging.config.fileConfig(config.config_file_name)
+
 target_metadata = zato.common.odb.model.Base.metadata
 
-# other values from the config, defined by the needs of env.py,
-# can be acquired:
-# my_important_option = config.get_main_option("my_important_option")
-# ... etc.
 
 IGNORE_TABLES = [
     'django_site',
@@ -54,7 +51,7 @@ def run_migrations_offline():
     script output.
 
     """
-    url = config.get_main_option("sqlalchemy.url")
+    url = context.config.get_main_option("sqlalchemy.url")
     context.configure(url=url, include_object=include_object)
 
     with context.begin_transaction():
@@ -67,10 +64,10 @@ def run_migrations_online():
     and associate a connection with the context.
 
     """
-    engine = engine_from_config(
-                config.get_section(config.config_ini_section),
+    engine = sqlalchemy.engine_from_config(
+                context.config.get_section(config.config_ini_section),
                 prefix='sqlalchemy.',
-                poolclass=pool.NullPool)
+                poolclass=sqlalchemy.pool.NullPool)
 
     connection = engine.connect()
     context.configure(
@@ -89,4 +86,3 @@ if context.is_offline_mode():
     run_migrations_offline()
 else:
     run_migrations_online()
-
