@@ -15,12 +15,32 @@ fileConfig(config.config_file_name)
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-target_metadata = None
+import zato.common.odb.model
+target_metadata = zato.common.odb.model.Base.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
+
+IGNORE_TABLES = [
+    'django_site',
+    'cluster_color_marker',
+    'user_profile',
+    'sqlite_sequence',
+    'auth_user',
+    'auth_group',
+    'auth_permission',
+    'auth_group_permissions',
+    'django_content_type',
+    'django_session',
+    'auth_user_groups',
+    'django_migrations',
+    'auth_user_user_permissions',
+]
+
+def include_object(obj, name, type_, reflected, compare_to):
+    return (type_ != 'table') or (name not in IGNORE_TABLES)
 
 def run_migrations_offline():
     """Run migrations in 'offline' mode.
@@ -35,7 +55,7 @@ def run_migrations_offline():
 
     """
     url = config.get_main_option("sqlalchemy.url")
-    context.configure(url=url)
+    context.configure(url=url, include_object=include_object)
 
     with context.begin_transaction():
         context.run_migrations()
@@ -55,7 +75,8 @@ def run_migrations_online():
     connection = engine.connect()
     context.configure(
                 connection=connection,
-                target_metadata=target_metadata
+                target_metadata=target_metadata,
+                include_object=include_object,
                 )
 
     try:
