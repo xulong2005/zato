@@ -14,8 +14,8 @@ import zato.common.odb.model
 
 
 # Don't mess with logging if running from within Zato.
-if config.config_file_name is not None:
-    logging.config.fileConfig(config.config_file_name)
+if context.config.config_file_name is not None:
+    logging.config.fileConfig(context.config.config_file_name)
 
 target_metadata = zato.common.odb.model.Base.metadata
 
@@ -65,7 +65,7 @@ def run_migrations_online():
 
     """
     engine = sqlalchemy.engine_from_config(
-                context.config.get_section(config.config_ini_section),
+                context.config.get_section(context.config.config_ini_section),
                 prefix='sqlalchemy.',
                 poolclass=sqlalchemy.pool.NullPool)
 
