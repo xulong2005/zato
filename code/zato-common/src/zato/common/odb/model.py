@@ -17,7 +17,7 @@ from dictalchemy import make_class_dictable
 
 # SQLAlchemy
 from sqlalchemy import BigInteger, Boolean, Column, DateTime, Enum, ForeignKey, Index, Integer, LargeBinary, Sequence, \
-     SmallInteger, String, Text, UniqueConstraint
+     SmallInteger, String, Text, UniqueConstraint, true, false
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import backref, relationship
 
@@ -500,8 +500,8 @@ class HTTPSOAP(Base):
     audit_max_payload = Column(Integer, nullable=False, default=MISC.DEFAULT_AUDIT_MAX_PAYLOAD)
     audit_repl_patt_type = Column(String(200), nullable=False, default=MSG_PATTERN_TYPE.JSON_POINTER.id)
 
-    has_rbac = Column(Boolean, nullable=False, default=False)
-    sec_use_rbac = Column(Boolean(), nullable=False, default=False)
+    has_rbac = Column(Boolean, nullable=False, default=False, server_default=false())
+    sec_use_rbac = Column(Boolean(), nullable=False, default=False, server_default=false())
 
     cache_expiry = Column(Integer, nullable=True, default=0)
 
@@ -952,7 +952,7 @@ class OutgoingAMQP(Base):
     expiration = Column(Integer(), nullable=True)
     user_id = Column(String(200), nullable=True)
     app_id = Column(String(200), nullable=True)
-    pool_size = Column(SmallInteger(), nullable=False)
+    pool_size = Column(SmallInteger(), nullable=False, default=1, server_default='1')
 
     def_id = Column(Integer, ForeignKey('conn_def_amqp.id', ondelete='CASCADE'), nullable=False)
     def_ = relationship(ConnDefAMQP, backref=backref('out_conns_amqp', cascade='all, delete, delete-orphan'))
@@ -1107,7 +1107,7 @@ class OutgoingZMQ(Base):
 
     address = Column(String(200), nullable=False)
     socket_type = Column(String(20), nullable=False)
-    socket_method = Column(String(20), nullable=False)
+    socket_method = Column(String(20), nullable=False, default='connect', server_default='connect')
 
     cluster_id = Column(Integer, ForeignKey('cluster.id', ondelete='CASCADE'), nullable=False)
     cluster = relationship(Cluster, backref=backref('out_conns_zmq', order_by=name, cascade='all, delete, delete-orphan'))
