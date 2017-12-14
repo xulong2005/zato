@@ -1,5 +1,11 @@
+# -*- coding: utf-8 -*-
+
 """
 Functions used to support Alembic integration.
+
+Copyright (C) 2017 Dariusz Suchojad <dsuch at zato.io>
+
+Licensed under LGPLv3, see LICENSE.txt for terms and conditions.
 """
 
 import contextlib
