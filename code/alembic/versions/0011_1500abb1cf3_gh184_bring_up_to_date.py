@@ -16,7 +16,15 @@ from sqlalchemy.schema import CreateSequence, DropSequence
 
 # Zato
 from zato.common.odb import model
-from zato.common import CLOUD, HTTP_SOAP_SERIALIZATION_TYPE, MISC, PUB_SUB
+from zato.common import CLOUD, HTTP_SOAP_SERIALIZATION_TYPE, MISC
+
+# ################################################################################################################################
+
+
+# PUB_SUB.CALLBACK_TYPE.OUTCONN_PLAIN_HTTP
+PUB_SUB__CALLBACK_TYPE__OUTCONN_PLAIN_HTTP = 'outconn-plain-http'
+
+
 
 # ################################################################################################################################
 
@@ -129,7 +137,7 @@ def upgrade():
         sa.Column('max_backlog', sa.Integer(), nullable=False),
         sa.Column('delivery_mode', sa.String(200), nullable=False),
         sa.Column('callback_id', sa.Integer(), sa.ForeignKey('http_soap.id', ondelete='CASCADE'), nullable=True),
-        sa.Column('callback_type', sa.String(20), nullable=True, default=PUB_SUB.CALLBACK_TYPE.OUTCONN_PLAIN_HTTP),
+        sa.Column('callback_type', sa.String(20), nullable=True, default=PUB_SUB__CALLBACK_TYPE__OUTCONN_PLAIN_HTTP),
         sa.Column('topic_id', sa.Integer(), sa.ForeignKey('pub_sub_topic.id', ondelete='CASCADE'), nullable=False),
         sa.Column('sec_def_id', sa.Integer(), sa.ForeignKey('sec_base.id', ondelete='CASCADE'), nullable=False),
         sa.Column('cluster_id', sa.Integer(), sa.ForeignKey('cluster.id', ondelete='CASCADE'), nullable=False),
