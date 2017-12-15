@@ -71,4 +71,8 @@ setup(
           ],
 
       zip_safe = False,
+      entry_points = """
+      [console_scripts]
+      _zato-alembic = zato.common.odb.alembic_utils:main
+      """
 )
