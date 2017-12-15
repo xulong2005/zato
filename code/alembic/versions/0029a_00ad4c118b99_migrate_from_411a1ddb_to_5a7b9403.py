@@ -268,7 +268,7 @@ def upgrade():
     sa.Column('cluster_id', sa.Integer(), nullable=False),
     sa.ForeignKeyConstraint(['cluster_id'], [u'cluster.id'], ondelete=u'CASCADE'),
     sa.ForeignKeyConstraint(['endpoint_id'], [u'pubsub_endpoint.id'], ondelete=u'CASCADE'),
-    sa.ForeignKeyConstraint(['pub_msg_id'], [u'pubsub_message.pub_msg_id'], ondelete=u'CASCADE'),
+    sa.ForeignKeyConstraint(['cluster_id', 'pub_msg_id'], [u'pubsub_message.cluster_id', u'pubsub_message.pub_msg_id'], ondelete=u'CASCADE', name='pubsub_enms_msg_fkey'),
     sa.ForeignKeyConstraint(['subscription_id'], [u'pubsub_sub.id'], ondelete=u'CASCADE'),
     sa.ForeignKeyConstraint(['topic_id'], [u'pubsub_topic.id'], ondelete=u'CASCADE'),
     sa.PrimaryKeyConstraint('id')

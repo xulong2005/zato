@@ -16,8 +16,8 @@ from json import dumps
 from dictalchemy import make_class_dictable
 
 # SQLAlchemy
-from sqlalchemy import BigInteger, Boolean, Column, DateTime, Enum, ForeignKey, Index, Integer, LargeBinary, Sequence, \
-     SmallInteger, String, Text, UniqueConstraint, true, false
+from sqlalchemy import BigInteger, Boolean, Column, DateTime, Enum, ForeignKey, ForeignKeyConstraint, Index, Integer, LargeBinary, \
+     Sequence, SmallInteger, String, Text, UniqueConstraint, true, false
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import backref, relationship
 
@@ -2303,6 +2303,8 @@ class PubSubEndpointEnqueuedMessage(Base):
         Index('pubsb_enms_q_endp_idx', 'cluster_id', 'endpoint_id', unique=False),
         Index('pubsb_enms_q_subs_idx', 'cluster_id', 'subscription_id', unique=False),
         Index('pubsb_enms_q_endptp_idx', 'cluster_id', 'endpoint_id', 'topic_id', unique=False),
+        ForeignKeyConstraint(('cluster_id', 'pub_msg_id'), ('pubsub_message.cluster_id', 'pubsub_message.pub_msg_id'),
+                             ondelete='CASCADE', name='pubsub_enms_msg_fkey'),
     {})
 
     id = Column(Integer, Sequence('pubsub_msg_seq'), primary_key=True)
@@ -2321,7 +2323,7 @@ class PubSubEndpointEnqueuedMessage(Base):
     delivery_status = Column(Text, nullable=False)
     delivery_time = Column(BigInteger(), nullable=True)
 
-    pub_msg_id = Column(String(200), ForeignKey('pubsub_message.pub_msg_id', ondelete='CASCADE'), nullable=False)
+    pub_msg_id = Column(String(200), nullable=False)
 
     endpoint_id = Column(Integer, ForeignKey('pubsub_endpoint.id', ondelete='CASCADE'), nullable=True)
     endpoint = relationship(PubSubEndpoint,
