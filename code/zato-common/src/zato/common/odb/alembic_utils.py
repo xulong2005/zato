@@ -10,6 +10,7 @@ Licensed under LGPLv3, see LICENSE.txt for terms and conditions.
 
 # Stdlib
 import contextlib
+import logging
 import os
 import sys
 
@@ -74,6 +75,7 @@ def main():
         sys.stderr.write('Error: {} is not a server directory.\n'.format(repo_dir))
         sys.exit(1)
 
+    logging.basicConfig(level=logging.DEBUG)
     zconfig = get_zato_config(repo_dir, 'server.conf')
     cm = get_crypto_manager_from_server_config(zconfig, repo_dir)
     session = get_odb_session_from_server_config(zconfig, cm)
