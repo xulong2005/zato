@@ -295,13 +295,13 @@ def upgrade():
         batch_op.create_index('pubsb_enms_qi_endptp_idx', ['cluster_id', 'queue_id'], unique=False)
         batch_op.create_index('pubsb_enms_qi_id_idx', ['cluster_id', 'id'], unique=True)
 
-    op.drop_table('delivery_def_base')
-    op.drop_table('delivery_def_out_wmq')
-    op.drop_table('delivery')
     op.drop_table('delivery_history')
+    op.drop_table('delivery_payload')
+    op.drop_table('delivery')
+    op.drop_table('delivery_def_out_wmq')
+    op.drop_table('delivery_def_base')
     op.drop_table('pub_sub_consumer')
     op.drop_table('pub_sub_producer')
-    op.drop_table('delivery_payload')
     op.drop_table('pub_sub_topic')
     with op.batch_alter_table('http_soap', schema=None, naming_convention=naming_convention) as batch_op:
         batch_op.add_column(sa.Column('cache_expiry', sa.Integer(), nullable=True))
