@@ -163,8 +163,8 @@ def upgrade():
         batch_op.create_index('wssub_patt_is_idx', ['pattern', 'is_internal', 'is_by_ext_id', 'is_by_channel'], unique=False)
 
     with op.batch_alter_table('channel_amqp', schema=None, naming_convention=naming_convention) as batch_op:
-        batch_op.add_column(sa.Column('ack_mode', sa.String(length=20), nullable=False))
-        batch_op.add_column(sa.Column('pool_size', sa.Integer(), nullable=False))
+        batch_op.add_column(sa.Column('ack_mode', sa.String(length=20), nullable=False, server_default='auto'))
+        batch_op.add_column(sa.Column('pool_size', sa.Integer(), nullable=False, server_default='1'))
 
     with op.batch_alter_table('channel_zmq', schema=None, naming_convention=naming_convention, recreate="always") as batch_op:
         batch_op.add_column(sa.Column('pool_strategy', sa.String(length=20), nullable=False))
