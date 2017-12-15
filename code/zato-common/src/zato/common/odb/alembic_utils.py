@@ -76,6 +76,8 @@ def main():
         sys.exit(1)
 
     logging.basicConfig(level=logging.DEBUG)
+    logging.getLogger('sqlalchemy.engine').setLevel(logging.DEBUG)
+
     zconfig = get_zato_config(repo_dir, 'server.conf')
     cm = get_crypto_manager_from_server_config(zconfig, repo_dir)
     session = get_odb_session_from_server_config(zconfig, cm)
