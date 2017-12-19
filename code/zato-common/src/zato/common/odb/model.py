@@ -1220,7 +1220,7 @@ class ChannelZMQ(Base):
     """ An incoming Zero MQ connection.
     """
     __tablename__ = 'channel_zmq'
-    __table_args__ = (UniqueConstraint('name', 'cluster_id'), {})
+    __table_args__ = (UniqueConstraint('name', 'cluster_id', name='channel_zmq_name_cluster_id_key'), {})
 
     id = Column(Integer, Sequence('channel_zmq_seq'), primary_key=True)
     name = Column(String(200), nullable=False)
@@ -1234,10 +1234,10 @@ class ChannelZMQ(Base):
     pool_strategy = Column(String(20), nullable=False)
     service_source = Column(String(20), nullable=False)
 
-    service_id = Column(Integer, ForeignKey('service.id', ondelete='CASCADE'), nullable=False)
+    service_id = Column(Integer, ForeignKey('service.id', ondelete='CASCADE', name='channel_zmq_service_id_fkey'), nullable=False)
     service = relationship(Service, backref=backref('channels_zmq', order_by=name, cascade='all, delete, delete-orphan'))
 
-    cluster_id = Column(Integer, ForeignKey('cluster.id', ondelete='CASCADE'), nullable=False)
+    cluster_id = Column(Integer, ForeignKey('cluster.id', ondelete='CASCADE', name='channel_zmq_cluster_id_fkey'), nullable=False)
     cluster = relationship(Cluster, backref=backref('channels_zmq', order_by=name, cascade='all, delete, delete-orphan'))
 
     def __init__(self, id=None, name=None, is_active=None, address=None, socket_type=None, socket_type_text=None, sub_key=None,
