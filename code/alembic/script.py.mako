@@ -26,6 +26,15 @@ naming_convention = {
     "fk": "%(table_name)s_%(column_0_name)s_fkey",
 }
 
+def db_type():
+    config = context.config.get_section('alembic')
+    return config.get('sqlalchemy.url').split(':')[0]
+
+def always_if_sqlite():
+    if db_type() == 'sqlite':
+        return 'always'
+    else:
+        return 'auto'
 
 def upgrade():
     ${upgrades if upgrades else "pass"}
