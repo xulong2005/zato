@@ -1957,11 +1957,11 @@ class WebSocketSubscription(Base):
     sub_key = Column(String(200), nullable=False)
     ext_client_id = Column(String(200), nullable=False)
 
-    channel_id = Column(Integer, ForeignKey('channel_web_socket.id', ondelete='CASCADE'), nullable=True)
+    channel_id = Column(Integer, ForeignKey('channel_web_socket.id', ondelete='CASCADE', name='web_socket_sub_channel_id_fkey'), nullable=True)
     channel = relationship(
         ChannelWebSocket, backref=backref('web_socket_sub_list', order_by=id, cascade='all, delete, delete-orphan'))
 
-    cluster_id = Column(Integer, ForeignKey('cluster.id', ondelete='CASCADE'), nullable=False)
+    cluster_id = Column(Integer, ForeignKey('cluster.id', ondelete='CASCADE', name='web_socket_sub_cluster_id_fkey'), nullable=False)
     cluster = relationship(Cluster, backref=backref('web_socket_sub_list', order_by=id, cascade='all, delete, delete-orphan'))
 
 # ################################################################################################################################
@@ -2078,7 +2078,7 @@ class PubSubEndpointTopic(Base):
     pub_msg_id = Column(String(200), nullable=False)
     pub_correl_id = Column(String(200), nullable=True)
     in_reply_to = Column(String(200), nullable=True)
-    ext_client_id = Column(Text(), nullable=True)
+    ext_client_id = Column(String(200), nullable=True)
 
     endpoint_id = Column(Integer, ForeignKey('pubsub_endpoint.id', ondelete='CASCADE'), nullable=True)
     endpoint = relationship(
@@ -2121,7 +2121,7 @@ class PubSubMessage(Base):
     in_reply_to = Column(String(200), nullable=True)
 
     # ID of an external client on whose behalf the endpoint published the message
-    ext_client_id = Column(Text(), nullable=True)
+    ext_client_id = Column(String(200), nullable=True)
 
     # Will group messages belonging logically to the same group, useful if multiple
     # messages are published with the same timestamp by the same client but they still
@@ -2178,7 +2178,7 @@ class PubSubSubscription(Base):
     sub_key = Column(String(200), nullable=False) # Externally visible ID of this subscription
     pattern_matched = Column(Text, nullable=False)
     deliver_by = Column(Text, nullable=True) # Delivery order, e.g. by priority, date etc.
-    ext_client_id = Column(Text, nullable=True) # Subscriber's ID as it is stored by that external system
+    ext_client_id = Column(String(200), nullable=True) # Subscriber's ID as it is stored by that external system
 
     is_durable = Column(Boolean(), nullable=False, default=True) # For now always True = survives cluster restarts
     has_gd = Column(Boolean(), nullable=False) # Guaranteed delivery
