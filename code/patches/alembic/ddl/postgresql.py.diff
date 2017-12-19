@@ -1,0 +1,13 @@
+--- alembic/ddl/postgresql.py.bak	2017-12-19 13:22:12.408061442 +0000
++++ alembic/ddl/postgresql.py	2017-12-19 13:22:18.599946793 +0000
+@@ -36,8 +36,9 @@
+     transactional_ddl = True
+ 
+     def prep_table_for_batch(self, table):
++        from sqlalchemy.sql.elements import _NONE_NAME
+         for constraint in table.constraints:
+-            if constraint.name is not None:
++            if constraint.name not in (None, _NONE_NAME):
+                 self.drop_constraint(constraint)
+ 
+     def compare_server_default(self, inspector_column,
