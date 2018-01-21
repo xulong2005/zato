@@ -1893,9 +1893,9 @@ class WebSocketClient(Base):
     ext_client_id = Column(String(200), nullable=False)
     ext_client_name = Column(String(200), nullable=True)
 
-    local_address = Column(String(400), nullable=False)
-    peer_address = Column(String(400), nullable=False)
-    peer_fqdn = Column(String(400), nullable=False)
+    local_address = Column(String(250), nullable=False)
+    peer_address = Column(String(250), nullable=False)
+    peer_fqdn = Column(String(250), nullable=False)
 
     connection_time = Column(DateTime, nullable=False)
     last_seen = Column(DateTime, nullable=False)
