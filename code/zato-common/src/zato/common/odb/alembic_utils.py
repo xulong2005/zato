@@ -21,18 +21,18 @@ import alembic.config
 import sqlalchemy
 
 # Zato
+import zato.common.odb.alembic
 from zato.common.util import get_crypto_manager_from_server_config
 from zato.common.util import get_engine_url
 from zato.common.util import get_config as get_zato_config
 from zato.common.util import get_odb_session_from_server_config
 
 
+# ################################################################################################################################
+
 def get_alembic_dir():
     """Return the location of the alembic directory in the source tree."""
-    path = __file__
-    for _ in xrange(6):
-        path, _ = os.path.split(path)
-    return os.path.join(path, 'alembic')
+    return os.path.dirname(zato.common.odb.alembic.__file__)
 
 # ################################################################################################################################
 
