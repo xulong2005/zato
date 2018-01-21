@@ -1946,7 +1946,9 @@ class WebSocketSubscription(Base):
     """
     __tablename__ = 'web_socket_sub'
     __table_args__ = (
-        Index('wssub_channel_idx', 'cluster_id', 'channel_id', unique=False),
+        # On MySQL, wssub_channel_idx already used by implicit index created by
+        # channel_id's ForeignKey.
+        Index('wssub_channel_idx_2', 'cluster_id', 'channel_id', unique=False),
         Index('wssub_subkey_idx', 'cluster_id', 'sub_key', unique=True),
         Index('wssub_extcli_idx', 'cluster_id', 'ext_client_id', unique=True),
         Index('wssub_subkey_chan_idx', 'cluster_id', 'sub_key', 'channel_id', unique=True),
