@@ -14,26 +14,7 @@ from alembic import context, op
 import sqlalchemy as sa
 
 # Zato
-from zato.common.odb import model
-
-# Pass this as a naming_convention= kwarg to batch_alter_table() in order to
-# resolve unnamed constraint exceptions with SQLite. This is the default
-# format used by PostgreSQL, it is likely if there are other databases to
-# be supported, we will need to mimic their default naming behaviour by
-# dynamically switching this at runtime, according to the driver in use.
-naming_convention = {
-    "fk": "%(table_name)s_%(column_0_name)s_fkey",
-}
-
-def db_type():
-    config = context.config.get_section('alembic')
-    return config.get('sqlalchemy.url').split(':')[0]
-
-def always_if_sqlite():
-    if db_type() == 'sqlite':
-        return 'always'
-    else:
-        return 'auto'
+from zato.common.odb import alembic_utils
 
 
 def upgrade():
@@ -49,7 +30,7 @@ def upgrade():
     sa.ForeignKeyConstraint(['cluster_id'], ['cluster.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
     )
-    with op.batch_alter_table('kv_data', schema=None, naming_convention=naming_convention) as batch_op:
+    with op.batch_alter_table('kv_data', schema=None, naming_convention=alembic_utils.naming_convention) as batch_op:
         batch_op.create_index('key_clust_id_idx', ['key', 'cluster_id'], unique=True, mysql_length={'key': 767})
 
     op.create_table('out_stomp',
@@ -144,7 +125,7 @@ def upgrade():
     sa.ForeignKeyConstraint(['server_id'], ['server.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
     )
-    with op.batch_alter_table('web_socket_client', schema=None, naming_convention=naming_convention) as batch_op:
+    with op.batch_alter_table('web_socket_client', schema=None, naming_convention=alembic_utils.naming_convention) as batch_op:
         batch_op.create_index('wscl_cli_ext_i_idx', ['ext_client_id'], unique=False)
         batch_op.create_index('wscl_cli_ext_n_idx', ['ext_client_name'], unique=False)
         batch_op.create_index('wscl_pr_addr_idx', ['peer_address'], unique=False)
@@ -167,33 +148,33 @@ def upgrade():
     sa.ForeignKeyConstraint(['server_id'], ['server.id'], ondelete='CASCADE', name='web_socket_sub_server_id_fkey'),
     sa.PrimaryKeyConstraint('id')
     )
-    with op.batch_alter_table('web_socket_sub', schema=None, naming_convention=naming_convention) as batch_op:
+    with op.batch_alter_table('web_socket_sub', schema=None, naming_convention=alembic_utils.naming_convention) as batch_op:
         batch_op.create_index('wssub_patt_idx', ['pattern'], unique=False)
         batch_op.create_index('wssub_patt_is_idx', ['pattern', 'is_internal', 'is_by_ext_id', 'is_by_channel'], unique=False)
 
-    with op.batch_alter_table('channel_amqp', schema=None, naming_convention=naming_convention) as batch_op:
+    with op.batch_alter_table('channel_amqp', schema=None, naming_convention=alembic_utils.naming_convention) as batch_op:
         batch_op.add_column(sa.Column('ack_mode', sa.String(length=20), nullable=False, server_default='auto'))
         batch_op.add_column(sa.Column('pool_size', sa.Integer(), nullable=False, server_default='1'))
 
-    with op.batch_alter_table('channel_zmq', schema=None, naming_convention=naming_convention, recreate=always_if_sqlite()) as batch_op:
+    with op.batch_alter_table('channel_zmq', schema=None, naming_convention=alembic_utils.naming_convention, recreate=alembic_utils.always_if_sqlite()) as batch_op:
         batch_op.add_column(sa.Column('pool_strategy', sa.String(length=20), nullable=False))
         batch_op.add_column(sa.Column('service_source', sa.String(length=20), nullable=False))
         batch_op.add_column(sa.Column('socket_method', sa.String(length=20), nullable=False))
 
-    with op.batch_alter_table('conn_def_amqp', schema=None, naming_convention=naming_convention) as batch_op:
+    with op.batch_alter_table('conn_def_amqp', schema=None, naming_convention=alembic_utils.naming_convention) as batch_op:
         batch_op.drop_column('def_type')
 
-    with op.batch_alter_table('http_soap', schema=None, naming_convention=naming_convention) as batch_op:
+    with op.batch_alter_table('http_soap', schema=None, naming_convention=alembic_utils.naming_convention) as batch_op:
         batch_op.add_column(sa.Column('content_type', sa.String(length=200), nullable=True))
         batch_op.add_column(sa.Column('sec_use_rbac', sa.Boolean(), nullable=False, server_default='0'))
 
-    with op.batch_alter_table('out_amqp', schema=None, naming_convention=naming_convention) as batch_op:
+    with op.batch_alter_table('out_amqp', schema=None, naming_convention=alembic_utils.naming_convention) as batch_op:
         batch_op.add_column(sa.Column('pool_size', sa.SmallInteger(), nullable=False, server_default='1'))
 
-    with op.batch_alter_table('out_zmq', schema=None, naming_convention=naming_convention) as batch_op:
+    with op.batch_alter_table('out_zmq', schema=None, naming_convention=alembic_utils.naming_convention) as batch_op:
         batch_op.add_column(sa.Column('socket_method', sa.String(length=20), nullable=False, server_default='connect'))
 
-    with op.batch_alter_table('server', schema=None, naming_convention=naming_convention) as batch_op:
+    with op.batch_alter_table('server', schema=None, naming_convention=alembic_utils.naming_convention) as batch_op:
         batch_op.add_column(sa.Column('crypto_use_tls', sa.Boolean(), nullable=True))
         batch_op.add_column(sa.Column('preferred_address', sa.String(length=400), nullable=True))
 

@@ -1,20 +1,20 @@
 # -*- coding: utf-8 -*-
 
 """
-Functions used to support Alembic integration.
+Functions used to support Alembic integration, and helper functions for use within Alembic migrations.
 
-Copyright (C) 2017 Dariusz Suchojad <dsuch at zato.io>
+Copyright (C) 2018, Zato Source s.r.o. https://zato.io
 
 Licensed under LGPLv3, see LICENSE.txt for terms and conditions.
 """
+
+from __future__ import absolute_import
 
 # Stdlib
 import contextlib
 import logging
 import os
 import sys
-
-# Alembic
 import alembic.config
 
 # SQLAlchemy
@@ -27,6 +27,66 @@ from zato.common.util import get_engine_url
 from zato.common.util import get_config as get_zato_config
 from zato.common.util import get_odb_session_from_server_config
 
+
+# Pass this as a naming_convention= kwarg to batch_alter_table() in order to
+# resolve unnamed constraint exceptions with SQLite. This is the default
+# format used by PostgreSQL, it is likely if there are other databases to
+# be supported, we will need to mimic their default naming behaviour by
+# dynamically switching this at runtime, according to the driver in use.
+naming_convention = {
+    "fk": "%(table_name)s_%(column_0_name)s_fkey",
+}
+
+
+# ################################################################################################################################
+
+def db_type():
+    """Return one of "sqlite", "mysql", or "postgresql" depending on Alembic's active database connection."""
+    config = alembic.context.config.get_section('alembic')
+    url = config.get('sqlalchemy.url')
+    url, _, _ = url.partition(':')
+    url, _, _ = url.partition('+')
+    return url
+
+# ################################################################################################################################
+
+def never_if_mysql():
+    """For batch_alter_table(recreate=...), return "never" if the active database connection is MySQL, otherwise return "auto".
+    This is to work around a bug in the SQL Alembic emits against MySQL for certain operations."""
+    if db_type() == 'mysql':
+        return 'never'
+    else:
+        return 'auto'
+
+# ################################################################################################################################
+
+def drop_fk_by_shape(src_table, src_col, target_table, target_col):
+    """
+    Drop a ForeignKeyConstraint without knowing its name. This is used to work unnamed ForeignKeys on PG and MySQL having
+    differing behaviour, and in the case of MySQL, having behaviour that varies according to the order FKs were created
+    on the table.
+
+    ::
+
+        drop_fk_by_shape('web_socket_sub', 'client_id',
+                         'web_socket_client', 'id')
+
+    Above will result:
+        MySQL: ALTER TABLE web_socket_sub DROP CONSTRAINT web_socket_sub_ibfk_1;
+        PostgreSQL: ALTER TABLE web_socket_sub DROP CONSTRAINT web_socket_sub_client_id_fkey;
+        SQLite: do nothing.
+    """
+    engine = alembic.op.get_bind()
+    meta = sqlalchemy.MetaData()
+    tbl = sqlalchemy.Table(src_table, meta, autoload=True, autoload_with=engine)
+
+    for fk in tbl.foreign_keys:
+        if   (fk.parent.name == src_col and
+              fk.column.table.name == target_table and
+              fk.column.name == target_col and
+              fk.name and
+              db_type() != 'sqlite'):
+            alembic.op.drop_constraint(fk.name, src_table, 'foreignkey')
 
 # ################################################################################################################################
 
